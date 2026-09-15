@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+
 class RoleSeeder extends Seeder
 {
     /**
@@ -12,10 +12,12 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('roles')->insert([
-            ['id' => 1, 'name' => 'admin', 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 2, 'name' => 'researcher', 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 3, 'name' => 'reviewer', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // Bersihkan cache permission Spatie sebelum seeding
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // Buat roles
+        Role::firstOrCreate(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'researcher']);
+        Role::firstOrCreate(['name' => 'reviewer']);
     }
 }
