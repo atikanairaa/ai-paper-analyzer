@@ -17,6 +17,7 @@ Route::prefix('papers')->group(function () {
     Route::post('/{paperId}/reviews', [\App\Http\Controllers\ReviewController::class, 'store']);
 });
 
-Route::prefix('admin/jobs')->group(function () {
-    Route::post('/{id}/retry', [\App\Http\Controllers\AdminJobController::class, 'retry']);
+Route::prefix('admin')->group(function () {
+    Route::post('/jobs/{id}/retry', [\App\Http\Controllers\AdminJobController::class, 'retry']);
+    Route::get('/audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index']);
 });
