@@ -1,0 +1,23 @@
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+venv/
+
+# Node / Frontend
+node_modules/
+/backend/public/build/
+
+# Laravel
+/backend/vendor/
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+/backend/storage/app/papers/*
