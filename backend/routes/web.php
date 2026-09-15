@@ -39,3 +39,4 @@ Route::get('/detail', fn() => Inertia::render('PaperDetail'));
 Route::get('/compare', fn() => Inertia::render('Compare'));
 
 require __DIR__ . '/auth.php';
+
