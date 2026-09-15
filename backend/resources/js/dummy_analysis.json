@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "title": "Attention Is All You Need",
+    "authors": ["Ashish Vaswani", "Noam Shazeer"],
+    "abstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks...",
+    "publication_year": 2017,
+    "journal": "NeurIPS",
+    "doi": "10.48550/arXiv.1706.03762"
+  },
+  "classification": {
+    "research_domain": "Computer Science",
+    "research_type": "Experimental"
+  },
+  "scoring": {
+    "overall": 88,
+    "methodology": { "score": 92, "reason": "Arsitektur transformer dijelaskan dengan detail matematis yang sangat solid." },
+    "novelty": { "score": 95, "reason": "Menghilangkan RNN sepenuhnya merupakan terobosan baru." },
+    "reproducibility": { "score": 80, "reason": "Perlu 8 GPU kelas enterprise untuk training ulang." }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "category": "reproducibility",
+      "finding": "High Compute Barrier",
+      "explanation": "Membutuhkan 8 GPU P100 selama 3.5 hari.",
+      "evidence": "Page 7, Section 5.2"
+    }
+  ]
+}
