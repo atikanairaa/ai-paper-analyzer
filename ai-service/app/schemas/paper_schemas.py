@@ -1,9 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal, Generic, TypeVar
 
-# ==========================================
-# Amplop Respon API
-# ==========================================
 T = TypeVar("T")
 
 class ErrorDetail(BaseModel):
@@ -17,55 +14,45 @@ class APIResponse(BaseModel, Generic[T]):
     error: Optional[ErrorDetail] = None
 
 # ==========================================
-# Schema 1: Analyze Endpoint
+# SKEMA ENDPOINT 1: POST /api/v1/analyze
 # ==========================================
 class PaperMetadata(BaseModel):
     title: str
-    authors: List[str] = []
-    abstract: str
+    abstract: Optional[str] = None
     publication_year: Optional[int] = None
     journal: Optional[str] = None
     doi: Optional[str] = None
-    keywords: List[str] = []
 
-class PaperClassification(BaseModel):
+class AuthorItem(BaseModel):
+    name: str
+
+class PaperAnalyses(BaseModel):
     research_domain: str
     research_type: str
+    key_findings: List[str]
+    strengths: List[str]
+    weaknesses: List[str]
+    keywords: List[str]
 
 class SectionItem(BaseModel):
-    found: bool
+    section_name: str
+    is_found: bool
     summary: Optional[str] = None
 
-class MethodologySection(SectionItem):
-    type: Optional[str] = None
-    method_name: Optional[str] = None
-    dataset: Optional[str] = None
-    sample_size: Optional[str] = None
-
-class PaperStructure(BaseModel):
-    research_problem: SectionItem
-    research_question: SectionItem
-    research_objective: SectionItem
-    hypothesis: SectionItem
-    methodology: MethodologySection
-    dataset: SectionItem
-    experiment: SectionItem
-    results: SectionItem
-    conclusion: SectionItem
-    limitation: SectionItem
-
-class ScoreDetail(BaseModel):
-    score: int = Field(ge=0, le=100)
-    reason: str
-
-class PaperScoring(BaseModel):
-    overall: int = Field(ge=0, le=100)
-    methodology: ScoreDetail
-    novelty: ScoreDetail
-    clarity: ScoreDetail
-    evidence: ScoreDetail
-    reproducibility: ScoreDetail
-    writing_quality: ScoreDetail
+class PaperScores(BaseModel):
+    overall_score: int = Field(ge=0, le=100)
+    methodology_score: int = Field(ge=0, le=100)
+    methodology_reason: str
+    novelty_score: int = Field(ge=0, le=100)
+    novelty_reason: str
+    clarity_score: int = Field(ge=0, le=100)
+    clarity_reason: str
+    evidence_score: int = Field(ge=0, le=100)
+    evidence_reason: str
+    reproducibility_score: int = Field(ge=0, le=100)
+    reproducibility_reason: str
+    writing_score: int = Field(ge=0, le=100)
+    writing_reason: str
 
 class FindingItem(BaseModel):
     severity: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -74,69 +61,78 @@ class FindingItem(BaseModel):
     explanation: str
     evidence: str
 
-class CitationAnalysis(BaseModel):
+class PaperReferences(BaseModel):
     total_references: int
     recent_references: int
     old_references: int
     potential_issues: List[str] = []
 
-class AnalyzeDataResponse(BaseModel):
-    metadata: PaperMetadata
-    classification: PaperClassification
-    structure: PaperStructure
-    scoring: PaperScoring
-    findings: List[FindingItem]
-    citation_analysis: CitationAnalysis
-    key_findings: List[str]
-    strengths: List[str]
-    weaknesses: List[str]
+class ReviewItem(BaseModel):
+    recommendation: Literal["ACCEPT", "MINOR_REVISION", "MAJOR_REVISION", "REJECT"]
+    score: int
+    comments: str
+
+class FullAnalyzeDataResponse(BaseModel):
+    paper: PaperMetadata
+    authors: List[AuthorItem]
+    paper_analyses: PaperAnalyses
+    paper_sections: List[SectionItem]
+    paper_scores: PaperScores
+    paper_findings: List[FindingItem]
+    paper_references: PaperReferences
+
+AnalyzeDataResponse = FullAnalyzeDataResponse
 
 # ==========================================
-# Schema 2: Review Endpoint
+# SKEMA ENDPOINT 2: POST /api/v1/review
 # ==========================================
-class ReviewDataResponse(BaseModel):
-    recommendation: Literal["ACCEPT", "MINOR_REVISION", "MAJOR_REVISION", "REJECT"]
-    reason: str
-    summary: str
-    strengths: List[str]
-    major_concerns: List[str]
-    minor_concerns: List[str]
+class SectionReviews(BaseModel):
     methodology_review: str
     novelty_review: str
     result_review: str
     reproducibility_review: str
 
+class ReviewDataResponse(BaseModel):
+    summary: str
+    strengths: List[str]
+    major_concerns: List[str]
+    minor_concerns: List[str]
+    section_reviews: SectionReviews
+    recommendation: Literal["ACCEPT", "MINOR_REVISION", "MAJOR_REVISION", "REJECT"]
+    recommendation_reason: str
+
 # ==========================================
-# Schema 3: Q&A Endpoint
+# SKEMA ENDPOINT 3: POST /api/v1/qa
 # ==========================================
-class EvidenceReference(BaseModel):
-    page: Optional[int] = None
-    section: Optional[str] = None
-    snippet: Optional[str] = None
+class EvidenceSource(BaseModel):
+    page: str
+    section: str
+    exact_quote: str
 
 class QADataResponse(BaseModel):
-    question: str
+    user_question: str
     found_in_paper: bool
     answer: str
-    evidence: Optional[EvidenceReference] = None
+    evidence_sources: List[EvidenceSource] = []
 
 # ==========================================
-# Schema 4: Compare Endpoint
+# SKEMA ENDPOINT 4: POST /api/v1/compare
 # ==========================================
-class AspectComparison(BaseModel):
+class ComparisonTableItem(BaseModel):
     aspect: str
     paper_a: str
     paper_b: str
 
-class WinnerDetail(BaseModel):
+class VerdictDetail(BaseModel):
+    question: str
     winner: str
     reason: str
 
-class ComparativeAnalysis(BaseModel):
-    stronger_methodology: WinnerDetail
-    stronger_evidence: WinnerDetail
-    more_reproducible: WinnerDetail
+class CompareVerdicts(BaseModel):
+    stronger_methodology: VerdictDetail
+    stronger_evidence: VerdictDetail
+    more_reproducible: VerdictDetail
 
 class CompareDataResponse(BaseModel):
-    comparison_matrix: List[AspectComparison]
-    comparative_analysis: ComparativeAnalysis
+    comparison_table: List[ComparisonTableItem]
+    verdict: CompareVerdicts
