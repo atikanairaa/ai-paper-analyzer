@@ -117,6 +117,57 @@ async def generate_review_endpoint(
             }
         )
 
+from app.services.qa_service import QAService
+from app.schemas.paper_schemas import QADataResponse
+# ====================================================================
+# ENDPOINT POST /api/v1/qa
+# ====================================================================
+@app.post(
+    "/api/v1/qa", 
+    response_model=APIResponse[QADataResponse],
+    dependencies=[Depends(verify_internal_token)]
+)
+async def paper_qa_endpoint(
+    question: str = Form(...),
+    file: UploadFile = File(None),
+    paper_text: str = Form(None),
+    request_id: str = Form(None),
+    paper_id: int = Form(None)
+):
+    active_request_id = request_id or str(uuid.uuid4())
+
+    # Dukung upload PDF atau kirim teks mentah
+    if not file and not paper_text:
+        raise HTTPException(status_code=400, detail="Wajib menyertakan file PDF atau paper_text!")
+
+    try:
+        # Jika dikirim file PDF, ekstrak dulu
+        if file:
+            pdf_bytes = await file.read()
+            pages = PDFService.extract_text_with_pages(pdf_bytes)
+            full_text = PDFService.get_full_text(pages)
+        else:
+            full_text = paper_text
+
+        # Eksekusi Q&A dengan AI
+        qa_data = QAService.answer_question(full_text, question)
+
+        return APIResponse(
+            success=True,
+            request_id=active_request_id,
+            data=qa_data
+        )
+
+    except Exception as e:
+        return APIResponse(
+            success=False,
+            request_id=active_request_id,
+            error={
+                "code": "AI_PROCESSING_FAILED",
+                "message": str(e)
+            }
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)

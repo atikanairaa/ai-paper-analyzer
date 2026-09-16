@@ -1,3 +1,4 @@
+import time
 import google.generativeai as genai
 import json
 from typing import Type, TypeVar
@@ -9,7 +10,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 T = TypeVar("T", bound=BaseModel)
 
 class GeminiService:
-    MODEL_NAME = "gemini-3.6-flash"
+    MODEL_NAME = "gemini-flash-latest"
 
     @classmethod
     def call_gemini_with_repair(
@@ -43,21 +44,25 @@ class GeminiService:
                         raw_json_text = raw_json_text[4:]
                     raw_json_text = raw_json_text.strip()
 
-                # Validasi Murni Pydantic
+                # Validasi Pydantic
                 validated_data = schema_class.model_validate_json(raw_json_text)
                 return validated_data
 
-            except (ValidationError, json.JSONDecodeError) as e:
+            except Exception as e:
+                err_str = str(e)
+                
+                # JIKA KENA LIMIT 1-2 DETIK (429): Otomatis tidur 3 detik lalu coba lagi!
+                if "429" in err_str or "ResourceExhausted" in err_str:
+                    if attempts <= max_retries:
+                        time.sleep(3)  # Tunggu 3 detik di background
+                        continue
+
+                # JIKA ERROR PYDANTIC: Jalankan repair loop
                 if attempts > max_retries:
-                    raise ValueError(
-                        f"AI_PROCESSING_FAILED: Gagal memvalidasi JSON setelah {max_retries}x percobaan perbaikan AI. Error: {str(e)}"
-                    )
+                    raise ValueError(f"AI_PROCESSING_FAILED: {err_str}")
 
                 current_prompt = (
                     f"PREVIOUS RESPONSE FAILED PYDANTIC VALIDATION!\n"
-                    f"Error details: {str(e)}\n\n"
-                    f"CRITICAL INSTRUCTION:\n"
-                    f"- 'paper_findings' MUST be a list of OBJECTS with keys: severity, category, finding, explanation, evidence (NOT strings).\n"
-                    f"- Scores must be integers between 0 and 100.\n"
-                    f"Please RE-EVALUATE and strictly return the valid JSON matching the schema."
+                    f"Error details: {err_str}\n\n"
+                    f"Please REPAIR and return strictly valid JSON matching the schema."
                 )

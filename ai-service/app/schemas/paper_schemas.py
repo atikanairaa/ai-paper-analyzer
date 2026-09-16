@@ -14,7 +14,7 @@ class APIResponse(BaseModel, Generic[T]):
     error: Optional[ErrorDetail] = None
 
 # ==========================================
-# SKEMA RESMI HASIL ANALISIS
+# SKEMA ENDPOINT 1: POST /api/v1/analyze
 # ==========================================
 class PaperMetadata(BaseModel):
     title: str
@@ -84,7 +84,7 @@ class FullAnalyzeDataResponse(BaseModel):
 AnalyzeDataResponse = FullAnalyzeDataResponse
 
 # ==========================================
-# SKEMA RESMI ENDPOINT 2
+# SKEMA ENDPOINT 2 : POST /api/v1/review
 # ==========================================
 class SectionReviews(BaseModel):
     methodology_review: str
@@ -100,3 +100,17 @@ class ReviewDataResponse(BaseModel):
     section_reviews: SectionReviews
     recommendation: Literal["ACCEPT", "MINOR_REVISION", "MAJOR_REVISION", "REJECT"]
     recommendation_reason: str
+
+# ==========================================
+# SKEMA ENDPOINT 3: POST /api/v1/qa
+# ==========================================
+class EvidenceSource(BaseModel):
+    page: str
+    section: str
+    exact_quote: str
+
+class QADataResponse(BaseModel):
+    user_question: str
+    found_in_paper: bool
+    answer: str
+    evidence_sources: List[EvidenceSource] = []
