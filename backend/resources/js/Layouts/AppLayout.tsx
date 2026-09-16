@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
   FileText, UploadCloud, GitCompare, LogOut, User as UserIcon,
@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 
 type Role = 'admin' | 'peneliti' | 'reviewer';
-type Theme = 'light' | 'dark';
 
 interface MenuItem {
   id: string;
@@ -23,32 +22,15 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'peneliti' }) => {
   const { url } = usePage();
   const activeHref = url.split('?')[0];
-
   const [currentRole, setCurrentRole] = useState<Role>(defaultRole);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
-  const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    const initialTheme = savedTheme || 'light';
-    setTheme(initialTheme);
-    if (initialTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    // Lock to light mode permanently
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+    localStorage.removeItem('theme');
   }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   const getMenus = (role: Role): MenuItem[] => {
     switch (role) {
@@ -75,27 +57,27 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
   const menus = getMenus(currentRole);
 
   return (
-    <div className="min-h-screen flex bg-[#f1f5f9] text-slate-900 transition-colors duration-200 dark:bg-[#0b1329] dark:text-slate-100">
+    <div className="min-h-screen flex bg-[#faf8f5] text-stone-900">
 
       {/* ── Sidebar ── */}
-      <aside className="w-64 h-screen sticky top-0 flex flex-col bg-white border-r border-slate-200 dark:bg-[#101a36] dark:border-slate-800 flex-shrink-0 transition-colors duration-200 z-20">
+      <aside className="w-64 h-screen sticky top-0 flex flex-col bg-white/90 border-r border-[#e8e4dc] flex-shrink-0 z-20">
 
         {/* Logo */}
-        <div className="px-6 py-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="px-6 py-6 border-b border-[#e8e4dc]">
           <Link href="/dashboard" className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center border border-slate-700/60 shadow-sm flex-shrink-0">
-              <BookOpen className="w-5 h-5 text-blue-400" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-stone-800 to-stone-700 flex items-center justify-center border border-stone-600/60 shadow-sm flex-shrink-0">
+              <BookOpen className="w-5 h-5 text-rose-300" />
             </div>
             <div>
-              <h1 className="text-[13px] font-bold tracking-tight text-slate-800 dark:text-white leading-tight">AI Research Paper Analyzer</h1>
-              <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-0.5 font-medium">Reviewer Assistant</p>
+              <h1 className="text-[13px] font-bold tracking-tight text-stone-800 leading-tight">AI Research Paper Analyzer</h1>
+              <p className="text-[11px] text-rose-600 mt-0.5 font-medium">Reviewer Assistant</p>
             </div>
           </Link>
         </div>
 
         {/* Nav Items */}
         <nav className="flex-1 overflow-y-auto py-5">
-          <p className="px-5 mb-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Menu Utama</p>
+          <p className="px-5 mb-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest">Menu Utama</p>
           <ul className="space-y-1 px-3">
             {menus.map(menu => {
               const isActive = activeHref === menu.href || (menu.href !== '/' && activeHref.startsWith(menu.href + '/'));
@@ -105,11 +87,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
                     href={menu.href}
                     className={`flex items-center space-x-3 px-3 py-2.5 text-sm transition-all duration-150 border-l-4 ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700 font-semibold border-blue-600 dark:bg-blue-950/60 dark:text-blue-400 dark:border-blue-500 rounded-r-lg'
-                        : 'border-transparent font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#182444] hover:text-slate-800 dark:hover:text-white rounded-lg'
+                        ? 'bg-rose-50 text-rose-800 font-semibold border-rose-500 rounded-r-lg'
+                        : 'border-transparent font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 rounded-lg'
                     }`}
                   >
-                    <span className={isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}>{menu.icon}</span>
+                    <span className={isActive ? 'text-rose-600' : 'text-stone-400'}>{menu.icon}</span>
                     <span>{menu.label}</span>
                   </Link>
                 </li>
@@ -119,21 +101,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
         </nav>
 
         {/* User + Logout */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="p-4 border-t border-[#e8e4dc] space-y-3">
           <div className="flex items-center space-x-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-white flex-shrink-0 shadow-sm border border-slate-700/50">
-              <UserIcon className="w-4 h-4 text-blue-400" />
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-stone-700 to-stone-900 flex items-center justify-center text-white flex-shrink-0 shadow-sm border border-stone-600/40">
+              <UserIcon className="w-4 h-4 text-rose-300" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-800 dark:text-white truncate capitalize">{currentRole} User</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">Mode: {currentRole}</p>
+              <p className="text-sm font-semibold text-stone-800 truncate capitalize">{currentRole} User</p>
+              <p className="text-xs text-stone-500 capitalize">Mode: {currentRole}</p>
             </div>
           </div>
           <Link
             href="/logout"
             method="post"
             as="button"
-            className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-800 transition-colors"
+            className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-[#e8e4dc] rounded-lg text-sm font-medium text-stone-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span>Keluar</span>
@@ -145,30 +127,30 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <header className="bg-white/95 border-b border-slate-200 dark:bg-[#101a36]/95 dark:border-slate-800 py-3 px-8 flex justify-between items-center shadow-sm z-10 flex-shrink-0 transition-colors duration-200 backdrop-blur-sm">
+        <header className="bg-white/90 border-b border-[#e8e4dc] py-3 px-8 flex justify-between items-center shadow-sm z-10 flex-shrink-0 backdrop-blur-sm">
 
           {/* Role Switcher */}
-          <div className="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400">
+          <div className="flex items-center space-x-2 text-sm text-stone-500">
             <span className="font-medium hidden sm:inline">Mode Pratinjau:</span>
             <div className="relative">
               <button
                 onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                className="flex items-center space-x-2 bg-slate-50 dark:bg-[#182444] hover:bg-slate-100 dark:hover:bg-[#1e293b] border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md text-sm font-bold text-slate-800 dark:text-white capitalize w-32 transition-colors shadow-sm"
+                className="flex items-center space-x-2 bg-stone-50 hover:bg-stone-100 border border-[#e8e4dc] px-3 py-1.5 rounded-md text-sm font-bold text-stone-800 capitalize w-32 transition-colors shadow-sm"
               >
                 <span className="flex-1 text-left">{currentRole}</span>
                 <ChevronDown className="w-4 h-4 flex-shrink-0" />
               </button>
 
               {showRoleDropdown && (
-                <div className="absolute top-full mt-1 left-0 w-36 bg-white dark:bg-[#182444] border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg overflow-hidden py-1 z-50">
+                <div className="absolute top-full mt-1 left-0 w-36 bg-white border border-[#e8e4dc] shadow-xl rounded-lg overflow-hidden py-1 z-50">
                   {(['admin', 'peneliti', 'reviewer'] as Role[]).map(role => (
                     <button
                       key={role}
                       onClick={() => { setCurrentRole(role); setShowRoleDropdown(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm capitalize transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300 ${
+                      className={`w-full text-left px-4 py-2 text-sm capitalize transition-colors hover:bg-rose-50 hover:text-rose-700 ${
                         currentRole === role
-                          ? 'font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                          : 'text-slate-700 dark:text-slate-300'
+                          ? 'font-bold text-rose-700 bg-rose-50'
+                          : 'text-stone-700'
                       }`}
                     >
                       {role}
@@ -179,10 +161,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 hidden md:block bg-slate-50 dark:bg-[#182444] px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
-              {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </div>
+          <div className="text-xs font-medium text-stone-500 hidden md:block bg-stone-50 px-3 py-1.5 rounded-full border border-[#e8e4dc]">
+            {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </header>
 
@@ -194,4 +174,3 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
     </div>
   );
 };
-

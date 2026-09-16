@@ -7,26 +7,21 @@ interface ScoreCardProps {
 }
 
 export const ScoreCard: React.FC<ScoreCardProps> = ({ title, score, reason }) => {
-  // Determine color based on score
-  let progressColor = 'bg-red-50 dark:bg-rose-900/300';
-  if (score >= 80) progressColor = 'bg-green-50 dark:bg-emerald-900/300';
-  else if (score >= 60) progressColor = 'bg-yellow-50 dark:bg-amber-900/300';
+  const barColor = score >= 80 ? 'bg-emerald-600' : score >= 60 ? 'bg-amber-500' : 'bg-rose-600';
+  const scoreColor = score >= 80 ? 'text-emerald-700' : score >= 60 ? 'text-amber-600' : 'text-rose-700';
 
   return (
-    <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-        <span className={`text-lg font-bold ${score >= 80 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-          {score}
-        </span>
+    <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-xl p-4">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-sm font-semibold text-stone-700">{title}</h3>
+        <span className={`text-xl font-bold ${scoreColor}`}>{score}</span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-        <div className={`h-2 rounded-full ${progressColor}`} style={{ width: `${score}%` }}></div>
+      <div className="w-full bg-stone-100 rounded-full h-2 mb-3">
+        <div className={`h-2 rounded-full ${barColor} transition-all`} style={{ width: `${score}%` }}></div>
       </div>
-      <p className="text-xs text-gray-600 mt-2 border-t pt-2 border-gray-100">
-        <span className="font-semibold text-gray-800">Alasan:</span> {reason}
+      <p className="text-stone-700 text-xs mt-2 leading-relaxed font-medium border-t border-stone-100 pt-2">
+        <span className="font-bold text-stone-800">Alasan: </span>{reason}
       </p>
     </div>
   );
 };
-
