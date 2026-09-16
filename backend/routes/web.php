@@ -16,7 +16,7 @@ Route::get('/', function () {
 });
 
 // ─── Halaman Terproteksi (Butuh Login) ───────────────────────────────────────
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     // Dashboard utama: arahkan ke halaman sesuai role
     Route::get('/dashboard', function () {
