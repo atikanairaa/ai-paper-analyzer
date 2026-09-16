@@ -1,213 +1,171 @@
-import React, { useState, useCallback } from 'react';
-import { ResearcherLayout } from '../Layouts/ResearcherLayout';
-import { UploadCloud, File, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { Link } from '@inertiajs/react';
+import { AppLayout } from '@/Layouts/AppLayout';
+import { UploadCloud, File, CheckCircle2, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 export default function Upload() {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadPurpose, setUploadPurpose] = useState<'study' | 'journal'>('study');
-  
-  // Status: idle -> uploading -> processing -> analyzed
   const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'analyzed'>('idle');
+  const [paperId, setPaperId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    e.preventDefault(); e.stopPropagation();
+    setDragActive(e.type === 'dragenter' || e.type === 'dragover');
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === 'application/pdf') {
-        setFile(droppedFile);
-      } else {
-        alert("Hanya file PDF yang diperbolehkan!");
-      }
-    }
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile?.type === 'application/pdf') { setFile(droppedFile); setError(null); }
+    else { setError('Hanya file PDF yang diperbolehkan!'); }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-       const selectedFile = e.target.files[0];
-       if (selectedFile.type === 'application/pdf') {
-         setFile(selectedFile);
-       } else {
-         alert("Hanya file PDF yang diperbolehkan!");
-       }
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile?.type === 'application/pdf') { setFile(selectedFile); setError(null); }
+    else { setError('Hanya file PDF yang diperbolehkan!'); }
+  };
+
+  const pollPaperStatus = (id: number) => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await axios.get(`/api/papers/${id}`);
+        const currentStatus = response.data?.status;
+        if (currentStatus === 'ANALYZED') { clearInterval(interval); setStatus('analyzed'); setPaperId(id); }
+        else if (currentStatus === 'FAILED') { clearInterval(interval); setError('Analisis AI gagal. Silakan coba lagi.'); setStatus('idle'); }
+      } catch { clearInterval(interval); setError('Gagal memeriksa status analisis.'); setStatus('idle'); }
+    }, 3000);
+  };
+
+  const handleSubmit = async () => {
+    if (!file) return;
+    setError(null); setStatus('uploading');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('is_submission', uploadPurpose === 'journal' ? '1' : '0');
+      const response = await axios.post('/api/papers', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const newPaperId = response.data?.paper?.id;
+      setStatus('processing');
+      if (newPaperId) { pollPaperStatus(newPaperId); }
+      else { setTimeout(() => setStatus('analyzed'), 9000); }
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Terjadi kesalahan saat mengunggah file.');
+      setStatus('idle');
     }
   };
 
-  const handleSubmit = () => {
-    if (!file) return;
-    
-    // Simulate flow
-    setStatus('uploading');
-    
-    setTimeout(() => {
-      setStatus('processing');
-      
-      // Simulate polling for AI analysis
-      let polls = 0;
-      const interval = setInterval(() => {
-        polls++;
-        if (polls >= 3) {
-          clearInterval(interval);
-          setStatus('analyzed');
-          // In a real Inertia app, we would redirect here using router.visit('/paper/123')
-        }
-      }, 3000); // Poll every 3 seconds, 3 times = 9 seconds
-      
-    }, 1500);
-  };
-
   return (
-    <ResearcherLayout activeMenu="upload">
-      <div className="max-w-3xl mx-auto">
+    <AppLayout defaultRole="peneliti">
+      <div className="max-w-3xl mx-auto p-6 md:p-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Unggah Paper</h2>
-          <p className="text-gray-500 mt-1">Sistem AI akan menganalisis dan mengekstrak informasi dari paper Anda secara otomatis.</p>
+          <h2 className="text-2xl font-bold text-stone-900">Unggah Paper</h2>
+          <p className="text-stone-500 mt-1">Sistem AI akan menganalisis dan mengekstrak informasi dari paper Anda secara otomatis.</p>
         </div>
 
+        {error && (
+          <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl px-4 py-3 text-sm">{error}</div>
+        )}
+
         {status === 'idle' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden">
             <div className="p-8">
-              
-              {/* Drag and Drop Zone */}
+              {/* Dropzone */}
               <div
-                className={`relative border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors ${
-                  dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'
+                className={`relative border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors cursor-pointer ${
+                  dragActive ? 'border-rose-400 bg-rose-50' : 'border-stone-200 hover:bg-stone-50'
                 }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
+                onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
               >
-                <input 
-                  type="file" 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                  accept=".pdf"
-                  onChange={handleChange}
-                />
-                
+                <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf" onChange={handleChange} />
                 {file ? (
                   <div className="flex flex-col items-center text-center">
-                    <File className="w-12 h-12 text-blue-500 mb-3" />
-                    <p className="font-semibold text-gray-700">{file.name}</p>
-                    <p className="text-sm text-gray-500 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    <p className="text-xs text-blue-600 font-medium mt-3 cursor-pointer">Klik untuk mengganti file</p>
+                    <File className="w-12 h-12 text-rose-500 mb-3" />
+                    <p className="font-semibold text-stone-800">{file.name}</p>
+                    <p className="text-sm text-stone-500 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-xs text-rose-600 font-medium mt-3">Klik untuk mengganti file</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center text-center">
-                    <UploadCloud className="w-12 h-12 text-gray-400 mb-3" />
-                    <p className="text-lg font-medium text-gray-700">Seret dan lepas file PDF di sini</p>
-                    <p className="text-sm text-gray-500 mt-1">atau klik untuk menelusuri</p>
-                    <p className="text-xs text-gray-400 mt-4">Maksimal ukuran file: 10MB</p>
+                    <UploadCloud className="w-12 h-12 text-stone-300 mb-3" />
+                    <p className="text-lg font-medium text-stone-700">Seret dan lepas file PDF di sini</p>
+                    <p className="text-sm text-stone-400 mt-1">atau klik untuk menelusuri</p>
+                    <p className="text-xs text-stone-400 mt-4">Maksimal ukuran file: 20MB · Hanya format .pdf</p>
                   </div>
                 )}
               </div>
 
-              {/* Purpose Radio Buttons */}
+              {/* Purpose */}
               <div className="mt-8">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">Tujuan Analisis</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input 
-                      type="radio" 
-                      name="purpose" 
-                      value="study"
-                      checked={uploadPurpose === 'study'}
-                      onChange={() => setUploadPurpose('study')}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500" 
-                    />
-                    <div className="ml-3">
-                      <span className="block text-sm font-medium text-gray-900">Studi Pribadi</span>
-                      <span className="block text-xs text-gray-500">Analisis cepat untuk keperluan membaca dan merangkum.</span>
-                    </div>
-                  </label>
-                  
-                  <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input 
-                      type="radio" 
-                      name="purpose" 
-                      value="journal"
-                      checked={uploadPurpose === 'journal'}
-                      onChange={() => setUploadPurpose('journal')}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500" 
-                    />
-                    <div className="ml-3">
-                      <span className="block text-sm font-medium text-gray-900">Kirim ke Jurnal</span>
-                      <span className="block text-xs text-gray-500">Evaluasi mendalam menggunakan kriteria reviewer jurnal (novelty, metodologi).</span>
-                    </div>
-                  </label>
+                <h3 className="text-sm font-semibold text-stone-700 mb-3">Tujuan Pengunggahan</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { value: 'study', title: 'Studi & Analisis', desc: 'Analisis mendalam untuk keperluan riset internal.' },
+                    { value: 'journal', title: 'Submission Jurnal', desc: 'Paper akan dinilai untuk pengiriman ke jurnal.' },
+                  ].map(opt => (
+                    <label
+                      key={opt.value}
+                      className={`flex items-start space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                        uploadPurpose === opt.value
+                          ? 'border-rose-400 bg-rose-50'
+                          : 'border-[#e8e4dc] hover:border-stone-300 bg-white'
+                      }`}
+                    >
+                      <input type="radio" name="purpose" value={opt.value} checked={uploadPurpose === opt.value} onChange={() => setUploadPurpose(opt.value as any)} className="mt-0.5 accent-rose-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-stone-800">{opt.title}</p>
+                        <p className="text-xs text-stone-500 mt-0.5">{opt.desc}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
               </div>
 
-            </div>
-            <div className="bg-gray-50 p-4 border-t border-gray-200 flex justify-end">
-              <button 
-                onClick={handleSubmit}
-                disabled={!file}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-medium py-2 px-6 rounded-lg transition-colors"
-              >
-                Mulai Analisis
-              </button>
+              <div className="mt-8 flex justify-end border-t border-stone-100 pt-6">
+                <button
+                  onClick={handleSubmit}
+                  disabled={!file}
+                  className="bg-rose-700 hover:bg-rose-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-8 rounded-xl transition-colors flex items-center space-x-2 shadow-sm"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Analisis Paper Sekarang</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Processing State */}
-        {status !== 'idle' && (
-           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 flex flex-col items-center justify-center text-center">
-             
-             {status === 'uploading' && (
-               <>
-                 <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-                 <h3 className="text-xl font-bold text-gray-900">Mengunggah Dokumen...</h3>
-                 <p className="text-gray-500 mt-2">Harap tunggu sebentar, file sedang dikirim ke server.</p>
-               </>
-             )}
+        {(status === 'uploading' || status === 'processing') && (
+          <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-12 flex flex-col items-center text-center">
+            <Loader2 className="w-14 h-14 text-rose-500 animate-spin mb-5" />
+            <h3 className="text-xl font-bold text-stone-900 mb-2">
+              {status === 'uploading' ? 'Mengunggah file...' : 'AI Sedang Menganalisis...'}
+            </h3>
+            <p className="text-stone-500 text-sm max-w-sm">
+              {status === 'uploading' ? 'Mohon tunggu, file sedang dikirim ke server.' : 'AI sedang membaca dan menganalisis paper Anda. Proses ini membutuhkan 30-60 detik.'}
+            </p>
+          </div>
+        )}
 
-             {status === 'processing' && (
-               <>
-                 <div className="relative mb-6">
-                    <Loader2 className="w-16 h-16 text-indigo-500 animate-spin" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold text-indigo-700">AI</span>
-                    </div>
-                 </div>
-                 <h3 className="text-xl font-bold text-gray-900">AI sedang membaca paper Anda...</h3>
-                 <p className="text-gray-500 mt-2">Mengekstrak struktur, menganalisis metodologi, dan mengevaluasi temuan.</p>
-                 
-                 <div className="w-full max-w-md bg-gray-200 rounded-full h-2 mt-8 overflow-hidden">
-                    <div className="h-2 bg-indigo-500 rounded-full animate-pulse" style={{ width: '100%' }}></div>
-                 </div>
-                 <p className="text-xs text-gray-400 mt-3 animate-pulse">Memeriksa status secara berkala...</p>
-               </>
-             )}
-
-             {status === 'analyzed' && (
-               <>
-                 <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-                 <h3 className="text-xl font-bold text-gray-900">Analisis Selesai!</h3>
-                 <p className="text-gray-500 mt-2 mb-6">Paper Anda berhasil dianalisis oleh AI.</p>
-                 <a href="/paper/detail" className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
-                   Lihat Hasil Analisis
-                 </a>
-               </>
-             )}
-             
-           </div>
+        {status === 'analyzed' && (
+          <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-12 flex flex-col items-center text-center">
+            <CheckCircle2 className="w-16 h-16 text-emerald-600 mb-5" />
+            <h3 className="text-2xl font-bold text-stone-900 mb-2">Analisis Selesai!</h3>
+            <p className="text-stone-500 text-sm mb-8">Paper Anda telah berhasil dianalisis oleh sistem AI.</p>
+            <Link
+              href={paperId ? `/detail/${paperId}` : '/detail'}
+              className="bg-rose-700 hover:bg-rose-800 text-white font-semibold py-2.5 px-8 rounded-xl transition-colors shadow-sm"
+            >
+              Lihat Hasil Analisis
+            </Link>
+          </div>
         )}
       </div>
-    </ResearcherLayout>
+    </AppLayout>
   );
 }
