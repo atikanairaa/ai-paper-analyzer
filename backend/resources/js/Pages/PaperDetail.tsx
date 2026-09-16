@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { usePage } from '@inertiajs/react';
-import { ResearcherLayout } from '../Layouts/ResearcherLayout';
-import { Badge } from '../Components/Badge';
-import { ScoreCard } from '../Components/ScoreCard';
-import { WeaknessCard } from '../Components/WeaknessCard';
-import { ChatWidget } from '../Components/ChatWidget';
-import { Paper } from '../types/paper';
+import { AppLayout } from '@/Layouts/AppLayout';
+import { Badge } from '@/Components/Badge';
+import { ScoreCard } from '@/Components/ScoreCard';
+import { WeaknessCard } from '@/Components/WeaknessCard';
+import { ChatWidget } from '@/Components/ChatWidget';
+import { Paper } from '@/types/paper';
 
-// Fallback data dummy jika backend belum mengirim props
-import dummyData from '../dummy_analysis.json';
+import dummyData from '@/dummy_analysis.json';
 
-// Helper: Bentuk data dummy menjadi format Paper yang kompatibel
 const DUMMY_PAPER: Partial<Paper> = {
   id: 0,
   title: dummyData.metadata.title,
@@ -49,15 +47,9 @@ const DUMMY_PAPER: Partial<Paper> = {
   findings: dummyData.findings as any,
 };
 
-interface PaperDetailProps {
-  paper?: Paper | null;
-}
-
 export default function PaperDetail() {
-  // Terima props dari Inertia (Controller)
   const { props } = usePage<{ paper?: Paper }>();
   
-  // Gunakan data dari Inertia props, atau fallback ke dummy jika kosong/null
   const paper: Partial<Paper> = props.paper ?? DUMMY_PAPER;
   const isUsingDummy = !props.paper;
 
@@ -65,20 +57,20 @@ export default function PaperDetail() {
   const analysis = paper.analyses?.[0];
 
   return (
-    <ResearcherLayout activeMenu="my-papers">
-      <div className="max-w-6xl mx-auto pb-20">
+    <AppLayout defaultRole="peneliti">
+      <div className="max-w-6xl mx-auto p-6 md:p-8 pb-20">
         
-        {/* Banner peringatan jika pakai dummy */}
         {isUsingDummy && (
-          <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs px-4 py-2 rounded-lg">
-            ⚠️ <strong>Mode Pratinjau:</strong> Menampilkan data dummy karena backend belum mengirim props. Hubungkan controller ke route Inertia untuk data riil.
+          <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-xl shadow-sm flex items-center">
+            <span className="mr-2">⚠️</span>
+            <span><strong>Mode Pratinjau:</strong> Menampilkan data dummy karena backend belum mengirim props. Hubungkan controller ke route Inertia untuk data riil.</span>
           </div>
         )}
 
         {/* Header / Metadata */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight flex-1">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8">
+          <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
+            <h1 className="text-3xl font-bold text-slate-900 leading-tight flex-1">
               {paper.title}
             </h1>
             <div className="flex flex-wrap gap-2">
@@ -88,56 +80,56 @@ export default function PaperDetail() {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 text-sm">
             <div>
-              <p className="text-gray-500 font-medium mb-1">Penulis</p>
-              <p className="text-gray-900">{paper.authors?.map(a => a.name).join(', ') || '—'}</p>
+              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">Penulis</p>
+              <p className="text-slate-800 font-medium">{paper.authors?.map(a => a.name).join(', ') || '—'}</p>
             </div>
             <div>
-              <p className="text-gray-500 font-medium mb-1">Tahun Publikasi</p>
-              <p className="text-gray-900">{paper.publication_year || '—'}</p>
+              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">Tahun Publikasi</p>
+              <p className="text-slate-800 font-medium">{paper.publication_year || '—'}</p>
             </div>
             <div>
-              <p className="text-gray-500 font-medium mb-1">Jurnal</p>
-              <p className="text-gray-900">{paper.journal || '—'}</p>
+              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">Jurnal</p>
+              <p className="text-slate-800 font-medium">{paper.journal || '—'}</p>
             </div>
             <div>
-              <p className="text-gray-500 font-medium mb-1">DOI</p>
+              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">DOI</p>
               {paper.doi ? (
-                <a href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate block">
+                <a href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 hover:underline font-medium truncate block">
                   {paper.doi}
                 </a>
-              ) : <p className="text-gray-900">—</p>}
+              ) : <p className="text-slate-800 font-medium">—</p>}
             </div>
           </div>
 
           {paper.abstract && (
-            <div>
-              <p className="text-gray-500 font-medium mb-1 text-sm">Abstrak</p>
-              <p className="text-gray-700 text-sm leading-relaxed">{paper.abstract}</p>
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
+              <p className="text-slate-400 font-semibold mb-2 uppercase tracking-wider text-[11px]">Abstrak</p>
+              <p className="text-slate-700 text-sm leading-relaxed">{paper.abstract}</p>
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Skor */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {scores && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 p-4 border-b border-gray-200">
-                  <h2 className="text-lg font-bold text-gray-800">Skor Kualitas Riset</h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-slate-50 p-5 border-b border-slate-100">
+                  <h2 className="text-lg font-bold text-slate-900">Skor Kualitas Riset</h2>
                 </div>
                 <div className="p-6">
                   {/* Overall Score */}
-                  <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-xl p-5 mb-8">
                     <div>
-                      <h3 className="text-lg font-bold text-blue-900">Skor Keseluruhan</h3>
-                      <p className="text-sm text-blue-700 mt-1">Berdasarkan evaluasi otomatis AI</p>
+                      <h3 className="text-lg font-bold text-indigo-900">Skor Keseluruhan</h3>
+                      <p className="text-sm text-indigo-700 mt-1">Berdasarkan evaluasi otomatis AI</p>
                     </div>
-                    <div className="text-4xl font-extrabold text-blue-700">
+                    <div className="text-5xl font-extrabold text-indigo-700 tracking-tight">
                       {scores.overall_score}
-                      <span className="text-lg text-blue-500 font-normal">/100</span>
+                      <span className="text-xl text-indigo-400 font-normal">/100</span>
                     </div>
                   </div>
 
@@ -155,18 +147,23 @@ export default function PaperDetail() {
           </div>
 
           {/* Temuan */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="bg-gray-50 p-4 border-b border-gray-200">
-                <h2 className="text-lg font-bold text-gray-800">Temuan Kesalahan & Risiko</h2>
+          <div className="space-y-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 p-5 border-b border-slate-100">
+                <h2 className="text-lg font-bold text-slate-900">Temuan Kesalahan & Risiko</h2>
               </div>
-              <div className="p-4">
+              <div className="p-5">
                 {paper.findings && paper.findings.length > 0 ? (
-                  paper.findings.map((finding, idx) => (
-                    <WeaknessCard key={idx} finding={finding} />
-                  ))
+                  <div className="space-y-4">
+                    {paper.findings.map((finding, idx) => (
+                      <WeaknessCard key={idx} finding={finding} />
+                    ))}
+                  </div>
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">Tidak ada temuan signifikan.</p>
+                  <div className="text-center py-8">
+                    <p className="text-sm text-slate-500 font-medium">Tidak ada temuan signifikan.</p>
+                    <p className="text-xs text-slate-400 mt-1">Paper ini terlihat sangat baik.</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -176,6 +173,6 @@ export default function PaperDetail() {
       </div>
 
       <ChatWidget />
-    </ResearcherLayout>
+    </AppLayout>
   );
 }

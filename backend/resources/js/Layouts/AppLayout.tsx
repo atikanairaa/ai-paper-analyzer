@@ -16,11 +16,13 @@ interface MenuItem {
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  activeMenu?: string;
   defaultRole?: Role;
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defaultRole = 'peneliti' }) => {
+export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'peneliti' }) => {
+  const { url } = usePage();
+  const activeHref = url.split('?')[0];
+
   const [currentRole, setCurrentRole] = useState<Role>(defaultRole);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
 
@@ -31,7 +33,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
           { id: 'dashboard',      label: 'Dashboard Statistik',   href: '/admin',     icon: <LayoutDashboard className="w-5 h-5" /> },
           { id: 'master-paper',   label: 'Master Paper',          href: '/detail',    icon: <FileText className="w-5 h-5" /> },
           { id: 'reviewer-assign',label: 'Penugasan Reviewer',    href: '/reviewer',  icon: <Users className="w-5 h-5" /> },
-          { id: 'audit-log',      label: 'Log Aktivitas',         href: '/admin',     icon: <Activity className="w-5 h-5" /> },
         ];
       case 'reviewer':
         return [
@@ -40,8 +41,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
       case 'peneliti':
       default:
         return [
-          { id: 'my-papers', label: 'Paper Saya',        href: '/detail',  icon: <FileText className="w-5 h-5" /> },
           { id: 'upload',    label: 'Unggah Paper',      href: '/upload',  icon: <UploadCloud className="w-5 h-5" /> },
+          { id: 'my-papers', label: 'Paper Saya',        href: '/detail',  icon: <FileText className="w-5 h-5" /> },
           { id: 'compare',   label: 'Bandingkan Paper',  href: '/compare', icon: <GitCompare className="w-5 h-5" /> },
         ];
     }
@@ -54,11 +55,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
 
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col z-20 flex-shrink-0">
-
+        
         {/* Logo */}
         <div className="px-6 py-5 border-b border-slate-200">
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
               <span className="text-white text-xs font-black">AI</span>
             </div>
             <div>
@@ -75,14 +76,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
           </p>
           <ul className="space-y-0.5 px-3">
             {menus.map(menu => {
-              const isActive = activeMenu === menu.id;
+              // Exact match or starts with (e.g. /detail and /detail/1)
+              const isActive = activeHref === menu.href || (menu.href !== '/' && activeHref.startsWith(menu.href + '/'));
+              
               return (
                 <li key={menu.id}>
                   <Link
                     href={menu.href}
                     className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                       isActive
-                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-200'
+                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
@@ -98,7 +101,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
         {/* User Profile + Logout */}
         <div className="p-4 border-t border-slate-200 space-y-3">
           <div className="flex items-center space-x-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white flex-shrink-0">
               <UserIcon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -110,7 +113,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
             href="/logout"
             method="post"
             as="button"
-            className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+            className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span>Keluar</span>
@@ -123,7 +126,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
 
         {/* Top Navbar */}
         <header className="bg-white border-b border-slate-200 py-3 px-8 flex justify-between items-center shadow-sm z-10 flex-shrink-0">
-
+          
           {/* Role Preview Switcher */}
           <div className="flex items-center space-x-2 text-sm text-slate-500">
             <span className="font-medium">Mode Pratinjau:</span>
@@ -142,8 +145,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeMenu, defa
                     <button
                       key={role}
                       onClick={() => { setCurrentRole(role); setShowRoleDropdown(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm capitalize transition-colors hover:bg-blue-50 hover:text-blue-700 ${
-                        currentRole === role ? 'font-bold text-blue-600 bg-blue-50' : 'text-slate-700'
+                      className={`w-full text-left px-4 py-2 text-sm capitalize transition-colors hover:bg-indigo-50 hover:text-indigo-700 ${
+                        currentRole === role ? 'font-bold text-indigo-600 bg-indigo-50' : 'text-slate-700'
                       }`}
                     >
                       {role}
