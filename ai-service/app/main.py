@@ -74,6 +74,49 @@ async def analyze_paper_endpoint(
             }
         )
 
+from app.services.review_service import ReviewService
+from app.schemas.paper_schemas import ReviewDataResponse
+
+# Endpoint Resmi POST /api/v1/review
+@app.post(
+    "/api/v1/review", 
+    response_model=APIResponse[ReviewDataResponse],
+    dependencies=[Depends(verify_internal_token)]
+)
+async def generate_review_endpoint(
+    file: UploadFile = File(...),
+    request_id: str = Form(None),
+    paper_id: int = Form(None)
+):
+    active_request_id = request_id or str(uuid.uuid4())
+    
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File wajib berformat PDF!")
+
+    try:
+        pdf_bytes = await file.read()
+        pages = PDFService.extract_text_with_pages(pdf_bytes)
+        full_paper_text = PDFService.get_full_text(pages)
+        
+        # Eksekusi Reviewer Report
+        review_data = ReviewService.generate_review_report(full_paper_text)
+        
+        return APIResponse(
+            success=True,
+            request_id=active_request_id,
+            data=review_data
+        )
+
+    except Exception as e:
+        return APIResponse(
+            success=False,
+            request_id=active_request_id,
+            error={
+                "code": "AI_PROCESSING_FAILED",
+                "message": str(e)
+            }
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)

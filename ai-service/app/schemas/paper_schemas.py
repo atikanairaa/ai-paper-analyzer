@@ -82,3 +82,21 @@ class FullAnalyzeDataResponse(BaseModel):
     paper_references: PaperReferences
 
 AnalyzeDataResponse = FullAnalyzeDataResponse
+
+# ==========================================
+# SKEMA RESMI ENDPOINT 2
+# ==========================================
+class SectionReviews(BaseModel):
+    methodology_review: str
+    novelty_review: str
+    result_review: str
+    reproducibility_review: str
+
+class ReviewDataResponse(BaseModel):
+    summary: str
+    strengths: List[str]
+    major_concerns: List[str]
+    minor_concerns: List[str]
+    section_reviews: SectionReviews
+    recommendation: Literal["ACCEPT", "MINOR_REVISION", "MAJOR_REVISION", "REJECT"]
+    recommendation_reason: str
