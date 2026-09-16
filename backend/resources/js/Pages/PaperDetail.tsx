@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { Badge } from '@/Components/Badge';
@@ -61,16 +61,16 @@ export default function PaperDetail() {
       <div className="max-w-6xl mx-auto p-6 md:p-8 pb-20">
         
         {isUsingDummy && (
-          <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-xl shadow-sm flex items-center">
-            <span className="mr-2">⚠️</span>
+          <div className="mb-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-400 text-sm px-4 py-3 rounded-xl shadow-sm flex items-center">
+            <span className="mr-2">âš ï¸</span>
             <span><strong>Mode Pratinjau:</strong> Menampilkan data dummy karena backend belum mengirim props. Hubungkan controller ke route Inertia untuk data riil.</span>
           </div>
         )}
 
         {/* Header / Metadata */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8">
+        <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 p-8 mb-8">
           <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
-            <h1 className="text-3xl font-bold text-slate-900 leading-tight flex-1">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 leading-tight flex-1">
               {paper.title}
             </h1>
             <div className="flex flex-wrap gap-2">
@@ -82,31 +82,31 @@ export default function PaperDetail() {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 text-sm">
             <div>
-              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">Penulis</p>
-              <p className="text-slate-800 font-medium">{paper.authors?.map(a => a.name).join(', ') || '—'}</p>
+              <p className="text-slate-400 dark:text-slate-500 font-semibold mb-1 uppercase tracking-wider text-[11px]">Penulis</p>
+              <p className="text-slate-800 dark:text-slate-200 font-medium">{paper.authors?.map(a => a.name).join(', ') || 'â€”'}</p>
             </div>
             <div>
-              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">Tahun Publikasi</p>
-              <p className="text-slate-800 font-medium">{paper.publication_year || '—'}</p>
+              <p className="text-slate-400 dark:text-slate-500 font-semibold mb-1 uppercase tracking-wider text-[11px]">Tahun Publikasi</p>
+              <p className="text-slate-800 dark:text-slate-200 font-medium">{paper.publication_year || 'â€”'}</p>
             </div>
             <div>
-              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">Jurnal</p>
-              <p className="text-slate-800 font-medium">{paper.journal || '—'}</p>
+              <p className="text-slate-400 dark:text-slate-500 font-semibold mb-1 uppercase tracking-wider text-[11px]">Jurnal</p>
+              <p className="text-slate-800 dark:text-slate-200 font-medium">{paper.journal || 'â€”'}</p>
             </div>
             <div>
-              <p className="text-slate-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">DOI</p>
+              <p className="text-slate-400 dark:text-slate-500 font-semibold mb-1 uppercase tracking-wider text-[11px]">DOI</p>
               {paper.doi ? (
                 <a href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 hover:underline font-medium truncate block">
                   {paper.doi}
                 </a>
-              ) : <p className="text-slate-800 font-medium">—</p>}
+              ) : <p className="text-slate-800 dark:text-slate-200 font-medium">â€”</p>}
             </div>
           </div>
 
           {paper.abstract && (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-              <p className="text-slate-400 font-semibold mb-2 uppercase tracking-wider text-[11px]">Abstrak</p>
-              <p className="text-slate-700 text-sm leading-relaxed">{paper.abstract}</p>
+            <div className="bg-slate-50 dark:bg-[#0f172a] p-5 rounded-xl border border-slate-100 dark:border-slate-700/40">
+              <p className="text-slate-400 dark:text-slate-500 font-semibold mb-2 uppercase tracking-wider text-[11px]">Abstrak</p>
+              <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">{paper.abstract}</p>
             </div>
           )}
         </div>
@@ -116,18 +116,18 @@ export default function PaperDetail() {
           {/* Skor */}
           <div className="lg:col-span-2 space-y-8">
             {scores && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="bg-slate-50 p-5 border-b border-slate-100">
-                  <h2 className="text-lg font-bold text-slate-900">Skor Kualitas Riset</h2>
+              <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 overflow-hidden">
+                <div className="bg-slate-50 dark:bg-[#0f172a] p-5 border-b border-slate-100 dark:border-slate-700/40">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Skor Kualitas Riset</h2>
                 </div>
                 <div className="p-6">
                   {/* Overall Score */}
-                  <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-xl p-5 mb-8">
+                  <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/50 rounded-xl p-5 mb-8">
                     <div>
                       <h3 className="text-lg font-bold text-indigo-900">Skor Keseluruhan</h3>
-                      <p className="text-sm text-indigo-700 mt-1">Berdasarkan evaluasi otomatis AI</p>
+                      <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-1">Berdasarkan evaluasi otomatis AI</p>
                     </div>
-                    <div className="text-5xl font-extrabold text-indigo-700 tracking-tight">
+                    <div className="text-5xl font-extrabold text-indigo-700 dark:text-indigo-400 tracking-tight">
                       {scores.overall_score}
                       <span className="text-xl text-indigo-400 font-normal">/100</span>
                     </div>
@@ -148,9 +148,9 @@ export default function PaperDetail() {
 
           {/* Temuan */}
           <div className="space-y-8">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 p-5 border-b border-slate-100">
-                <h2 className="text-lg font-bold text-slate-900">Temuan Kesalahan & Risiko</h2>
+            <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 overflow-hidden">
+              <div className="bg-slate-50 dark:bg-[#0f172a] p-5 border-b border-slate-100 dark:border-slate-700/40">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Temuan Kesalahan & Risiko</h2>
               </div>
               <div className="p-5">
                 {paper.findings && paper.findings.length > 0 ? (
@@ -161,8 +161,8 @@ export default function PaperDetail() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-sm text-slate-500 font-medium">Tidak ada temuan signifikan.</p>
-                    <p className="text-xs text-slate-400 mt-1">Paper ini terlihat sangat baik.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">Tidak ada temuan signifikan.</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Paper ini terlihat sangat baik.</p>
                   </div>
                 )}
               </div>
@@ -176,3 +176,4 @@ export default function PaperDetail() {
     </AppLayout>
   );
 }
+

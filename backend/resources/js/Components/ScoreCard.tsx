@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 interface ScoreCardProps {
   title: string;
@@ -8,12 +8,12 @@ interface ScoreCardProps {
 
 export const ScoreCard: React.FC<ScoreCardProps> = ({ title, score, reason }) => {
   // Determine color based on score
-  let progressColor = 'bg-red-500';
-  if (score >= 80) progressColor = 'bg-green-500';
-  else if (score >= 60) progressColor = 'bg-yellow-500';
+  let progressColor = 'bg-red-50 dark:bg-rose-900/300';
+  if (score >= 80) progressColor = 'bg-green-50 dark:bg-emerald-900/300';
+  else if (score >= 60) progressColor = 'bg-yellow-50 dark:bg-amber-900/300';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-lg shadow-sm border border-gray-200 p-4">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
         <span className={`text-lg font-bold ${score >= 80 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -29,3 +29,4 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ title, score, reason }) =>
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { PaperFinding } from '../types/paper';
 
@@ -10,8 +10,8 @@ export const WeaknessCard: React.FC<WeaknessCardProps> = ({ finding }) => {
   const isHighSeverity = finding.severity === 'HIGH' || finding.severity === 'CRITICAL';
   
   const borderColor = isHighSeverity ? 'border-red-500' : 'border-yellow-500';
-  const bgColor = isHighSeverity ? 'bg-red-50' : 'bg-yellow-50';
-  const iconColor = isHighSeverity ? 'text-red-500' : 'text-yellow-500';
+  const bgColor = isHighSeverity ? 'bg-red-50 dark:bg-rose-900/30' : 'bg-yellow-50 dark:bg-amber-900/30';
+  const iconColor = isHighSeverity ? 'text-red-500 dark:text-rose-400' : 'text-yellow-500';
   const headerColor = isHighSeverity ? 'text-red-800' : 'text-yellow-800';
 
   return (
@@ -36,7 +36,7 @@ export const WeaknessCard: React.FC<WeaknessCardProps> = ({ finding }) => {
           <div className="mt-2 text-sm text-gray-700">
             <p className="mb-1"><span className="font-semibold text-gray-900">Kategori:</span> <span className="capitalize">{finding.category}</span></p>
             <p className="mb-1"><span className="font-semibold text-gray-900">Penjelasan:</span> {finding.explanation}</p>
-            <p className="mt-2 text-xs text-gray-500 italic bg-white p-2 rounded border border-gray-200">
+            <p className="mt-2 text-xs text-gray-500 italic bg-white/95 dark:bg-[#1e293b]/90 p-2 rounded border border-gray-200">
               <span className="font-semibold not-italic text-gray-700">Bukti:</span> {finding.evidence}
             </p>
           </div>
@@ -45,3 +45,4 @@ export const WeaknessCard: React.FC<WeaknessCardProps> = ({ finding }) => {
     </div>
   );
 };
+

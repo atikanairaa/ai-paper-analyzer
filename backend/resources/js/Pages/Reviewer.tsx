@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { 
@@ -40,10 +40,10 @@ export default function Reviewer() {
         score: manualScore,
         comments: comment,
       });
-      triggerToast(`✅ Keputusan "${label}" berhasil disimpan!`);
+      triggerToast(`âœ… Keputusan "${label}" berhasil disimpan!`);
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Gagal menyimpan keputusan.';
-      triggerToast(`❌ ${msg}`);
+      triggerToast(`âŒ ${msg}`);
     } finally {
       setSubmitting(false);
     }
@@ -67,12 +67,12 @@ export default function Reviewer() {
         
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Panel Penilai (Reviewer)</h1>
-            <p className="text-slate-500 mt-2">
-              Evaluasi Paper: <strong className="text-slate-700">{paper?.title ?? 'Attention Is All You Need'}</strong> <span className="text-slate-400">(ID: #{paperId})</span>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Panel Penilai (Reviewer)</h1>
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2">
+              Evaluasi Paper: <strong className="text-slate-700 dark:text-slate-300">{paper?.title ?? 'Attention Is All You Need'}</strong> <span className="text-slate-400 dark:text-slate-500">(ID: #{paperId})</span>
             </p>
           </div>
-          <div className="bg-indigo-50 border border-indigo-100 text-indigo-800 px-4 py-2 rounded-xl flex items-center space-x-2 font-semibold shadow-sm">
+          <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/50 text-indigo-800 dark:text-indigo-300 px-4 py-2 rounded-xl flex items-center space-x-2 font-semibold shadow-sm">
             <ShieldCheck className="w-5 h-5" />
             <span>Mode Reviewer</span>
           </div>
@@ -82,25 +82,25 @@ export default function Reviewer() {
           
           {/* AI Recommendation */}
           <div>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-indigo-50/50 px-6 py-4 border-b border-slate-100 flex items-center space-x-2">
-                <FileText className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-lg font-bold text-slate-900">Ulasan & Rekomendasi AI</h2>
+            <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 overflow-hidden">
+              <div className="bg-indigo-50/50 dark:bg-indigo-900/20 px-6 py-4 border-b border-slate-100 dark:border-slate-700/40 flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Ulasan & Rekomendasi AI</h2>
               </div>
               <div className="p-6 space-y-6">
                 <div>
-                  <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ringkasan</h3>
-                  <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Ringkasan</h3>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#0f172a] p-4 rounded-xl border border-slate-100 dark:border-slate-700/40">
                     {aiReport.summary}
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-emerald-700 mb-3 flex items-center bg-emerald-50 w-max px-3 py-1 rounded-lg border border-emerald-100">
+                  <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center bg-emerald-50 dark:bg-emerald-900/30 w-max px-3 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800/50">
                     <ThumbsUp className="w-4 h-4 mr-2" /> Kekuatan Utama
                   </h3>
                   <ul className="space-y-2 ml-1">
                     {aiReport.strengths.map((s, i) => (
-                      <li key={i} className="flex items-start text-sm text-slate-700">
+                      <li key={i} className="flex items-start text-sm text-slate-700 dark:text-slate-300">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 mr-3 flex-shrink-0"></span>
                         <span>{s}</span>
                       </li>
@@ -108,21 +108,21 @@ export default function Reviewer() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-rose-700 mb-3 flex items-center bg-rose-50 w-max px-3 py-1 rounded-lg border border-rose-100">
+                  <h3 className="text-sm font-semibold text-rose-700 dark:text-rose-400 mb-3 flex items-center bg-rose-50 dark:bg-rose-900/30 w-max px-3 py-1 rounded-lg border border-rose-100 dark:border-rose-800/50">
                     <AlertTriangle className="w-4 h-4 mr-2" /> Catatan Utama (Major Concerns)
                   </h3>
                   <ul className="space-y-2 ml-1">
                     {aiReport.majorConcerns.map((c, i) => (
-                      <li key={i} className="flex items-start text-sm text-slate-700">
+                      <li key={i} className="flex items-start text-sm text-slate-700 dark:text-slate-300">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 mr-3 flex-shrink-0"></span>
                         <span>{c}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="border-t border-slate-100 pt-5 mt-2">
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Rekomendasi Keputusan AI:</p>
-                  <div className="inline-block bg-amber-50 text-amber-700 font-bold px-4 py-2 rounded-lg border border-amber-200">
+                <div className="border-t border-slate-100 dark:border-slate-700/40 pt-5 mt-2">
+                  <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Rekomendasi Keputusan AI:</p>
+                  <div className="inline-block bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-bold px-4 py-2 rounded-lg border border-amber-200 dark:border-amber-800/50">
                     {aiReport.recommendation}
                   </div>
                 </div>
@@ -132,60 +132,60 @@ export default function Reviewer() {
 
           {/* Manual Form */}
           <div>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-6">
-              <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center space-x-2">
-                <MessageSquare className="w-5 h-5 text-slate-500" />
-                <h2 className="text-lg font-bold text-slate-900">Formulir Keputusan Penilai</h2>
+            <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/60 overflow-hidden sticky top-6">
+              <div className="bg-slate-50 dark:bg-[#0f172a] px-6 py-4 border-b border-slate-100 dark:border-slate-700/40 flex items-center space-x-2">
+                <MessageSquare className="w-5 h-5 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Formulir Keputusan Penilai</h2>
               </div>
               <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Nilai / Skor Manual (0 - 100)</label>
+                  <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Nilai / Skor Manual (0 - 100)</label>
                   <input 
                     type="number" min="0" max="100"
                     placeholder="Contoh: 85"
                     value={manualScore}
                     onChange={(e) => setManualScore(Number(e.target.value))}
-                    className="w-full md:w-1/3 border border-slate-300 rounded-xl p-3 text-lg font-bold text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+                    className="w-full md:w-1/3 border border-slate-300 dark:border-slate-600 rounded-xl p-3 text-lg font-bold text-slate-900 dark:text-slate-100 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Catatan Penilai (Komentar)</label>
+                  <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Catatan Penilai (Komentar)</label>
                   <textarea 
                     rows={5}
                     placeholder="Tuliskan evaluasi mendalam, saran perbaikan, atau catatan untuk penulis di sini..."
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    className="w-full border border-slate-300 rounded-xl p-4 text-sm text-slate-700 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors resize-none leading-relaxed"
+                    className="w-full border border-slate-300 dark:border-slate-600 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-300 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors resize-none leading-relaxed"
                   />
                 </div>
-                <div className="border-t border-slate-100 pt-6">
-                  <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">Pilih Keputusan Akhir:</h3>
+                <div className="border-t border-slate-100 dark:border-slate-700/40 pt-6">
+                  <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Pilih Keputusan Akhir:</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button 
                       onClick={() => submitDecision('ACCEPT', 'TERIMA')}
                       disabled={submitting}
-                      className="flex items-center justify-center space-x-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 hover:border-emerald-600 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
+                      className="flex items-center justify-center space-x-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-200 dark:border-emerald-800/50 hover:border-emerald-600 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
                     >
                       <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" /><span>TERIMA</span>
                     </button>
                     <button 
                       onClick={() => submitDecision('MINOR_REVISION', 'REVISI MINOR')}
                       disabled={submitting}
-                      className="flex items-center justify-center space-x-2 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white border border-sky-200 hover:border-sky-600 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
+                      className="flex items-center justify-center space-x-2 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-200 dark:border-sky-800/50 hover:border-sky-600 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
                     >
                       <RotateCcw className="w-5 h-5 group-hover:-rotate-45 transition-transform" /><span>REVISI MINOR</span>
                     </button>
                     <button 
                       onClick={() => submitDecision('MAJOR_REVISION', 'REVISI MAYOR')}
                       disabled={submitting}
-                      className="flex items-center justify-center space-x-2 bg-amber-50 text-amber-700 hover:bg-amber-500 hover:text-white border border-amber-200 hover:border-amber-500 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
+                      className="flex items-center justify-center space-x-2 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500 hover:text-white border border-amber-200 dark:border-amber-800/50 hover:border-amber-500 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
                     >
                       <AlertTriangle className="w-5 h-5 group-hover:scale-110 transition-transform" /><span>REVISI MAYOR</span>
                     </button>
                     <button 
                       onClick={() => submitDecision('REJECT', 'TOLAK')}
                       disabled={submitting}
-                      className="flex items-center justify-center space-x-2 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white border border-rose-200 hover:border-rose-600 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
+                      className="flex items-center justify-center space-x-2 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-200 dark:border-rose-800/50 hover:border-rose-600 p-4 rounded-xl font-bold transition-all shadow-sm disabled:opacity-50 group"
                     >
                       <XCircle className="w-5 h-5 group-hover:scale-110 transition-transform" /><span>TOLAK</span>
                     </button>
@@ -199,15 +199,16 @@ export default function Reviewer() {
       </div>
 
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-white border border-slate-200 text-slate-900 px-6 py-4 rounded-2xl shadow-xl flex items-center space-x-3 z-50 animate-in slide-in-from-bottom-4">
-          {toastMessage.includes('✅') ? (
+        <div className="fixed bottom-6 right-6 bg-white/95 dark:bg-[#1e293b]/90 border border-slate-200 dark:border-slate-700/60 text-slate-900 dark:text-slate-100 px-6 py-4 rounded-2xl shadow-xl flex items-center space-x-3 z-50 animate-in slide-in-from-bottom-4">
+          {toastMessage.includes('âœ…') ? (
             <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
           ) : (
             <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
           )}
-          <span className="font-semibold text-sm">{toastMessage.replace('✅ ', '').replace('❌ ', '')}</span>
+          <span className="font-semibold text-sm">{toastMessage.replace('âœ… ', '').replace('âŒ ', '')}</span>
         </div>
       )}
     </AppLayout>
   );
 }
+
