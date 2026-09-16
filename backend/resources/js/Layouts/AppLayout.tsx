@@ -2,7 +2,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
   FileText, UploadCloud, GitCompare, LogOut, User as UserIcon,
-  LayoutDashboard, Users, ClipboardList, ChevronDown, Moon, Sun, BookOpen
+  LayoutDashboard, Users, ClipboardList, ChevronDown, BookOpen
 } from 'lucide-react';
 
 type Role = 'admin' | 'peneliti' | 'reviewer';
@@ -183,15 +183,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
             <div className="text-xs font-medium text-slate-500 dark:text-slate-400 hidden md:block bg-slate-50 dark:bg-[#182444] px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
               {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full bg-slate-100 dark:bg-[#182444] text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1e293b] transition-colors border border-slate-200 dark:border-slate-700 shadow-sm"
-              aria-label="Toggle Theme"
-            >
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-amber-400" />}
-            </button>
           </div>
         </header>
 
@@ -203,3 +194,4 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
     </div>
   );
 };
+
