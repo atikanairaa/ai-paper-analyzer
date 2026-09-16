@@ -40,4 +40,9 @@ return [
         'token' => env('FASTAPI_INTERNAL_TOKEN'),
     ],
 
+    'fastapi' => [
+        'url'   => env('FASTAPI_SERVICE_URL', 'http://127.0.0.1:8001'),
+        'token' => env('FASTAPI_INTERNAL_TOKEN', 'token_rahasia_internal_tim_9921'),
+    ],
 ];
+

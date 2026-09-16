@@ -9,7 +9,7 @@ Route::get('/user', function (Request $request) {
 
 Route::prefix('papers')->group(function () {
     Route::get('/', [\App\Http\Controllers\PaperController::class, 'index']);
-    Route::post('/', [\App\Http\Controllers\PaperController::class, 'store']);
+    Route::post('/', [\App\Http\Controllers\PaperController::class, 'upload']);
     Route::get('/{id}', [\App\Http\Controllers\PaperController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\PaperController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\PaperController::class, 'destroy']);

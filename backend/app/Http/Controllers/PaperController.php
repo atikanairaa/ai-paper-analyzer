@@ -18,32 +18,42 @@ class PaperController extends Controller
         return response()->json($papers);
     }
 
-    public function store(Request $request)
+    public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:pdf|max:20480', // max 20MB
+            'file' => 'required|mimes:pdf|max:20480', // Maks 20MB
+            'is_submission' => 'nullable|boolean',
         ]);
 
-        $file = $request->file('file');
-        $path = $file->store('papers');
+        // 1. Simpan file PDF fisik ke storage
+        $path = $request->file('file')->store('papers');
 
-        // Create paper record
+        // 2. Buat data awal paper dengan status PROCESSING
         $paper = Paper::create([
-            'uploaded_by' => $request->user() ? $request->user()->id : 1, // Fallback if no auth
-            'title' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'status' => 'PROCESSING',
+            'uploaded_by'   => auth()->id() ?? 1, // ID user yang login
+            'title'         => $request->file('file')->getClientOriginalName(),
+            'file_path'     => $path,
+            'status'        => 'PROCESSING',
+            'is_submission' => $request->boolean('is_submission', false),
         ]);
 
-        // Dispatch Job
-        ProcessPaperJob::dispatch($paper);
-        
-        \App\Helpers\AuditLogger::log('Upload paper', $paper->id, $paper->uploaded_by);
+        // 3. Catat audit log
+        DB::table('audit_logs')->insert([
+            'user_id'    => auth()->id() ?? 1,
+            'action'     => 'UPLOAD_PAPER',
+            'paper_id'   => $paper->id,
+            'created_at' => now(),
+        ]);
 
+        // 4. LEMPAR KE QUEUE (Async Background Job)!
+        \App\Jobs\AnalyzePaperJob::dispatch($paper->id);
+
+        // 5. LANGSUNG RESPONS KE FRONTEND (Sesuai Brief Halaman 6!)
         return response()->json([
-            'status' => 'processing',
-            'paper' => $paper
-        ]);
+            'status'   => 'processing',
+            'paper_id' => $paper->id,
+            'message'  => 'Paper berhasil diunggah dan sedang dianalisis oleh AI.',
+        ], 202);
     }
 
     public function show($id)
