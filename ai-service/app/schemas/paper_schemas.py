@@ -84,7 +84,7 @@ class FullAnalyzeDataResponse(BaseModel):
 AnalyzeDataResponse = FullAnalyzeDataResponse
 
 # ==========================================
-# SKEMA ENDPOINT 2 : POST /api/v1/review
+# SKEMA ENDPOINT 2: POST /api/v1/review
 # ==========================================
 class SectionReviews(BaseModel):
     methodology_review: str
@@ -114,3 +114,25 @@ class QADataResponse(BaseModel):
     found_in_paper: bool
     answer: str
     evidence_sources: List[EvidenceSource] = []
+
+# ==========================================
+# SKEMA ENDPOINT 4: POST /api/v1/compare
+# ==========================================
+class ComparisonTableItem(BaseModel):
+    aspect: str
+    paper_a: str
+    paper_b: str
+
+class VerdictDetail(BaseModel):
+    question: str
+    winner: str
+    reason: str
+
+class CompareVerdicts(BaseModel):
+    stronger_methodology: VerdictDetail
+    stronger_evidence: VerdictDetail
+    more_reproducible: VerdictDetail
+
+class CompareDataResponse(BaseModel):
+    comparison_table: List[ComparisonTableItem]
+    verdict: CompareVerdicts
