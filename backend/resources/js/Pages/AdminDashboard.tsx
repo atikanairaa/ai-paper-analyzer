@@ -65,7 +65,7 @@ export default function AdminDashboard() {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Dashboard Admin</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Dashboard Admin</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Ringkasan sistem dan pemantauan tugas AI secara real-time.</p>
         </div>
 
@@ -78,9 +78,9 @@ export default function AdminDashboard() {
             { title: 'Gagal',           value: MOCK_STATS.failed,     icon: <XCircle    className="w-5 h-5 text-red-500 dark:text-rose-400" />,    ring: 'ring-red-100 dark:ring-rose-900/50',    bg: 'bg-red-50 dark:bg-rose-900/30' },
             { title: 'Rata-rata Skor',  value: MOCK_STATS.avgScore,   icon: <TrendingUp className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />, ring: 'ring-indigo-100 dark:ring-indigo-900/50', bg: 'bg-indigo-50 dark:bg-indigo-900/30' },
           ].map((s, i) => (
-            <div key={i} className={`bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm ring-1 ${s.ring} p-5 flex flex-col items-center text-center`}>
+            <div key={i} className={`bg-white border border-slate-200/80 shadow-sm dark:bg-[#182444] dark:border-slate-700/60 rounded-2xl shadow-sm  ${s.ring} p-5 flex flex-col items-center text-center`}>
               <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>{s.icon}</div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-white">{s.value}</p>
               <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-1">{s.title}</p>
             </div>
           ))}
@@ -89,8 +89,8 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* â”€â”€ Domain Chart â”€â”€ */}
-          <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm ring-1 ring-slate-200 dark:ring-slate-700/60 p-6">
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-6">Paper per Domain Riset</h2>
+          <div className="bg-white border border-slate-200/80 shadow-sm dark:bg-[#182444] dark:border-slate-700/60 rounded-2xl shadow-sm   p-6">
+            <h2 className="text-base font-bold text-slate-800 dark:text-white mb-6">Paper per Domain Riset</h2>
             <div className="space-y-4">
               {MOCK_DOMAINS.map((d, i) => {
                 const pct = Math.round((d.count / totalDomain) * 100);
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{d.name}</span>
                       <span className="text-xs text-slate-400 dark:text-slate-500">{d.count} ({pct}%)</span>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-[#111c38] rounded-full h-2">
+                    <div className="w-full bg-slate-100 dark:bg-[#101a36] rounded-full h-2">
                       <div className={`h-2 rounded-full ${d.color}`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
@@ -110,11 +110,11 @@ export default function AdminDashboard() {
           </div>
 
           {/* â”€â”€ Failed AI Jobs â”€â”€ */}
-          <div className="lg:col-span-2 bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm ring-1 ring-slate-200 dark:ring-slate-700/60 overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/40 bg-slate-50 dark:bg-[#0f172a] flex items-center justify-between">
+          <div className="lg:col-span-2 bg-white border border-slate-200/80 shadow-sm dark:bg-[#182444] dark:border-slate-700/60 rounded-2xl shadow-sm   overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/40 bg-slate-50 dark:bg-[#101a36] flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <AlertCircle className="w-5 h-5 text-red-500 dark:text-rose-400" />
-                <h2 className="text-base font-bold text-slate-800 dark:text-slate-200">Tugas AI yang Gagal</h2>
+                <h2 className="text-base font-bold text-slate-800 dark:text-white">Tugas AI yang Gagal</h2>
               </div>
               <span className="bg-red-100 dark:bg-rose-900/50 text-red-700 dark:text-rose-400 text-xs font-bold px-2.5 py-0.5 rounded-full">{failedJobs.length} Tugas</span>
             </div>
@@ -133,9 +133,9 @@ export default function AdminDashboard() {
                     <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400 dark:text-slate-500">Tidak ada tugas gagal saat ini ðŸŽ‰</td></tr>
                   )}
                   {failedJobs.map(job => (
-                    <tr key={job.id} className="hover:bg-slate-50 dark:bg-[#0f172a] transition-colors">
+                    <tr key={job.id} className="hover:bg-slate-50 dark:bg-[#101a36] transition-colors">
                       <td className="px-6 py-4 font-mono text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">JOB-{job.id}</td>
-                      <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">#{job.paper_id}</td>
+                      <td className="px-6 py-4 font-semibold text-slate-800 dark:text-white">#{job.paper_id}</td>
                       <td className="px-6 py-4">
                         <span className="text-xs text-red-600 dark:text-rose-400 font-mono bg-red-50 dark:bg-rose-900/30 px-2 py-0.5 rounded">{job.error_message}</span>
                         <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Durasi: {job.duration_seconds}d Â· Retry: {job.retry_count}/3</div>
@@ -157,10 +157,10 @@ export default function AdminDashboard() {
         </div>
 
         {/* â”€â”€ Audit Log â”€â”€ */}
-        <div className="bg-white/95 dark:bg-[#1e293b]/90 rounded-2xl shadow-sm ring-1 ring-slate-200 dark:ring-slate-700/60 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/40 bg-slate-50 dark:bg-[#0f172a] flex items-center space-x-2">
+        <div className="bg-white border border-slate-200/80 shadow-sm dark:bg-[#182444] dark:border-slate-700/60 rounded-2xl shadow-sm   overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700/40 bg-slate-50 dark:bg-[#101a36] flex items-center space-x-2">
             <Activity className="w-5 h-5 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-200">Log Aktivitas (Audit Log)</h2>
+            <h2 className="text-base font-bold text-slate-800 dark:text-white">Log Aktivitas (Audit Log)</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -174,9 +174,9 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {auditLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-slate-50 dark:bg-[#0f172a] transition-colors">
+                  <tr key={log.id} className="hover:bg-slate-50 dark:bg-[#101a36] transition-colors">
                     <td className="px-6 py-4 text-slate-400 dark:text-slate-500 font-mono text-xs">{log.created_at}</td>
-                    <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{log.user?.name ?? 'System AI'}</td>
+                    <td className="px-6 py-4 font-semibold text-slate-800 dark:text-white">{log.user?.name ?? 'System AI'}</td>
                     <td className="px-6 py-4">
                       <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-800/50">{log.action}</span>
                     </td>
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-white/95 dark:bg-[#1e293b]/90 border border-slate-200 dark:border-slate-700/60 text-slate-900 dark:text-slate-100 px-6 py-4 rounded-2xl shadow-xl flex items-center space-x-3 z-50">
+        <div className="fixed bottom-6 right-6 bg-white border border-slate-200/80 shadow-sm dark:bg-[#182444] dark:border-slate-700/60 border border-slate-200 dark:border-slate-700/60 text-slate-800 dark:text-white px-6 py-4 rounded-2xl shadow-xl flex items-center space-x-3 z-50">
           <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
           <span className="text-sm font-medium">{toast}</span>
         </div>
@@ -201,5 +201,6 @@ export default function AdminDashboard() {
     </AppLayout>
   );
 }
+
 
 
