@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Head, Link } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { GitCompare, FileText, Check, Loader2, UploadCloud } from 'lucide-react';
+import { GitCompare, FileText, Check, Loader2, UploadCloud, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 
 export default function Compare() {
@@ -41,7 +42,19 @@ export default function Compare() {
 
   return (
     <AppLayout defaultRole="researcher">
+      <Head title="Bandingkan Paper" />
       <div className="max-w-6xl mx-auto p-6 md:p-8">
+
+        {/* Back Button */}
+        <div className="mb-2">
+            <Link 
+                href="/dashboard" 
+                className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 font-semibold text-sm transition-all shadow-sm group"
+            >
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                <span>Kembali ke Dashboard</span>
+            </Link>
+        </div>
 
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-stone-900">Bandingkan Paper (On-The-Fly)</h2>
