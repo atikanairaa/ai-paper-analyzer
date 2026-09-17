@@ -61,7 +61,7 @@ export default function Upload() {
   };
 
   return (
-    <AppLayout defaultRole="peneliti">
+    <AppLayout defaultRole="researcher">
       <div className="max-w-3xl mx-auto p-6 md:p-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-stone-900">Unggah Paper</h2>

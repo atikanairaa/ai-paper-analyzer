@@ -58,7 +58,7 @@ export default function Dashboard() {
   const totalDomain = MOCK_DOMAINS.reduce((a, d) => a + d.count, 0);
 
   return (
-    <AppLayout activeMenu="dashboard" defaultRole="admin">
+    <AppLayout  defaultRole="admin">
       <Head title="Dashboard Admin" />
 
       <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">

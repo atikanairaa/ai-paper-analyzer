@@ -6,10 +6,11 @@ import { ScoreCard } from "@/Components/ScoreCard";
 import { WeaknessCard } from "@/Components/WeaknessCard";
 import { ChatWidget } from "@/Components/ChatWidget";
 import { Paper } from "@/types/paper";
+import { PageProps } from "@/types";
 import axios from "axios";
 
 export default function PaperDetail() {
-    const { props } = usePage<{ paper?: Paper }>();
+    const { props } = usePage<PageProps<{ paper?: Paper }>>();
     const paper = props.paper;
     const [isActionLoading, setIsActionLoading] = useState(false);
 

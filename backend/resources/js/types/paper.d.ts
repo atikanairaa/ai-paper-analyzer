@@ -70,6 +70,7 @@ export interface Paper {
   scores?: PaperScore | null;
   findings?: PaperFinding[];
   latest_job?: AiJob | null;
+  reviews?: Review[];
 }
 
 export interface AiJob {
