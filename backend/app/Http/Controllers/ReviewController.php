@@ -16,13 +16,21 @@ class ReviewController extends Controller
             'comments' => 'nullable|string',
         ]);
 
-        $review = Review::create([
-            'paper_id' => $paperId,
-            'reviewer_id' => auth()->id() ?? 1, // Fallback for now
-            'recommendation' => $request->recommendation,
-            'score' => $request->score,
-            'comments' => $request->comments,
-        ]);
+        $review = Review::updateOrCreate(
+            ['paper_id' => $paperId, 'reviewer_id' => auth()->id()],
+            [
+                'recommendation' => $request->recommendation,
+                'score' => $request->score,
+                'comments' => $request->comments,
+            ]
+        );
+
+        $paper = \App\Models\Paper::with('uploader')->findOrFail($paperId);
+        $paper->update(['submission_status' => 'REVIEWED']);
+
+        if ($paper->uploader) {
+            $paper->uploader->notify(new \App\Notifications\PaperReviewedNotification($paper->id, $paper->title));
+        }
 
         AuditLogger::log('Reviewer submit review', $paperId);
 

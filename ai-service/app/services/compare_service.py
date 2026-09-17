@@ -6,7 +6,7 @@ class CompareService:
 
 ATURAN SISTEM:
 1. DUKUNGAN BILINGUAL: Dokumen dapat berbahasa INDONESIA atau INGGRIS.
-2. KOMPARASI ASPEK: Bandingkan secara objektif 7 aspek utama (Research Topic, Methodology, Dataset, Sample, Main Finding, Limitation, Novelty) secara berdampingan.
+2. KOMPARASI ASPEK: Bandingkan secara objektif 8 aspek utama (Judul Paper, Research Topic, Methodology, Dataset, Sample, Main Finding, Limitation, Novelty) secara berdampingan.
 3. KEPUTUSAN EVALUASI (VERDICT): Jawab 3 pertanyaan evaluasi ilmiah dan tentukan pemenang ("Paper A" | "Paper B" | "Seimbang") beserta alasan analisis yang jelas dalam BAHASA INDONESIA:
    - Which paper has stronger methodology?
    - Which paper has stronger evidence?
@@ -40,6 +40,11 @@ Teks:
 TARGET SKEMA JSON:
 {{
   "comparison_table": [
+    {{
+      "aspect": "Judul Paper",
+      "paper_a": "Ekstrak dan tulis judul asli Paper A di sini (bahasa Indonesia/Asli)",
+      "paper_b": "Ekstrak dan tulis judul asli Paper B di sini (bahasa Indonesia/Asli)"
+    }},
     {{
       "aspect": "Research Topic",
       "paper_a": "Penjelasan topik Paper A dalam bahasa Indonesia",

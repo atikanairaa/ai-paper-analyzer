@@ -8,5 +8,6 @@ class AiJob extends Model
 {
     //
     public function requests() { return $this->hasMany(AiRequest::class); }
+    public function paper() { return $this->belongsTo(Paper::class); }
 }
 

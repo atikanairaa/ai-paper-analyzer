@@ -21,5 +21,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+        
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Registered::class,
+            \App\Listeners\AssignDefaultRoleListener::class
+        );
     }
 }

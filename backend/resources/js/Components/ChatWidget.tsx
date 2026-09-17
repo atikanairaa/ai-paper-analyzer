@@ -1,5 +1,6 @@
-﻿import React, { useState } from 'react';
-import { MessageSquare, X, Send, Bot, User } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 interface Message {
   id: number;
@@ -8,9 +9,16 @@ interface Message {
   evidence?: string;
 }
 
-export const ChatWidget: React.FC = () => {
+interface ChatWidgetProps {
+  paperId: number;
+}
+
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -19,28 +27,56 @@ export const ChatWidget: React.FC = () => {
     }
   ]);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isOpen]);
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
+
+    const userText = inputValue;
     const userMessage: Message = {
       id: Date.now(),
       sender: 'user',
-      text: inputValue,
+      text: userText,
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+    setIsLoading(true);
 
-    // Mock AI response
-    setTimeout(() => {
+    try {
+      // Panggil backend Laravel yang akan meneruskan ke FastAPI
+      const response = await axios.post(`/api/papers/${paperId}/qa`, {
+        question: userText
+      });
+      
+      const responseData = response.data.data;
+      
       const aiResponse: Message = {
         id: Date.now() + 1,
         sender: 'ai',
-        text: 'Paper ini menggunakan dataset CIFAR-10.',
-        evidence: 'Halaman 5, Bagian Dataset',
+        text: responseData?.answer || 'Maaf, saya tidak dapat menemukan jawaban untuk pertanyaan tersebut.',
+        evidence: responseData?.evidence || undefined,
       };
+      
       setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: 'Maaf, terjadi kesalahan saat menghubungi server AI.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -84,6 +120,17 @@ export const ChatWidget: React.FC = () => {
                 </div>
               </div>
             ))}
+            
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white/95 border border-gray-200 text-gray-800 rounded-2xl rounded-tl-sm p-4 shadow-sm flex items-center space-x-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <span className="text-sm text-gray-500">AI sedang memikirkan jawaban...</span>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
@@ -94,12 +141,13 @@ export const ChatWidget: React.FC = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                disabled={isLoading}
                 placeholder="Tanya tentang dataset, metodologi..."
-                className="flex-1 bg-gray-100 border-transparent focus:bg-white/95 dark:bg-[#1e293b]/90 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-full px-4 py-2 text-sm transition-all outline-none"
+                className="flex-1 bg-gray-100 border-transparent focus:bg-white/95 dark:bg-[#1e293b]/90 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-full px-4 py-2 text-sm transition-all outline-none disabled:opacity-50"
               />
               <button
                 onClick={handleSend}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isLoading}
                 className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white p-2 rounded-full transition-colors flex-shrink-0"
               >
                 <Send className="w-4 h-4" />

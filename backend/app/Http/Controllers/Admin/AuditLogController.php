@@ -12,8 +12,7 @@ class AuditLogController extends Controller
     {
         $logs = AuditLog::with(['user:id,name', 'paper:id,title'])
             ->latest()
-            ->take(50) // limit for dashboard
-            ->get();
+            ->paginate(15);
             
         return response()->json($logs);
     }

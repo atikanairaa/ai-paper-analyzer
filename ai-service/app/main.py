@@ -70,10 +70,11 @@ def health_check():
     dependencies=[Depends(verify_internal_token)],
     tags=["Paper Analysis"]
 )
-async def analyze_paper_endpoint(
+def analyze_paper_endpoint(
     file: UploadFile = File(...),
     request_id: str = Form(None),
-    paper_id: int = Form(None)
+    paper_id: int = Form(None),
+    expertises: str = Form(None)
 ):
     active_request_id = request_id or str(uuid.uuid4())
     
@@ -81,12 +82,12 @@ async def analyze_paper_endpoint(
         raise HTTPException(status_code=400, detail="File wajib berformat PDF!")
 
     try:
-        pdf_bytes = await file.read()
+        pdf_bytes = file.file.read()
         pages = PDFService.extract_text_with_pages(pdf_bytes)
         full_paper_text = PDFService.get_full_text(pages)
         
         # Eksekusi Analisis Lengkap
-        analysis_data = AnalyzeService.run_full_analysis(full_paper_text)
+        analysis_data = AnalyzeService.run_full_analysis(full_paper_text, expertises)
         
         return APIResponse(
             success=True,
@@ -114,7 +115,7 @@ async def analyze_paper_endpoint(
     dependencies=[Depends(verify_internal_token)],
     tags=["Peer Review"]
 )
-async def generate_review_endpoint(
+def generate_review_endpoint(
     file: UploadFile = File(...),
     request_id: str = Form(None),
     paper_id: int = Form(None)
@@ -125,7 +126,7 @@ async def generate_review_endpoint(
         raise HTTPException(status_code=400, detail="File wajib berformat PDF!")
 
     try:
-        pdf_bytes = await file.read()
+        pdf_bytes = file.file.read()
         pages = PDFService.extract_text_with_pages(pdf_bytes)
         full_paper_text = PDFService.get_full_text(pages)
         
@@ -158,7 +159,7 @@ async def generate_review_endpoint(
     dependencies=[Depends(verify_internal_token)],
     tags=["Paper Q&A"]
 )
-async def paper_qa_endpoint(
+def paper_qa_endpoint(
     question: str = Form(...),
     file: UploadFile = File(None),
     paper_text: str = Form(None),
@@ -172,7 +173,7 @@ async def paper_qa_endpoint(
 
     try:
         if file:
-            pdf_bytes = await file.read()
+            pdf_bytes = file.file.read()
             pages = PDFService.extract_text_with_pages(pdf_bytes)
             full_text = PDFService.get_full_text(pages)
         else:
@@ -207,7 +208,7 @@ async def paper_qa_endpoint(
     dependencies=[Depends(verify_internal_token)],
     tags=["Paper Comparison"]
 )
-async def compare_papers_endpoint(
+def compare_papers_endpoint(
     file_a: UploadFile = File(None),
     file_b: UploadFile = File(None),
     paper_a_text: str = Form(None),
@@ -221,7 +222,7 @@ async def compare_papers_endpoint(
     try:
         # Ekstrak Teks Paper A
         if file_a:
-            pdf_bytes_a = await file_a.read()
+            pdf_bytes_a = file_a.file.read()
             pages_a = PDFService.extract_text_with_pages(pdf_bytes_a)
             text_a = PDFService.get_full_text(pages_a)
             title_a = file_a.filename
@@ -233,7 +234,7 @@ async def compare_papers_endpoint(
 
         # Ekstrak Teks Paper B
         if file_b:
-            pdf_bytes_b = await file_b.read()
+            pdf_bytes_b = file_b.file.read()
             pages_b = PDFService.extract_text_with_pages(pdf_bytes_b)
             text_b = PDFService.get_full_text(pages_b)
             title_b = file_b.filename

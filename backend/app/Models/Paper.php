@@ -7,9 +7,46 @@ use Illuminate\Database\Eloquent\Model;
 class Paper extends Model
 {
     //
-    public function authors() { return $this->hasMany(PaperAuthor::class); }
-    public function analyses() { return $this->hasMany(PaperAnalysis::class); }
-    public function scores() { return $this->hasOne(PaperScore::class); }
-    public function findings() { return $this->hasMany(PaperFinding::class); }
-}
+    protected $fillable = [
+        'uploaded_by',
+        'title',
+        'abstract',
+        'publication_year',
+        'journal',
+        'doi',
+        'file_path',
+        'status',
+        'is_submission',
+        'submission_status'
+    ];
+    public function authors()
+    {
+        return $this->hasMany(PaperAuthor::class);
+    }
+    public function analyses()
+    {
+        return $this->hasMany(PaperAnalysis::class);
+    }
+    public function scores()
+    {
+        return $this->hasOne(PaperScore::class);
+    }
+    public function findings()
+    {
+        return $this->hasMany(PaperFinding::class);
+    }
+    public function latestJob()
+    {
+        return $this->hasOne(AiJob::class)->latestOfMany();
+    }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function uploader()
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+}

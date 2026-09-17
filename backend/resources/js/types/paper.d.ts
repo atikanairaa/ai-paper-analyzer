@@ -61,6 +61,7 @@ export interface Paper {
   file_path: string;
   status: PaperStatus;
   is_submission: boolean;
+  submission_status?: 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'REVIEWED' | 'REJECTED';
   created_at: string;
   updated_at: string;
   // Relasi (eager loaded)
@@ -68,6 +69,7 @@ export interface Paper {
   analyses?: PaperAnalysis[];
   scores?: PaperScore | null;
   findings?: PaperFinding[];
+  latest_job?: AiJob | null;
 }
 
 export interface AiJob {

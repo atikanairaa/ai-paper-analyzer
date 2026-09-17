@@ -19,8 +19,8 @@ class DatabaseSeeder extends Seeder
         // Panggil RoleSeeder di sini
         $this->call([
             RoleSeeder::class,
+            ExpertiseSeeder::class,
             UserSeeder::class,
         ]);
     }
 }
-

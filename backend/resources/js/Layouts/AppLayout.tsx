@@ -1,11 +1,12 @@
-﻿import React, { useEffect, useState } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import React, { useEffect } from 'react';
+import { Link, usePage, router } from '@inertiajs/react';
+import axios from 'axios';
 import {
   FileText, UploadCloud, GitCompare, LogOut, User as UserIcon,
-  LayoutDashboard, Users, ClipboardList, ChevronDown, BookOpen
+  LayoutDashboard, Users, ClipboardList, BookOpen, Database, Bell
 } from 'lucide-react';
 
-type Role = 'admin' | 'peneliti' | 'reviewer';
+type Role = 'admin' | 'researcher' | 'reviewer';
 
 interface MenuItem {
   id: string;
@@ -19,11 +20,12 @@ interface AppLayoutProps {
   defaultRole?: Role;
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'peneliti' }) => {
-  const { url } = usePage();
+export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+  const { url, props } = usePage<any>();
   const activeHref = url.split('?')[0];
-  const [currentRole, setCurrentRole] = useState<Role>(defaultRole);
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  
+  const authUser = props.auth?.user;
+  const currentRole = (props.auth?.peran as Role) || 'researcher';
 
   useEffect(() => {
     // Lock to light mode permanently
@@ -37,14 +39,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
       case 'admin':
         return [
           { id: 'dashboard',       label: 'Dashboard Statistik',    href: '/admin',    icon: <LayoutDashboard className="w-5 h-5" /> },
-          { id: 'master-paper',    label: 'Master Paper',           href: '/detail',   icon: <FileText className="w-5 h-5" /> },
-          { id: 'reviewer-assign', label: 'Penugasan Reviewer',     href: '/reviewer', icon: <Users className="w-5 h-5" /> },
+          { id: 'master-paper',    label: 'Master Paper',           href: '/admin/papers',   icon: <FileText className="w-5 h-5" /> },
+          { id: 'assign-paper',    label: 'Assign Paper',           href: '/admin/assign-paper', icon: <ClipboardList className="w-5 h-5" /> },
+          { id: 'manage-users',    label: 'Kelola Pengguna',        href: '/admin/users', icon: <Users className="w-5 h-5" /> },
+          { id: 'manage-expertises',label:'Kelola Bidang Keahlian', href: '/admin/expertises', icon: <BookOpen className="w-5 h-5" /> },
+          { id: 'audit-logs',      label: 'Riwayat Audit Log',      href: '/admin/audit', icon: <Database className="w-5 h-5" /> },
         ];
       case 'reviewer':
         return [
           { id: 'assigned-reviews', label: 'Daftar Review Ditugaskan', href: '/reviewer', icon: <ClipboardList className="w-5 h-5" /> },
         ];
-      case 'peneliti':
+      case 'researcher':
       default:
         return [
           { id: 'upload',    label: 'Unggah Paper',     href: '/upload',  icon: <UploadCloud className="w-5 h-5" /> },
@@ -80,7 +85,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
           <p className="px-5 mb-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest">Menu Utama</p>
           <ul className="space-y-1 px-3">
             {menus.map(menu => {
-              const isActive = activeHref === menu.href || (menu.href !== '/' && activeHref.startsWith(menu.href + '/'));
+              let isActive = activeHref === menu.href || 
+                (menu.href !== '/' && menu.href !== '/admin' && activeHref.startsWith(menu.href + '/'));
+              
+              if (activeHref.startsWith('/detail/')) {
+                if (currentRole === 'admin' && menu.id === 'master-paper') isActive = true;
+                if (currentRole === 'reviewer' && menu.id === 'assigned-reviews') isActive = true;
+                if (currentRole === 'researcher' && menu.id === 'my-papers') isActive = true;
+              }
+
               return (
                 <li key={menu.id}>
                   <Link
@@ -107,8 +120,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
               <UserIcon className="w-4 h-4 text-rose-300" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-stone-800 truncate capitalize">{currentRole} User</p>
-              <p className="text-xs text-stone-500 capitalize">Mode: {currentRole}</p>
+              <p className="text-sm font-semibold text-stone-800 truncate capitalize">{authUser ? authUser.name : 'Guest User'}</p>
+              <p className="text-xs text-stone-500 capitalize">Mode: {currentRole === 'researcher' ? 'peneliti' : currentRole}</p>
             </div>
           </div>
           <Link
@@ -127,37 +140,48 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, defaultRole = 'p
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <header className="bg-white/90 border-b border-[#e8e4dc] py-3 px-8 flex justify-between items-center shadow-sm z-10 flex-shrink-0 backdrop-blur-sm">
-
-          {/* Role Switcher */}
-          <div className="flex items-center space-x-2 text-sm text-stone-500">
-            <span className="font-medium hidden sm:inline">Mode Pratinjau:</span>
-            <div className="relative">
-              <button
-                onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                className="flex items-center space-x-2 bg-stone-50 hover:bg-stone-100 border border-[#e8e4dc] px-3 py-1.5 rounded-md text-sm font-bold text-stone-800 capitalize w-32 transition-colors shadow-sm"
-              >
-                <span className="flex-1 text-left">{currentRole}</span>
-                <ChevronDown className="w-4 h-4 flex-shrink-0" />
-              </button>
-
-              {showRoleDropdown && (
-                <div className="absolute top-full mt-1 left-0 w-36 bg-white border border-[#e8e4dc] shadow-xl rounded-lg overflow-hidden py-1 z-50">
-                  {(['admin', 'peneliti', 'reviewer'] as Role[]).map(role => (
-                    <button
-                      key={role}
-                      onClick={() => { setCurrentRole(role); setShowRoleDropdown(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm capitalize transition-colors hover:bg-rose-50 hover:text-rose-700 ${
-                        currentRole === role
-                          ? 'font-bold text-rose-700 bg-rose-50'
-                          : 'text-stone-700'
-                      }`}
-                    >
-                      {role}
-                    </button>
-                  ))}
-                </div>
+        <header className="bg-white/90 border-b border-[#e8e4dc] py-3 px-8 flex justify-end items-center space-x-6 shadow-sm z-10 flex-shrink-0 backdrop-blur-sm">
+          
+          {/* Notifications */}
+          <div className="relative group">
+            <button className="relative p-2 text-stone-500 hover:text-stone-900 transition rounded-full hover:bg-stone-100">
+              <Bell className="w-5 h-5" />
+              {props.auth?.notifications?.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
               )}
+            </button>
+            
+            {/* Dropdown */}
+            <div className="absolute right-0 mt-2 w-80 bg-white border border-[#e8e4dc] rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top-right scale-95 group-hover:scale-100">
+                <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
+                    <h3 className="font-bold text-stone-900 text-sm">Notifikasi</h3>
+                    {props.auth?.notifications?.length > 0 && (
+                        <button 
+                            onClick={async () => {
+                                await axios.post('/notifications/mark-read');
+                                router.reload();
+                            }}
+                            className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800"
+                        >
+                            Tandai semua dibaca
+                        </button>
+                    )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                    {(!props.auth?.notifications || props.auth.notifications.length === 0) ? (
+                        <div className="p-6 text-center text-xs text-stone-400">
+                            Tidak ada notifikasi baru.
+                        </div>
+                    ) : (
+                        props.auth.notifications.map((notif: any) => (
+                            <Link key={notif.id} href={notif.data.url || '#'} className="block p-4 border-b border-stone-50 hover:bg-stone-50 transition">
+                                <p className="text-sm font-bold text-stone-800 mb-1">{notif.data.title}</p>
+                                <p className="text-xs text-stone-500 leading-relaxed">{notif.data.message}</p>
+                                <p className="text-[10px] text-stone-400 mt-2">{new Date(notif.created_at).toLocaleDateString('id-ID')} {new Date(notif.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</p>
+                            </Link>
+                        ))
+                    )}
+                </div>
             </div>
           </div>
 

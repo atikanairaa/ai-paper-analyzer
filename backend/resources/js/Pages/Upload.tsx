@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { UploadCloud, File, CheckCircle2, Loader2 } from 'lucide-react';
@@ -50,7 +50,7 @@ export default function Upload() {
       formData.append('file', file);
       formData.append('is_submission', uploadPurpose === 'journal' ? '1' : '0');
       const response = await axios.post('/api/papers', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const newPaperId = response.data?.paper?.id;
+      const newPaperId = response.data?.paper_id || response.data?.paper?.id;
       setStatus('processing');
       if (newPaperId) { pollPaperStatus(newPaperId); }
       else { setTimeout(() => setStatus('analyzed'), 9000); }
@@ -158,7 +158,7 @@ export default function Upload() {
             <h3 className="text-2xl font-bold text-stone-900 mb-2">Analisis Selesai!</h3>
             <p className="text-stone-500 text-sm mb-8">Paper Anda telah berhasil dianalisis oleh sistem AI.</p>
             <Link
-              href={paperId ? `/detail/${paperId}` : '/detail'}
+              href={paperId ? `/upload/${paperId}` : '/upload'}
               className="bg-rose-700 hover:bg-rose-800 text-white font-semibold py-2.5 px-8 rounded-xl transition-colors shadow-sm"
             >
               Lihat Hasil Analisis

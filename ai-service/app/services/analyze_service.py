@@ -27,14 +27,18 @@ ATURAN MUTLAK SISTEM:
 4. PURE JSON ONLY: Respon HANYA berupa JSON valid sesuai skema yang diminta, tanpa teks pengantar, tanpa teks penutup."""
 
     @classmethod
-    def run_full_analysis(cls, paper_text: str) -> FullAnalyzeDataResponse:
+    def run_full_analysis(cls, paper_text: str, expertises: str = None) -> FullAnalyzeDataResponse:
+        
+        fallback_expertises = "Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other"
+        domain_list = expertises if expertises else fallback_expertises
+
         user_prompt = f"""Lakukan analisis mendalam terhadap dokumen/teks paper penelitian terlampir dan berikan respon HANYA dalam format JSON valid.
 
 INSTRUKSI KHUSUS & ATURAN SISTEM:
 1. DUKUNGAN BILINGUAL: Dokumen dapat berbahasa INDONESIA atau INGGRIS.
 2. DILARANG HALUSINASI: Jika data/bagian tidak ditemukan di teks dokumen, kembalikan null atau {{"is_found": false, "summary": null}}.
 3. NILAI KATEGORI (WAJIB PILIH DARI OPSI BERIKUT):
-   - research_domain: Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other
+   - research_domain: {domain_list}
    - research_type: Experimental | Survey | Literature Review | Systematic Review | Case Study | Qualitative | Quantitative | Mixed Method
    - severity: LOW | MEDIUM | HIGH | CRITICAL
 4. BAHASA PENJELASAN: Seluruh teks ulasan, ringkasan, alasan skor, dan kelemahan WAJIB ditulis dalam BAHASA INDONESIA yang baku dan ilmiah.
@@ -45,21 +49,23 @@ TEKS PAPER:
 \"\"\"
 
 TARGET SKEMA JSON:
+```json
 {{
   "paper": {{
-    "title": "Judul asli paper / dokumen",
-    "abstract": "Teks lengkap abstrak",
-    "publication_year": "integer (tahun terbit, misal: 2024 atau null)",
-    "journal": "Nama Jurnal / Prosiding Konferensi atau null",
-    "doi": "Nomor DOI atau null"
+    "title": "Judul asli",
+    "abstract": "Abstrak bahasa indonesia",
+    "publication_year": 2024,
+    "journal": "Nama jurnal (jika ada)",
+    "doi": "DOI (jika ada)"
   }},
   "authors": [
     {{
-      "name": "Nama Lengkap Penulis"
+      "name": "Nama Penulis 1",
+      "affiliation": "Afiliasi (jika ada)"
     }}
   ],
   "paper_analyses": {{
-    "research_domain": "Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other",
+    "research_domain": "{domain_list}",
     "research_type": "Experimental | Survey | Literature Review | Systematic Review | Case Study | Qualitative | Quantitative | Mixed Method",
     "key_findings": [
       "Temuan utama 1",

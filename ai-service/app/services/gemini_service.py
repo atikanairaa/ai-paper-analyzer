@@ -51,10 +51,10 @@ class GeminiService:
             except Exception as e:
                 err_str = str(e)
                 
-                # JIKA KENA LIMIT 1-2 DETIK (429): Otomatis tidur 3 detik lalu coba lagi!
+                # JIKA KENA LIMIT 1-2 DETIK (429): Otomatis tidur 30 detik lalu coba lagi!
                 if "429" in err_str or "ResourceExhausted" in err_str:
                     if attempts <= max_retries:
-                        time.sleep(3)  # Tunggu 3 detik di background
+                        time.sleep(30)  # Tunggu 30 detik di background
                         continue
 
                 # JIKA ERROR PYDANTIC: Jalankan repair loop

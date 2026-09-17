@@ -45,6 +45,11 @@ class AnalyzePaperJob implements ShouldQueue
         $filePath = Storage::path($paper->file_path);
 
         try {
+            $expertises = \App\Models\Expertise::pluck('name')->implode(' | ');
+            if (empty($expertises)) {
+                $expertises = "Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other";
+            }
+
             // PANGGIL FASTAPI KAMU MENGGUNAKAN HTTP CLIENT + INTERNAL TOKEN
             $response = Http::timeout(180)
                 ->withToken($token)
@@ -52,6 +57,7 @@ class AnalyzePaperJob implements ShouldQueue
                 ->post("{$fastApiUrl}/api/v1/analyze", [
                     'paper_id'   => $paper->id,
                     'request_id' => (string) Str::uuid(),
+                    'expertises' => $expertises,
                 ]);
 
             if ($response->failed()) {
@@ -59,6 +65,12 @@ class AnalyzePaperJob implements ShouldQueue
             }
 
             $result = $response->json();
+            
+            if (isset($result['success']) && $result['success'] === false) {
+                $errorMsg = $result['error']['message'] ?? 'Unknown AI Error';
+                throw new \Exception("AI API Error: " . $errorMsg);
+            }
+            
             $data = $result['data'];
 
             // SIMPAN SEMUA DATA DARI FASTAPI KE TABEL-TABEL DATABASE
