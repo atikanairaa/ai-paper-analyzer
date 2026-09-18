@@ -1,18 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { Head } from '@inertiajs/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Head, usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { FileText, CheckCircle, Loader2, XCircle, TrendingUp, RefreshCw, AlertCircle, Activity } from 'lucide-react';
+import { FileText, CheckCircle, Loader2, XCircle, TrendingUp, RefreshCw, AlertCircle, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AiJob, AuditLog } from '@/types/paper';
 import axios from 'axios';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, LineChart, Line, Legend
+} from 'recharts';
 
-import { usePage } from '@inertiajs/react';
+const CHART_COLORS = ['#be123c', '#059669', '#d97706', '#44403c', '#ea580c', '#e11d48'];
 
 export default function AdminDashboard() {
-  const { stats, domains, failedJobs: initialFailedJobs } = usePage<any>().props;
+  const { stats, domains, failedJobs: initialFailedJobs, uploadsPerMonth, statusChart } = usePage<any>().props;
 
   const [toast, setToast]           = useState<string | null>(null);
   const [auditLogs, setAuditLogs]   = useState<AuditLog[]>([]);
   const [failedJobs, setFailedJobs] = useState<AiJob[]>(initialFailedJobs || []);
+  
+  // Pagination & Search States
+  const [failedSearch, setFailedSearch] = useState('');
+  const [failedPage, setFailedPage] = useState(1);
+  const failedPerPage = 5;
+  
+  const [auditPage, setAuditPage] = useState(1);
+  const auditPerPage = 10;
 
   const formatErrorMessage = (errMsg: string) => {
     if (!errMsg) return "Kesalahan tidak diketahui.";
@@ -36,10 +48,39 @@ export default function AdminDashboard() {
     axios.get('/api/admin/audit-logs')
       .then(res => { 
         const logsData = res.data.data || res.data;
-        if (Array.isArray(logsData) && logsData.length > 0) setAuditLogs(logsData.slice(0, 5)); 
+        if (Array.isArray(logsData)) setAuditLogs(logsData); 
       })
       .catch(() => {});
   }, []);
+
+  // Filter & Paginate Failed Jobs
+  const paginatedFailedJobs = useMemo(() => {
+      let filtered = failedJobs;
+      if (failedSearch.trim()) {
+          const q = failedSearch.toLowerCase();
+          filtered = filtered.filter(j => 
+              j.paper?.title?.toLowerCase().includes(q) || 
+              String(j.id).includes(q) ||
+              j.error_message?.toLowerCase().includes(q)
+          );
+      }
+      const start = (failedPage - 1) * failedPerPage;
+      return {
+          data: filtered.slice(start, start + failedPerPage),
+          total: filtered.length,
+          totalPages: Math.ceil(filtered.length / failedPerPage)
+      };
+  }, [failedJobs, failedSearch, failedPage]);
+
+  // Paginate Audit Logs
+  const paginatedAuditLogs = useMemo(() => {
+      const start = (auditPage - 1) * auditPerPage;
+      return {
+          data: auditLogs.slice(start, start + auditPerPage),
+          total: auditLogs.length,
+          totalPages: Math.ceil(auditLogs.length / auditPerPage)
+      };
+  }, [auditLogs, auditPage]);
 
   const handleRetry = async (job: AiJob) => {
     try {
@@ -84,81 +125,144 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Domain Chart */}
-          <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-6">
-            <h2 className="text-base font-bold text-stone-900 mb-6">Paper per Domain Riset</h2>
-            <div className="space-y-4">
-              {domains && domains.length > 0 ? (
-                <div className="space-y-4 mt-2">
-                  {domains.map((d: any, i: number) => (
-                    <div key={i}>
-                      <div className="flex justify-between text-xs font-semibold mb-1.5">
-                        <span className="text-stone-700">{d.name}</span>
-                        <span className="text-stone-500">{d.count}</span>
-                      </div>
-                      <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
-                        <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${(d.count / totalDomain) * 100}%` }}></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full pb-8">
-                  <p className="text-sm text-stone-400">Belum ada data domain riset.</p>
-                </div>
-              )}
+          {/* AI Processing Success Rate */}
+          <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-6 flex flex-col">
+            <h2 className="text-base font-bold text-stone-900 mb-4">Tingkat Kesuksesan AI</h2>
+            <div className="flex-1 min-h-[300px]">
+                {statusChart && statusChart.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie data={statusChart} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                                {statusChart.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e8e4dc', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                        </PieChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full"><p className="text-sm text-stone-400">Belum ada data.</p></div>
+                )}
             </div>
           </div>
 
-          {/* Failed Jobs */}
-          <div className="lg:col-span-2 bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[#e8e4dc] bg-stone-50 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="w-5 h-5 text-rose-500" />
-                <h2 className="text-base font-bold text-stone-900">Tugas AI yang Gagal</h2>
-              </div>
-              <span className="bg-rose-100 text-rose-800 text-xs font-bold px-2.5 py-0.5 rounded-full">{failedJobs.length} Tugas</span>
+          {/* Paper by Domain */}
+          <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-6 flex flex-col">
+            <h2 className="text-base font-bold text-stone-900 mb-4">Paper per Domain Riset</h2>
+            <div className="flex-1 min-h-[300px]">
+                {domains && domains.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={domains} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8e4dc" />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#57534e' }} width={90} />
+                            <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '12px', border: '1px solid #e8e4dc' }} />
+                            <Bar dataKey="count" fill="#be123c" radius={[0, 4, 4, 0]} maxBarSize={40}>
+                                {domains.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full"><p className="text-sm text-stone-400">Belum ada data domain riset.</p></div>
+                )}
             </div>
+          </div>
+
+          {/* Uploads per Month */}
+          <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-6 flex flex-col lg:col-span-2">
+            <h2 className="text-base font-bold text-stone-900 mb-4">Tren Unggahan</h2>
+            <div className="flex-1 min-h-[300px]">
+                {uploadsPerMonth && uploadsPerMonth.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={uploadsPerMonth} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e4dc" />
+                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#57534e' }} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#57534e' }} allowDecimals={false} />
+                            <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e8e4dc' }} />
+                            <Line type="monotone" dataKey="count" stroke="#be123c" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full"><p className="text-sm text-stone-400">Belum ada tren data.</p></div>
+                )}
+            </div>
+          </div>
+        </div>
+
+        {/* Failed Jobs (Full Width Stacked) */}
+        <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-[#e8e4dc] bg-stone-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center space-x-2">
+                    <AlertCircle className="w-5 h-5 text-rose-500" />
+                    <h2 className="text-base font-bold text-stone-900">Tugas AI yang Gagal</h2>
+                    <span className="bg-rose-100 text-rose-800 text-xs font-bold px-2.5 py-0.5 rounded-full">{paginatedFailedJobs.total}</span>
+                </div>
+                <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <input
+                        type="text"
+                        value={failedSearch}
+                        onChange={e => { setFailedSearch(e.target.value); setFailedPage(1); }}
+                        placeholder="Cari ID, Judul, Error..."
+                        className="w-full pl-9 pr-4 py-1.5 rounded-xl border border-[#e8e4dc] bg-white text-sm text-stone-800 placeholder-stone-400 focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition"
+                    />
+                </div>
+            </div>
+            
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+                <table className="w-full text-sm">
                 <thead className="bg-[#faf8f5] text-stone-500 text-[10px] uppercase tracking-wider">
-                  <tr>
+                    <tr>
                     <th className="px-6 py-4 font-semibold text-left">ID JOB</th>
                     <th className="px-6 py-4 font-semibold text-left">NAMA PDF</th>
-                    <th className="px-6 py-4 font-semibold text-left">ERROR & RETRY</th>
+                    <th className="px-6 py-4 font-semibold text-left w-1/3">ERROR & RETRY</th>
                     <th className="px-6 py-4 font-semibold text-right">AKSI</th>
-                  </tr>
+                    </tr>
                 </thead>
                 <tbody>
-                  {failedJobs.length === 0 && (
-                    <tr><td colSpan={4} className="px-6 py-10 text-center text-stone-400">Tidak ada tugas gagal saat ini 🎉</td></tr>
-                  )}
-                  {failedJobs.map(job => (
+                    {paginatedFailedJobs.data.length === 0 && (
+                    <tr><td colSpan={4} className="px-6 py-10 text-center text-stone-400">Tidak ada tugas gagal yang cocok dengan pencarian 🎉</td></tr>
+                    )}
+                    {paginatedFailedJobs.data.map(job => (
                     <tr key={job.id} className="hover:bg-stone-50/50 border-b border-[#e8e4dc] transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs text-stone-400">JOB-{job.id}</td>
-                      <td className="px-6 py-4 font-semibold text-stone-800 max-w-xs truncate" title={job.paper?.title || `Paper #${job.paper_id}`}>
+                        <td className="px-6 py-4 font-mono text-xs text-stone-400">JOB-{job.id}</td>
+                        <td className="px-6 py-4 font-semibold text-stone-800 max-w-xs truncate" title={job.paper?.title || `Paper #${job.paper_id}`}>
                         {job.paper?.title ? job.paper.title.replace(/\.pdf$/i, '').replace(/[_+]/g, ' ') : `Paper #${job.paper_id}`}
-                      </td>
-                      <td className="px-6 py-4">
+                        </td>
+                        <td className="px-6 py-4">
                         <span className="text-xs text-rose-700 bg-rose-50 px-2 py-1 rounded border border-rose-200 block whitespace-normal">
-                          {formatErrorMessage(job.error_message || "")}
+                            {formatErrorMessage(job.error_message || "")}
                         </span>
                         <div className="text-[11px] text-stone-400 mt-1">Durasi: {job.duration_seconds}d - Retry: {job.retry_count}/3</div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
+                        </td>
+                        <td className="px-6 py-4 text-right">
                         <button onClick={() => handleRetry(job)}
-                          className="inline-flex items-center space-x-1.5 bg-rose-700 hover:bg-rose-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
-                          <RefreshCw className="w-3.5 h-3.5" /><span>Coba Lagi</span>
+                            className="inline-flex items-center space-x-1.5 bg-rose-700 hover:bg-rose-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm">
+                            <RefreshCw className="w-3.5 h-3.5" /><span>Coba Lagi</span>
                         </button>
-                      </td>
+                        </td>
                     </tr>
-                  ))}
+                    ))}
                 </tbody>
-              </table>
+                </table>
             </div>
-          </div>
+
+            {/* Pagination Controls for Failed Jobs */}
+            {paginatedFailedJobs.totalPages > 1 && (
+                <div className="px-6 py-3 border-t border-[#e8e4dc] bg-stone-50 flex items-center justify-between">
+                    <span className="text-xs text-stone-500 font-medium">Halaman {failedPage} dari {paginatedFailedJobs.totalPages}</span>
+                    <div className="flex space-x-2">
+                        <button onClick={() => setFailedPage(p => Math.max(1, p - 1))} disabled={failedPage === 1} className="p-1.5 rounded-lg border border-[#e8e4dc] bg-white text-stone-500 hover:text-stone-800 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
+                        <button onClick={() => setFailedPage(p => Math.min(paginatedFailedJobs.totalPages, p + 1))} disabled={failedPage === paginatedFailedJobs.totalPages} className="p-1.5 rounded-lg border border-[#e8e4dc] bg-white text-stone-500 hover:text-stone-800 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
+                    </div>
+                </div>
+            )}
         </div>
 
         {/* Audit Log */}
@@ -178,21 +282,41 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {auditLogs.map(log => (
+                {paginatedAuditLogs.data.map(log => {
+                  const dateObj = new Date(log.created_at);
+                  const formattedDate = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                  
+                  let targetInfo = `Data #${log.paper_id || log.id}`;
+                  if (log.paper) {
+                      targetInfo = log.paper.title.replace(/\.pdf$/i, '');
+                  }
+                  
+                  return (
                   <tr key={log.id} className="hover:bg-stone-50 border-b border-[#e8e4dc] transition-colors">
-                    <td className="px-6 py-4 text-stone-400 font-mono text-xs">{log.created_at}</td>
+                    <td className="px-6 py-4 text-stone-500 font-mono text-[11px]">{formattedDate}</td>
                     <td className="px-6 py-4 font-semibold text-stone-800">{log.user?.name ?? 'System AI'}</td>
                     <td className="px-6 py-4">
-                      <span className="bg-rose-50 text-rose-800 text-xs font-bold px-2.5 py-1 rounded-full border border-rose-200">{log.action}</span>
+                      <span className="bg-rose-50 text-rose-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-rose-200">{log.action}</span>
                     </td>
-                    <td className="px-6 py-4 text-stone-500 text-xs font-mono">
-                      {log.paper ? `${log.paper.title} (#${log.paper_id})` : `Paper #${log.paper_id}`}
+                    <td className="px-6 py-4 text-stone-700 text-xs font-medium max-w-[200px] truncate" title={targetInfo}>
+                      {targetInfo}
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls for Audit Logs */}
+          {paginatedAuditLogs.totalPages > 1 && (
+            <div className="px-6 py-3 border-t border-[#e8e4dc] bg-stone-50 flex items-center justify-between">
+                <span className="text-xs text-stone-500 font-medium">Halaman {auditPage} dari {paginatedAuditLogs.totalPages}</span>
+                <div className="flex space-x-2">
+                    <button onClick={() => setAuditPage(p => Math.max(1, p - 1))} disabled={auditPage === 1} className="p-1.5 rounded-lg border border-[#e8e4dc] bg-white text-stone-500 hover:text-stone-800 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
+                    <button onClick={() => setAuditPage(p => Math.min(paginatedAuditLogs.totalPages, p + 1))} disabled={auditPage === paginatedAuditLogs.totalPages} className="p-1.5 rounded-lg border border-[#e8e4dc] bg-white text-stone-500 hover:text-stone-800 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
+                </div>
+            </div>
+          )}
         </div>
       </div>
 

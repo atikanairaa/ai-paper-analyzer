@@ -37,6 +37,27 @@ class AdminDashboardController extends Controller
             ->take(5)
             ->get();
 
+        $papersForChart = Paper::select('id', 'created_at', 'status')->get();
+        $uploadsByMonth = $papersForChart->groupBy(function($date) {
+            return \Carbon\Carbon::parse($date->created_at)->format('M Y');
+        })->map(function ($row) {
+            return count($row);
+        });
+        
+        $uploadsPerMonth = [];
+        foreach($uploadsByMonth as $month => $count) {
+            $uploadsPerMonth[] = ['month' => $month, 'count' => $count];
+        }
+
+        // Limit to last 6 months to avoid overcrowding
+        $uploadsPerMonth = array_slice($uploadsPerMonth, -6);
+
+        $statusChart = [
+            ['name' => 'Berhasil (Analyzed)', 'value' => $analyzed],
+            ['name' => 'Gagal (Failed)', 'value' => $failed],
+            ['name' => 'Diproses (Processing)', 'value' => $processing],
+        ];
+
         return Inertia::render('AdminDashboard', [
             'stats' => [
                 'total' => $total,
@@ -46,7 +67,9 @@ class AdminDashboardController extends Controller
                 'avgScore' => round($avgScore, 1)
             ],
             'domains' => $domains,
-            'failedJobs' => $failedJobs
+            'failedJobs' => collect($failedJobs)->values()->all(),
+            'uploadsPerMonth' => $uploadsPerMonth,
+            'statusChart' => $statusChart
         ]);
     }
 }
