@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { Users, FileText, Loader2, Activity } from 'lucide-react';
+import { Users, FileText, Activity, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { Paper } from '@/types/paper';
 import { Badge } from '@/Components/Badge';
+import { ConfirmModal } from '@/Components/ConfirmModal';
 
 export default function AssignPaper() {
   const { papers, inReviewPapers, reviewers } = usePage<{ papers: Paper[], inReviewPapers: any[], reviewers: any[] }>().props;
@@ -12,6 +13,21 @@ export default function AssignPaper() {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isLoadingRecs, setIsLoadingRecs] = useState<number | null>(null);
   const [isAssigning, setIsAssigning] = useState<number | null>(null);
+
+  // Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      paperId: number | null;
+      reviewerId: number | null;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      paperId: null,
+      reviewerId: null,
+  });
 
   const getRecommendations = (paperId: number) => {
     setIsLoadingRecs(paperId);
@@ -32,18 +48,37 @@ export default function AssignPaper() {
     }, 500);
   };
 
-  const assignReviewer = async (paperId: number, reviewerId: number) => {
-    if (!confirm('Tugaskan paper ini ke reviewer tersebut?')) return;
+  const handleAssignClick = (paperId: number, reviewerId: number, reviewerName: string) => {
+      setConfirmModal({
+          isOpen: true,
+          title: 'Tugaskan Reviewer?',
+          message: `Apakah Anda yakin ingin menugaskan paper ini kepada reviewer ${reviewerName}?`,
+          paperId,
+          reviewerId,
+      });
+  };
+
+  const confirmAssign = async () => {
+    const { paperId, reviewerId } = confirmModal;
+    if (!paperId || !reviewerId) return;
+
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
     setIsAssigning(reviewerId);
+    
     try {
         await axios.post('/api/admin/reviewers/assign', {
             paper_id: paperId,
             reviewer_id: reviewerId
         });
-        alert('Reviewer berhasil ditugaskan!');
         router.reload();
     } catch (e: any) {
-        alert(e.response?.data?.message || 'Gagal menugaskan reviewer.');
+        setConfirmModal({
+            isOpen: true,
+            title: 'Gagal Menugaskan',
+            message: e.response?.data?.message || 'Terjadi kesalahan saat menugaskan reviewer.',
+            paperId: null,
+            reviewerId: null,
+        });
     } finally {
         setIsAssigning(null);
     }
@@ -53,7 +88,30 @@ export default function AssignPaper() {
     <AppLayout defaultRole="admin">
       <Head title="Assign Paper" />
 
+      <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmLabel={confirmModal.paperId ? "Ya, Tugaskan" : "Tutup"}
+          cancelLabel="Batal"
+          variant={confirmModal.paperId ? "info" : "danger"}
+          onConfirm={confirmModal.paperId ? confirmAssign : () => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+
       <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 pb-20">
+        
+        {/* Back Button */}
+        <div className="mb-2">
+            <Link 
+                href="/admin" 
+                className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 font-semibold text-sm transition-all shadow-sm group"
+            >
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                <span>Kembali ke Dashboard</span>
+            </Link>
+        </div>
+
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Assign Paper</h1>
           <p className="text-sm text-stone-500 mt-1">Tugaskan paper baru ke reviewer dan pantau status review secara real-time.</p>
@@ -105,11 +163,11 @@ export default function AssignPaper() {
                                                         </div>
                                                         <div>
                                                             <button 
-                                                                onClick={() => assignReviewer(p.id, reviewer.id)}
+                                                                onClick={() => handleAssignClick(p.id, reviewer.id, reviewer.name)}
                                                                 disabled={isAssigning === reviewer.id}
-                                                                className="whitespace-nowrap px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition"
+                                                                className="whitespace-nowrap px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition disabled:opacity-50"
                                                             >
-                                                                Assign Reviewer
+                                                                {isAssigning === reviewer.id ? 'Menugaskan...' : 'Assign Reviewer'}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -146,7 +204,7 @@ export default function AssignPaper() {
                             {inReviewPapers?.map((p: any) => (
                                 <tr key={p.id} className="hover:bg-stone-50 transition-colors">
                                     <td className="px-6 py-4 max-w-[400px] truncate" title={p.title}>
-                                        <Link href={`/detail/${p.id}`} className="font-semibold text-stone-900 hover:text-indigo-600 transition">
+                                        <Link href={`/detail/${p.id}`} className="font-semibold text-stone-900 hover:text-rose-600 transition">
                                             {p.title}
                                         </Link>
                                     </td>

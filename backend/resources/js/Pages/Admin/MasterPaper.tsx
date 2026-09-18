@@ -21,7 +21,7 @@ export default function MasterPaper() {
 
         <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden">
           <div className="px-6 py-5 border-b border-[#e8e4dc] flex items-center space-x-2">
-            <Database className="w-5 h-5 text-indigo-500" />
+            <Database className="w-5 h-5 text-rose-500" />
             <h2 className="text-base font-bold text-stone-900">Semua Paper</h2>
           </div>
 
@@ -40,14 +40,17 @@ export default function MasterPaper() {
                     <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Pengunggah</th>
                     <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Status AI</th>
                     <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Status Review</th>
-                    <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc] text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e8e4dc] text-stone-700">
                   {papers.map((p: any) => (
-                    <tr key={p.id} className="hover:bg-stone-50 transition-colors">
+                    <tr 
+                      key={p.id} 
+                      className="hover:bg-stone-50 transition-colors cursor-pointer group"
+                      onClick={() => window.location.href = `/detail/${p.id}`}
+                    >
                       <td className="px-6 py-4 text-stone-500 text-xs">#{p.id}</td>
-                      <td className="px-6 py-4 font-medium text-stone-900 max-w-[300px] truncate" title={p.title}>
+                      <td className="px-6 py-4 font-medium text-stone-900 max-w-[300px] truncate group-hover:text-rose-700 transition-colors" title={p.title}>
                         {p.title}
                       </td>
                       <td className="px-6 py-4">
@@ -73,11 +76,6 @@ export default function MasterPaper() {
                           ) : (
                               <Badge color="gray">NOT SUBMISSION</Badge>
                           )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Link href={`/detail/${p.id}`} className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-semibold text-sm">
-                            Detail <ChevronRight className="w-4 h-4 ml-1" />
-                        </Link>
                       </td>
                     </tr>
                   ))}

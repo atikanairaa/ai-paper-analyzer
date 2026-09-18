@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Head, Link } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { GitCompare, FileText, Check, Loader2, UploadCloud } from 'lucide-react';
+import { GitCompare, FileText, Check, Loader2, UploadCloud, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 
 export default function Compare() {
@@ -41,7 +42,19 @@ export default function Compare() {
 
   return (
     <AppLayout defaultRole="researcher">
+      <Head title="Bandingkan Paper" />
       <div className="max-w-6xl mx-auto p-6 md:p-8">
+
+        {/* Back Button */}
+        <div className="mb-2">
+            <Link 
+                href="/dashboard" 
+                className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 font-semibold text-sm transition-all shadow-sm group"
+            >
+                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                <span>Kembali ke Dashboard</span>
+            </Link>
+        </div>
 
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-stone-900">Bandingkan Paper (On-The-Fly)</h2>
@@ -59,7 +72,7 @@ export default function Compare() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="w-full flex-1">
               <label className="block text-sm font-semibold text-stone-700 mb-2">Paper A (Utama)</label>
-              <label className="w-full flex flex-col items-center px-4 py-6 bg-white text-stone-500 rounded-xl border-2 border-dashed border-[#e8e4dc] cursor-pointer hover:bg-stone-50 hover:border-indigo-300 transition-colors">
+              <label className="w-full flex flex-col items-center px-4 py-6 bg-white text-stone-500 rounded-xl border-2 border-dashed border-[#e8e4dc] cursor-pointer hover:bg-stone-50 hover:border-rose-300 transition-colors">
                 <UploadCloud className="w-8 h-8 mb-2 text-stone-400" />
                 <span className="text-sm">{fileA ? fileA.name : 'Pilih File PDF'}</span>
                 <input type="file" accept="application/pdf" className="hidden" onChange={e => e.target.files && setFileA(e.target.files[0])} />
@@ -74,7 +87,7 @@ export default function Compare() {
 
             <div className="w-full flex-1">
               <label className="block text-sm font-semibold text-stone-700 mb-2">Paper B (Pembanding)</label>
-              <label className="w-full flex flex-col items-center px-4 py-6 bg-white text-stone-500 rounded-xl border-2 border-dashed border-[#e8e4dc] cursor-pointer hover:bg-stone-50 hover:border-indigo-300 transition-colors">
+              <label className="w-full flex flex-col items-center px-4 py-6 bg-white text-stone-500 rounded-xl border-2 border-dashed border-[#e8e4dc] cursor-pointer hover:bg-stone-50 hover:border-rose-300 transition-colors">
                 <UploadCloud className="w-8 h-8 mb-2 text-stone-400" />
                 <span className="text-sm">{fileB ? fileB.name : 'Pilih File PDF'}</span>
                 <input type="file" accept="application/pdf" className="hidden" onChange={e => e.target.files && setFileB(e.target.files[0])} />
@@ -86,7 +99,7 @@ export default function Compare() {
             <button
               onClick={handleCompare}
               disabled={isLoading || !fileA || !fileB}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-semibold py-2.5 px-8 rounded-xl transition-colors flex items-center space-x-2 shadow-sm"
+              className="bg-rose-700 hover:bg-rose-800 disabled:bg-rose-300 text-white font-semibold py-2.5 px-8 rounded-xl transition-colors flex items-center space-x-2 shadow-sm"
             >
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitCompare className="w-4 h-4" />}
               <span>Bandingkan Sekarang</span>
@@ -104,7 +117,7 @@ export default function Compare() {
 
             {isLoading ? (
                 <div className="p-16 flex flex-col items-center justify-center text-stone-500">
-                    <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mb-4" />
+                    <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
                     <p className="font-medium">AI sedang membandingkan kedua paper...</p>
                     <p className="text-sm">Proses ini memakan waktu beberapa menit karena membaca keseluruhan teks dari dua paper.</p>
                 </div>
@@ -115,7 +128,7 @@ export default function Compare() {
                     <thead className="bg-stone-100 text-stone-700 uppercase text-[11px] font-bold border-b border-[#e8e4dc]">
                     <tr>
                         <th className="px-6 py-4 w-1/5 tracking-wider">Aspek</th>
-                        <th className="px-6 py-4 w-2/5 border-l border-[#e8e4dc] text-indigo-800 bg-indigo-50">Paper A</th>
+                        <th className="px-6 py-4 w-2/5 border-l border-[#e8e4dc] text-rose-800 bg-rose-50">Paper A</th>
                         <th className="px-6 py-4 w-2/5 border-l border-[#e8e4dc] text-stone-700 bg-stone-50">Paper B</th>
                     </tr>
                     </thead>
@@ -138,10 +151,10 @@ export default function Compare() {
                 <ul className="space-y-4">
                     {compareData.verdict && Object.entries(compareData.verdict).map(([key, v]: [string, any]) => (
                         <li key={key} className="flex items-start space-x-3 text-sm text-stone-700">
-                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 flex-shrink-0"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 flex-shrink-0"></div>
                             <span>
                                 <strong className="text-stone-900 mr-1">{v.question}</strong>
-                                (Pemenang: <span className="text-indigo-600 font-semibold">{v.winner}</span>) — {v.reason}
+                                (Pemenang: <span className="text-rose-600 font-semibold">{v.winner}</span>) — {v.reason}
                             </span>
                         </li>
                     ))}
