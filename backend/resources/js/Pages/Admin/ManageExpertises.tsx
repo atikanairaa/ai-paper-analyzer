@@ -5,7 +5,7 @@ import { BookOpen, Edit2, Trash2, Plus, CheckCircle } from 'lucide-react';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
-import PrimaryButton from '@/Components/PrimaryButton';
+import { ConfirmModal } from '@/Components/ConfirmModal';
 import axios from 'axios';
 
 export default function ManageExpertises({ expertises }: any) {
@@ -13,6 +13,13 @@ export default function ManageExpertises({ expertises }: any) {
   const [expName, setExpName] = useState('');
   const [editingExp, setEditingExp] = useState<any>(null);
   const [isExpSaving, setIsExpSaving] = useState(false);
+
+  const [confirmModal, setConfirmModal] = useState({
+      isOpen: false,
+      title: '',
+      message: '',
+      variant: 'success' as 'info' | 'success' | 'danger' | 'warning',
+  });
 
   const handleSaveExp = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -26,9 +33,19 @@ export default function ManageExpertises({ expertises }: any) {
           setShowExpModal(false);
           setExpName('');
           setEditingExp(null);
-          router.reload();
+          setConfirmModal({
+              isOpen: true,
+              title: 'Berhasil',
+              message: '✓ Bidang keahlian berhasil disimpan!',
+              variant: 'success',
+          });
       } catch (e: any) {
-          alert('Gagal menyimpan bidang keahlian.');
+          setConfirmModal({
+              isOpen: true,
+              title: 'Gagal',
+              message: 'Gagal menyimpan bidang keahlian.',
+              variant: 'danger',
+          });
       } finally {
           setIsExpSaving(false);
       }
@@ -48,6 +65,19 @@ export default function ManageExpertises({ expertises }: any) {
     <AppLayout defaultRole="admin">
       <Head title="Kelola Bidang Keahlian" />
 
+      <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmLabel="Tutup"
+          variant={confirmModal.variant}
+          onConfirm={() => {
+              setConfirmModal({ ...confirmModal, isOpen: false });
+              if (confirmModal.variant === 'success') router.reload();
+          }}
+          onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+      />
+
       <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8 pb-20">
         <div className="flex justify-between items-center">
             <div>
@@ -56,7 +86,7 @@ export default function ManageExpertises({ expertises }: any) {
             </div>
             <button 
                 onClick={() => { setEditingExp(null); setExpName(''); setShowExpModal(true); }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center"
+                className="bg-rose-700 hover:bg-rose-800 text-white font-medium shadow-sm rounded-xl px-5 py-2.5 transition-all flex items-center"
             >
                 <Plus className="w-4 h-4 mr-2" /> Tambah Bidang Keahlian
             </button>
@@ -77,10 +107,10 @@ export default function ManageExpertises({ expertises }: any) {
                         <tr key={exp.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/50">
                             <td className="px-6 py-4 font-bold text-stone-900">{exp.name}</td>
                             <td className="px-6 py-4 flex justify-end space-x-2">
-                                <button onClick={() => { setEditingExp(exp); setExpName(exp.name); setShowExpModal(true); }} className="text-indigo-500 hover:text-indigo-700 bg-indigo-50 p-2 rounded-lg">
+                                <button onClick={() => { setEditingExp(exp); setExpName(exp.name); setShowExpModal(true); }} className="text-stone-600 hover:text-rose-700 bg-stone-100 hover:bg-rose-50 border border-stone-200 rounded-lg p-2 transition-all">
                                     <Edit2 className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => deleteExp(exp.id)} className="text-rose-500 hover:text-rose-700 bg-rose-50 p-2 rounded-lg">
+                                <button onClick={() => deleteExp(exp.id)} className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg p-2 transition-all">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </td>
@@ -102,7 +132,9 @@ export default function ManageExpertises({ expertises }: any) {
 
                     <div className="mt-6 flex justify-end space-x-3">
                         <button type="button" onClick={() => setShowExpModal(false)} className="px-4 py-2 text-stone-500 font-semibold hover:bg-stone-100 rounded-lg transition">Batal</button>
-                        <PrimaryButton disabled={isExpSaving}>{isExpSaving ? 'Menyimpan...' : 'Simpan'}</PrimaryButton>
+                        <button type="submit" disabled={isExpSaving} className="bg-rose-700 hover:bg-rose-800 text-white font-semibold rounded-xl px-6 py-2.5 shadow-sm transition disabled:opacity-50">
+                            {isExpSaving ? 'Menyimpan...' : 'Simpan'}
+                        </button>
                     </div>
                 </form>
             </div>

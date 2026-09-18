@@ -204,7 +204,7 @@ export default function AssignPaper() {
                             {inReviewPapers?.map((p: any) => (
                                 <tr key={p.id} className="hover:bg-stone-50 transition-colors">
                                     <td className="px-6 py-4 max-w-[400px] truncate" title={p.title}>
-                                        <Link href={`/detail/${p.id}`} className="font-semibold text-stone-900 hover:text-indigo-600 transition">
+                                        <Link href={`/detail/${p.id}`} className="font-semibold text-stone-900 hover:text-rose-600 transition">
                                             {p.title}
                                         </Link>
                                     </td>
