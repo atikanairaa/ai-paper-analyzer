@@ -141,11 +141,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId }) => {
 
                   {/* Evidence Badge */}
                   {msg.evidence && (
-                    <div className="max-w-full bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex flex-col space-y-1">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-500">
+                    <div className="max-w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 flex flex-col space-y-1">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-stone-500">
                         📌 Kutipan Sumber
                       </span>
-                      <span className="text-xs text-indigo-800 italic leading-relaxed">
+                      <span className="text-xs text-stone-700 italic leading-relaxed">
                         "{msg.evidence}"
                       </span>
                     </div>

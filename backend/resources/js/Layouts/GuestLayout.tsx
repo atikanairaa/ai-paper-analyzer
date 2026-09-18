@@ -9,7 +9,7 @@ export default function Guest({ children }: PropsWithChildren) {
             <div className="hidden lg:flex lg:w-1/2 xl:w-[45%] flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-stone-800 via-stone-700 to-stone-900 p-12">
                 {/* Decorative circles */}
                 <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-rose-500/10 blur-3xl" />
-                <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl" />
+                <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-rose-500/10 blur-3xl" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-stone-600/20 blur-2xl" />
 
                 {/* Grid pattern overlay */}
@@ -27,31 +27,10 @@ export default function Guest({ children }: PropsWithChildren) {
                         <BookOpen className="w-10 h-10 text-rose-300" />
                     </div>
 
-                    <h1 className="text-3xl font-bold text-white mb-3 leading-tight tracking-tight">
+                    <h1 className="text-3xl font-bold text-white leading-tight tracking-tight">
                         AI Research Paper<br />
                         <span className="text-rose-300">Analyzer</span>
                     </h1>
-
-                    <p className="text-stone-300 text-sm leading-relaxed mb-10">
-                        Platform analisis paper ilmiah berbasis kecerdasan buatan. Evaluasi kualitas, temukan kelemahan, dan tingkatkan riset Anda secara otomatis.
-                    </p>
-
-                    {/* Feature Pills */}
-                    <div className="flex flex-col items-center gap-3 w-full">
-                        {[
-                            { icon: '🔬', text: 'Analisis metodologi & novelty otomatis' },
-                            { icon: '📊', text: 'Skor kualitas multi-dimensi' },
-                            { icon: '💬', text: 'Tanya jawab AI tentang paper Anda' },
-                        ].map((f) => (
-                            <div
-                                key={f.text}
-                                className="flex items-center space-x-3 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-left"
-                            >
-                                <span className="text-lg">{f.icon}</span>
-                                <span className="text-xs text-stone-300 font-medium">{f.text}</span>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </div>
 
@@ -68,7 +47,7 @@ export default function Guest({ children }: PropsWithChildren) {
                 {/* Form Card */}
                 <div className="w-full max-w-md bg-white rounded-2xl border border-[#e8e4dc] shadow-[0_4px_24px_rgba(0,0,0,0.06)] overflow-hidden">
                     {/* Card Header Bar */}
-                    <div className="h-1 w-full bg-gradient-to-r from-rose-400 via-rose-500 to-indigo-500" />
+                    <div className="h-1 w-full bg-gradient-to-r from-rose-300 via-rose-500 to-rose-700" />
 
                     <div className="px-8 py-8">
                         {children}

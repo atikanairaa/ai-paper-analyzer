@@ -3,6 +3,9 @@ import { AlertTriangle, Info, CheckCircle, XCircle, X } from 'lucide-react';
 
 type ModalVariant = 'danger' | 'warning' | 'info' | 'success';
 
+// Variants yang hanya menampilkan satu tombol (tanpa Batal)
+const ALERT_ONLY_VARIANTS: ModalVariant[] = ['success', 'info'];
+
 interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
@@ -33,16 +36,16 @@ const variantConfig: Record<ModalVariant, {
     titleColor: 'text-amber-900',
   },
   info: {
-    icon: <Info className="w-6 h-6 text-indigo-600" />,
-    iconBg: 'bg-indigo-100',
-    confirmBtn: 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-300 text-white',
-    titleColor: 'text-indigo-900',
+    icon: <Info className="w-6 h-6 text-stone-600" />,
+    iconBg: 'bg-stone-100',
+    confirmBtn: 'bg-stone-800 hover:bg-stone-900 focus:ring-stone-300 text-white',
+    titleColor: 'text-stone-900',
   },
   success: {
     icon: <CheckCircle className="w-6 h-6 text-emerald-600" />,
-    iconBg: 'bg-emerald-100',
-    confirmBtn: 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-300 text-white',
-    titleColor: 'text-emerald-900',
+    iconBg: 'bg-emerald-50 border border-emerald-200',
+    confirmBtn: 'bg-rose-700 hover:bg-rose-800 focus:ring-rose-300 text-white',
+    titleColor: 'text-stone-900',
   },
 };
 
@@ -57,6 +60,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onCancel,
 }) => {
   const config = variantConfig[variant];
+  // Untuk variant sukses/info: cukup satu tombol, tanpa Batal
+  const isAlertOnly = ALERT_ONLY_VARIANTS.includes(variant);
 
   // Close on Escape key
   useEffect(() => {
@@ -126,16 +131,19 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </p>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-stone-100">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 rounded-xl border border-[#e8e4dc] text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-200"
-            >
-              {cancelLabel}
-            </button>
+          <div className={`flex items-center pt-4 border-t border-stone-100 ${isAlertOnly ? 'justify-center' : 'justify-end space-x-3'}`}>
+            {/* Tombol Batal — hanya muncul untuk variant konfirmasi (danger/warning) */}
+            {!isAlertOnly && (
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 rounded-xl border border-[#e8e4dc] text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-200"
+              >
+                {cancelLabel}
+              </button>
+            )}
             <button
               onClick={onConfirm}
-              className={`px-5 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 ${config.confirmBtn}`}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm focus:outline-none focus:ring-2 ${config.confirmBtn}`}
             >
               {confirmLabel}
             </button>

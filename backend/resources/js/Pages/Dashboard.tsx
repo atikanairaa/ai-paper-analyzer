@@ -11,7 +11,7 @@ import axios from 'axios';
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const MOCK_STATS = { total: 128, analyzed: 97, processing: 8, failed: 3, avgScore: 76.4 };
 const MOCK_DOMAINS = [
-  { name: 'Computer Science', count: 65, color: 'bg-blue-500' },
+  { name: 'Computer Science', count: 65, color: 'bg-rose-500' },
   { name: 'Medicine',         count: 28, color: 'bg-green-500' },
   { name: 'Engineering',      count: 15, color: 'bg-orange-500' },
   { name: 'Lainnya',          count: 20, color: 'bg-slate-400' },
@@ -72,11 +72,11 @@ export default function Dashboard() {
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
-            { title: 'Total Paper',     value: MOCK_STATS.total,      icon: <FileText    className="w-5 h-5 text-blue-500" />,   ring: 'ring-blue-100',   bg: 'bg-blue-50' },
-            { title: 'Dianalisis',      value: MOCK_STATS.analyzed,   icon: <CheckCircle className="w-5 h-5 text-green-500" />,  ring: 'ring-green-100',  bg: 'bg-green-50' },
+            { title: 'Total Paper',     value: MOCK_STATS.total,      icon: <FileText    className="w-5 h-5 text-stone-500" />,   ring: 'ring-stone-100',   bg: 'bg-stone-50' },
+            { title: 'Dianalisis',      value: MOCK_STATS.analyzed,   icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,  ring: 'ring-emerald-100',  bg: 'bg-emerald-50' },
             { title: 'Sedang Diproses', value: MOCK_STATS.processing, icon: <Loader2    className="w-5 h-5 text-amber-500 animate-spin" />, ring: 'ring-amber-100', bg: 'bg-amber-50' },
-            { title: 'Gagal',           value: MOCK_STATS.failed,     icon: <XCircle    className="w-5 h-5 text-red-500" />,    ring: 'ring-red-100',    bg: 'bg-red-50' },
-            { title: 'Rata-rata Skor',  value: MOCK_STATS.avgScore,   icon: <TrendingUp className="w-5 h-5 text-indigo-500" />, ring: 'ring-indigo-100', bg: 'bg-indigo-50' },
+            { title: 'Gagal',           value: MOCK_STATS.failed,     icon: <XCircle    className="w-5 h-5 text-rose-500" />,    ring: 'ring-rose-100',    bg: 'bg-rose-50' },
+            { title: 'Rata-rata Skor',  value: MOCK_STATS.avgScore,   icon: <TrendingUp className="w-5 h-5 text-rose-500" />, ring: 'ring-rose-100', bg: 'bg-rose-50' },
           ].map((s, i) => (
             <div key={i} className={`bg-white rounded-2xl shadow-sm ring-1 ${s.ring} p-5 flex flex-col items-center text-center`}>
               <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>{s.icon}</div>
@@ -178,7 +178,7 @@ export default function Dashboard() {
                     <td className="px-6 py-4 text-slate-400 font-mono text-xs">{log.created_at}</td>
                     <td className="px-6 py-4 font-semibold text-slate-800">{log.user?.name ?? 'System AI'}</td>
                     <td className="px-6 py-4">
-                      <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-100">{log.action}</span>
+                      <span className="bg-rose-50 text-rose-700 text-xs font-bold px-2.5 py-1 rounded-full border border-rose-100">{log.action}</span>
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs font-mono">
                       {log.paper ? `${log.paper.title} (#${log.paper_id})` : `Paper #${log.paper_id}`}

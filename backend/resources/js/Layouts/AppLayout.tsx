@@ -206,7 +206,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                       await axios.post('/notifications/mark-read');
                       router.reload();
                     }}
-                    className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-800"
+                    className="text-[10px] font-semibold text-rose-600 hover:text-rose-800"
                   >
                     Tandai semua dibaca
                   </button>
