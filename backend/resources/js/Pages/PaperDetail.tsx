@@ -201,7 +201,7 @@ export default function PaperDetail() {
                         <div>
                             <p className="text-stone-400 font-semibold mb-1 uppercase tracking-wider text-[11px]">DOI</p>
                             {paper.doi ? (
-                                <a href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer" className="text-rose-600 hover:text-indigo-800 hover:underline font-medium truncate block">
+                                <a href={`https://doi.org/${paper.doi}`} target="_blank" rel="noreferrer" className="text-rose-600 hover:text-rose-800 hover:underline font-medium truncate block">
                                     {paper.doi}
                                 </a>
                             ) : (
@@ -220,7 +220,7 @@ export default function PaperDetail() {
 
                 {/* ── Action Banner: DRAFT → Submit or Withdraw ── */}
                 {paper.is_submission && paper.status === 'ANALYZED' && paper.submission_status === 'DRAFT' && (
-                    <div className="bg-[#faf8f5] border-2 border-indigo-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+                    <div className="bg-[#faf8f5] border-2 border-rose-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
                         <div>
                             <h3 className="text-lg font-bold text-stone-900">Tindakan Lanjutan Pengajuan Jurnal</h3>
                             <p className="text-sm text-stone-600 mt-1">Paper ini dipilih untuk dikirim ke Jurnal. Lanjut kirim ke Editor, atau tarik kembali untuk perbaikan mandiri?</p>
@@ -237,7 +237,7 @@ export default function PaperDetail() {
                             <button
                                 onClick={() => handleAction('submit')}
                                 disabled={isActionLoading}
-                                className="inline-flex items-center space-x-2 px-4 py-2.5 bg-indigo-600 border border-transparent text-white rounded-xl hover:bg-indigo-700 font-semibold text-sm transition shadow-sm focus:ring-2 focus:ring-indigo-300 disabled:opacity-50"
+                                className="inline-flex items-center space-x-2 px-4 py-2.5 bg-rose-700 border border-transparent text-white rounded-xl hover:bg-rose-800 font-semibold text-sm transition shadow-sm focus:ring-2 focus:ring-rose-200 disabled:opacity-50"
                             >
                                 <Send className="w-4 h-4" />
                                 <span>Lanjut Submit ke Jurnal</span>
@@ -248,16 +248,16 @@ export default function PaperDetail() {
 
                 {/* ── Submission Status Banner ── */}
                 {paper.is_submission && paper.submission_status !== 'DRAFT' && (
-                    <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8 shadow-sm">
+                    <div className="bg-rose-50 border border-rose-100 rounded-2xl p-6 mb-8 shadow-sm">
                         <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
                             </div>
                             <div>
-                                <h3 className="text-base font-bold text-indigo-900">Status Pengajuan Jurnal: {paper.submission_status}</h3>
-                                <p className="text-sm text-indigo-700">Paper ini telah disubmit dan sedang dalam proses jurnal.</p>
+                                <h3 className="text-base font-bold text-rose-900">Status Pengajuan Jurnal: {paper.submission_status}</h3>
+                                <p className="text-sm text-rose-700">Paper ini telah disubmit dan sedang dalam proses jurnal.</p>
                             </div>
                         </div>
                     </div>
@@ -308,9 +308,127 @@ export default function PaperDetail() {
                     </div>
                 )}
 
-                {/* ── Main Analysis Grid (2 col balanced) ── */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                {/* ── Review Section (Full Width) ── */}
+                {paper.status === 'ANALYZED' && (
+                    <div className="mb-8 space-y-8">
+                        {/* Review Form (Reviewer) */}
+                        {props.auth?.user && paper.submission_status === 'IN_REVIEW' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
+                                <div className="bg-rose-50 p-5 border-b border-rose-100">
+                                    <h2 className="text-lg font-bold text-rose-900">Input Hasil Review</h2>
+                                    <p className="text-xs text-rose-600 mt-0.5">Berikan penilaian akhir Anda sebagai reviewer</p>
+                                </div>
+                                <div className="p-6">
+                                    <form onSubmit={handleReviewSubmit} className="space-y-4">
+                                        <div className="grid grid-cols-1 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">Skor Akhir (0–100)</label>
+                                                <input
+                                                    required
+                                                    name="score"
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 focus:bg-white outline-none transition"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">Rekomendasi Kelayakan</label>
+                                                <select
+                                                    required
+                                                    name="recommendation"
+                                                    className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 focus:bg-white outline-none transition"
+                                                >
+                                                    <option value="">-- Pilih Rekomendasi --</option>
+                                                    <option value="ACCEPT">ACCEPT — Terima</option>
+                                                    <option value="MINOR_REVISION">MINOR REVISION</option>
+                                                    <option value="MAJOR_REVISION">MAJOR REVISION</option>
+                                                    <option value="REJECT">REJECT — Tolak</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">Alasan &amp; Komentar</label>
+                                            <textarea
+                                                required
+                                                name="comments"
+                                                rows={4}
+                                                placeholder="Tuliskan catatan, alasan keputusan, dan saran perbaikan..."
+                                                className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 focus:bg-white outline-none transition resize-none"
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 bg-rose-700 text-white rounded-xl font-semibold text-sm hover:bg-rose-800 transition shadow-sm"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            <span>Kirim Keputusan Review</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
 
+                        {/* Show Final Review Result if REVIEWED */}
+                        {paper.submission_status === 'REVIEWED' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
+                                <div className="bg-emerald-50 p-5 border-b border-emerald-100 flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-emerald-900">Hasil Review dari Reviewer</h2>
+                                        <p className="text-xs text-emerald-600 mt-0.5">Keputusan final dari proses peer review</p>
+                                    </div>
+                                    {(!props.auth?.peran || props.auth?.peran === 'researcher' || props.auth?.peran === 'peneliti') && (
+                                        <a
+                                            href={`/papers/${paper.id}/export-review`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-semibold text-xs hover:bg-emerald-700 transition flex-shrink-0"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                            <span>Ekspor Report</span>
+                                        </a>
+                                    )}
+                                </div>
+
+                                {paper.reviews && paper.reviews.length > 0 ? (
+                                    <div className="p-6 space-y-5">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-[#faf8f5] rounded-xl p-4 border border-[#e8e4dc]">
+                                                <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Status Kelayakan</p>
+                                                <Badge color={
+                                                    paper.reviews[0].recommendation === 'ACCEPT' ? 'green' :
+                                                    paper.reviews[0].recommendation === 'REJECT' ? 'red' : 'yellow'
+                                                }>
+                                                    {paper.reviews[0].recommendation}
+                                                </Badge>
+                                            </div>
+                                            <div className="bg-[#faf8f5] rounded-xl p-4 border border-[#e8e4dc]">
+                                                <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Skor Reviewer</p>
+                                                <p className="font-bold text-2xl text-stone-900">
+                                                    {paper.reviews[0].score}
+                                                    <span className="text-sm font-normal text-stone-400"> / 100</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Komentar &amp; Catatan</p>
+                                            <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 text-stone-700 text-sm leading-relaxed whitespace-pre-wrap">
+                                                {paper.reviews[0].comments || "Tidak ada komentar tambahan."}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-6 text-center text-emerald-700 text-sm">
+                                        Paper ini telah selesai direview.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── Main Analysis Grid (2 col balanced) ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* LEFT: Skor Kualitas Riset */}
                     {scores && (
                         <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
@@ -366,119 +484,6 @@ export default function PaperDetail() {
                                 </div>
                             </div>
 
-                            {/* Review Form (Reviewer) */}
-                            {props.auth?.user && paper.submission_status === 'IN_REVIEW' && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
-                                    <div className="bg-indigo-50 p-5 border-b border-indigo-100">
-                                        <h2 className="text-lg font-bold text-indigo-900">Input Hasil Review</h2>
-                                        <p className="text-xs text-indigo-600 mt-0.5">Berikan penilaian akhir Anda sebagai reviewer</p>
-                                    </div>
-                                    <div className="p-6">
-                                        <form onSubmit={handleReviewSubmit} className="space-y-4">
-                                            <div className="grid grid-cols-1 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">Skor Akhir (0–100)</label>
-                                                    <input
-                                                        required
-                                                        name="score"
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:bg-white outline-none transition"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">Rekomendasi Kelayakan</label>
-                                                    <select
-                                                        required
-                                                        name="recommendation"
-                                                        className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:bg-white outline-none transition"
-                                                    >
-                                                        <option value="">-- Pilih Rekomendasi --</option>
-                                                        <option value="ACCEPT">ACCEPT — Terima</option>
-                                                        <option value="MINOR_REVISION">MINOR REVISION</option>
-                                                        <option value="MAJOR_REVISION">MAJOR REVISION</option>
-                                                        <option value="REJECT">REJECT — Tolak</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">Alasan &amp; Komentar</label>
-                                                <textarea
-                                                    required
-                                                    name="comments"
-                                                    rows={4}
-                                                    placeholder="Tuliskan catatan, alasan keputusan, dan saran perbaikan..."
-                                                    className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:bg-white outline-none transition resize-none"
-                                                />
-                                            </div>
-                                            <button
-                                                type="submit"
-                                                className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition shadow-sm"
-                                            >
-                                                <Send className="w-4 h-4" />
-                                                <span>Kirim Keputusan Review</span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Show Final Review Result if REVIEWED */}
-                            {paper.submission_status === 'REVIEWED' && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
-                                    <div className="bg-emerald-50 p-5 border-b border-emerald-100 flex items-center justify-between">
-                                        <div>
-                                            <h2 className="text-lg font-bold text-emerald-900">Hasil Review dari Reviewer</h2>
-                                            <p className="text-xs text-emerald-600 mt-0.5">Keputusan final dari proses peer review</p>
-                                        </div>
-                                        {(!props.auth?.peran || props.auth?.peran === 'researcher' || props.auth?.peran === 'peneliti') && (
-                                            <a
-                                                href={`/papers/${paper.id}/export-review`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-semibold text-xs hover:bg-emerald-700 transition flex-shrink-0"
-                                            >
-                                                <Download className="w-3.5 h-3.5" />
-                                                <span>Ekspor Report</span>
-                                            </a>
-                                        )}
-                                    </div>
-
-                                    {paper.reviews && paper.reviews.length > 0 ? (
-                                        <div className="p-6 space-y-5">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="bg-[#faf8f5] rounded-xl p-4 border border-[#e8e4dc]">
-                                                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Status Kelayakan</p>
-                                                    <Badge color={
-                                                        paper.reviews[0].recommendation === 'ACCEPT' ? 'green' :
-                                                        paper.reviews[0].recommendation === 'REJECT' ? 'red' : 'yellow'
-                                                    }>
-                                                        {paper.reviews[0].recommendation}
-                                                    </Badge>
-                                                </div>
-                                                <div className="bg-[#faf8f5] rounded-xl p-4 border border-[#e8e4dc]">
-                                                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Skor Reviewer</p>
-                                                    <p className="font-bold text-2xl text-stone-900">
-                                                        {paper.reviews[0].score}
-                                                        <span className="text-sm font-normal text-stone-400"> / 100</span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Komentar &amp; Catatan</p>
-                                                <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 text-stone-700 text-sm leading-relaxed whitespace-pre-wrap">
-                                                    {paper.reviews[0].comments || "Tidak ada komentar tambahan."}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="p-6 text-center text-emerald-700 text-sm">
-                                            Paper ini telah selesai direview.
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
