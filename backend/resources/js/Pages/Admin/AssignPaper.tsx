@@ -36,11 +36,14 @@ export default function AssignPaper() {
         const paper = papers.find(p => p.id === paperId);
         const domain = paper?.analyses?.[0]?.research_domain?.toLowerCase() || '';
 
-        const recs = reviewers.filter(r => r.expertise?.toLowerCase() === domain).map(r => ({
+        const recs = reviewers.filter(r => {
+            if (!domain || !r.expertise) return false;
+            return r.expertise.toLowerCase().includes(domain);
+        }).map(r => ({
             paper_id: paperId,
             reviewer_id: r.id,
             match_percentage: 100,
-            reasoning: `Reviewer memiliki keahlian yang persis sama dengan domain paper (${domain})`
+            reasoning: `Reviewer memiliki keahlian yang cocok dengan domain paper`
         }));
 
         setRecommendations(recs);
@@ -137,12 +140,16 @@ export default function AssignPaper() {
                                 <p className="text-sm text-stone-600 mb-6 line-clamp-2">{p.abstract}</p>
                                 
                                 <div className="border-t border-stone-100 pt-4">
-                                    {(() => {
-                                        const matchingReviewers = reviewers.filter(r => r.expertise === p.analyses?.[0]?.research_domain);
-                                        
-                                        if (matchingReviewers.length === 0) {
-                                            return <p className="text-sm text-rose-500 font-medium">Tidak ada reviewer yang memiliki bidang keahlian cocok dengan paper ini.</p>;
-                                        }
+                                      {(() => {
+                                          const domain = p.analyses?.[0]?.research_domain;
+                                          const matchingReviewers = reviewers.filter(r => {
+                                              if (!domain || !r.expertise) return false;
+                                              return r.expertise.includes(domain);
+                                          });
+                                          
+                                          if (matchingReviewers.length === 0) {
+                                              return <p className="text-sm text-rose-500 font-medium">Tidak ada reviewer yang memiliki bidang keahlian cocok dengan paper ini.</p>;
+                                          }
 
                                         return (
                                             <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
@@ -186,40 +193,61 @@ export default function AssignPaper() {
             <div>
                 <h2 className="text-lg font-bold text-stone-900 flex items-center mb-4"><Activity className="w-5 h-5 mr-2 text-stone-400"/> Pantau Status Review</h2>
                 
-                {inReviewPapers && inReviewPapers.length === 0 ? (
+                {(!inReviewPapers?.data || inReviewPapers.data.length === 0) ? (
                     <div className="bg-white border border-[#e8e4dc] rounded-2xl p-8 text-center text-stone-500 shadow-sm">
                         Tidak ada paper yang sedang dalam proses review.
                     </div>
                 ) : (
                     <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead className="bg-[#faf8f5] text-stone-500 text-[10px] uppercase tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Paper</th>
-                                <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Reviewer</th>
-                                <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Status</th>
-                            </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#e8e4dc] text-stone-700">
-                            {inReviewPapers?.map((p: any) => (
-                                <tr key={p.id} className="hover:bg-stone-50 transition-colors">
-                                    <td className="px-6 py-4 max-w-[400px] truncate" title={p.title}>
-                                        <Link href={`/detail/${p.id}`} className="font-semibold text-stone-900 hover:text-rose-600 transition">
-                                            {p.title}
-                                        </Link>
-                                    </td>
-                                    <td className="px-6 py-4 text-stone-600">
-                                        {p.reviews?.[0]?.reviewer?.name || '-'}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <Badge color={p.submission_status === 'REVIEWED' ? 'green' : 'yellow'}>
-                                            {p.submission_status}
-                                        </Badge>
-                                    </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+                                <thead className="bg-[#faf8f5] text-stone-500 text-[10px] uppercase tracking-wider">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Paper</th>
+                                    <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Reviewer</th>
+                                    <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Status</th>
                                 </tr>
-                            ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-[#e8e4dc] text-stone-700">
+                                {inReviewPapers.data.map((p: any) => (
+                                    <tr key={p.id} className="hover:bg-stone-50 transition-colors">
+                                        <td className="px-6 py-4 max-w-[400px] truncate" title={p.title}>
+                                            <Link href={`/detail/${p.id}`} className="font-semibold text-stone-900 hover:text-rose-600 transition">
+                                                {p.title}
+                                            </Link>
+                                        </td>
+                                        <td className="px-6 py-4 text-stone-600">
+                                            {p.reviews?.[0]?.reviewer?.name || '-'}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <Badge color={p.submission_status === 'REVIEWED' ? 'green' : 'yellow'}>
+                                                {p.submission_status}
+                                            </Badge>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {/* Pagination Links */}
+                        {inReviewPapers.links && inReviewPapers.links.length > 3 && (
+                            <div className="px-6 py-4 border-t border-[#e8e4dc] flex items-center justify-center space-x-1 bg-stone-50">
+                                {inReviewPapers.links.map((link: any, index: number) => (
+                                    <Link
+                                        key={index}
+                                        href={link.url || '#'}
+                                        preserveScroll
+                                        className={`px-3 py-1.5 text-sm rounded-lg border ${
+                                            link.active 
+                                                ? 'bg-rose-600 border-rose-600 text-white font-bold shadow-sm' 
+                                                : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
+                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

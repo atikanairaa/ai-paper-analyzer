@@ -11,8 +11,10 @@ use Inertia\Inertia;
 
 class AdminDashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $timeframe = $request->query('timeframe', 'daily');
+
         $total = Paper::count();
         $analyzed = Paper::where('status', 'ANALYZED')->count();
         $processing = Paper::where('status', 'PROCESSING')->count();
@@ -37,25 +39,67 @@ class AdminDashboardController extends Controller
             ->take(5)
             ->get();
 
-        $papersForChart = Paper::select('id', 'created_at', 'status')->get();
-        $uploadsByMonth = $papersForChart->groupBy(function($date) {
-            return \Carbon\Carbon::parse($date->created_at)->format('M Y');
-        })->map(function ($row) {
-            return count($row);
-        });
-        
-        $uploadsPerMonth = [];
-        foreach($uploadsByMonth as $month => $count) {
-            $uploadsPerMonth[] = ['month' => $month, 'count' => $count];
-        }
+        $trendData = [];
+        $query = Paper::select('id', 'created_at');
 
-        // Limit to last 6 months to avoid overcrowding
-        $uploadsPerMonth = array_slice($uploadsPerMonth, -6);
+        if ($timeframe === 'daily') {
+            $startDate = now()->subDays(13)->startOfDay();
+            $query->where('created_at', '>=', $startDate);
+            $grouped = $query->get()->groupBy(function($date) {
+                return \Carbon\Carbon::parse($date->created_at)->format('d M');
+            });
+            for ($i = 0; $i < 14; $i++) {
+                $dateStr = now()->subDays(13 - $i)->format('d M');
+                $trendData[] = [
+                    'label' => $dateStr,
+                    'count' => isset($grouped[$dateStr]) ? count($grouped[$dateStr]) : 0
+                ];
+            }
+        } elseif ($timeframe === 'weekly') {
+            $startDate = now()->subWeeks(7)->startOfWeek();
+            $query->where('created_at', '>=', $startDate);
+            $grouped = $query->get()->groupBy(function($date) {
+                return 'Minggu ' . \Carbon\Carbon::parse($date->created_at)->format('W');
+            });
+            for ($i = 0; $i < 8; $i++) {
+                $weekDate = now()->subWeeks(7 - $i);
+                $weekStr = 'Minggu ' . $weekDate->format('W');
+                $trendData[] = [
+                    'label' => $weekStr,
+                    'count' => isset($grouped[$weekStr]) ? count($grouped[$weekStr]) : 0
+                ];
+            }
+        } elseif ($timeframe === 'monthly') {
+            $startDate = now()->subMonths(5)->startOfMonth();
+            $query->where('created_at', '>=', $startDate);
+            $grouped = $query->get()->groupBy(function($date) {
+                return \Carbon\Carbon::parse($date->created_at)->format('M Y');
+            });
+            for ($i = 0; $i < 6; $i++) {
+                $monthStr = now()->subMonths(5 - $i)->format('M Y');
+                $trendData[] = [
+                    'label' => $monthStr,
+                    'count' => isset($grouped[$monthStr]) ? count($grouped[$monthStr]) : 0
+                ];
+            }
+        } elseif ($timeframe === 'yearly') {
+            $startDate = now()->subYears(4)->startOfYear();
+            $query->where('created_at', '>=', $startDate);
+            $grouped = $query->get()->groupBy(function($date) {
+                return \Carbon\Carbon::parse($date->created_at)->format('Y');
+            });
+            for ($i = 0; $i < 5; $i++) {
+                $yearStr = now()->subYears(4 - $i)->format('Y');
+                $trendData[] = [
+                    'label' => $yearStr,
+                    'count' => isset($grouped[$yearStr]) ? count($grouped[$yearStr]) : 0
+                ];
+            }
+        }
 
         $statusChart = [
             ['name' => 'Berhasil (Analyzed)', 'value' => $analyzed],
             ['name' => 'Gagal (Failed)', 'value' => $failed],
-            ['name' => 'Diproses (Processing)', 'value' => $processing],
         ];
 
         return Inertia::render('AdminDashboard', [
@@ -68,7 +112,10 @@ class AdminDashboardController extends Controller
             ],
             'domains' => $domains,
             'failedJobs' => collect($failedJobs)->values()->all(),
-            'uploadsPerMonth' => $uploadsPerMonth,
+            'uploadTrend' => $trendData,
+            'filters' => [
+                'timeframe' => $timeframe
+            ],
             'statusChart' => $statusChart
         ]);
     }

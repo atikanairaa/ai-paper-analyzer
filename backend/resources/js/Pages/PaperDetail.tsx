@@ -218,8 +218,8 @@ export default function PaperDetail() {
                     )}
                 </div>
 
-                {/* ── Action Banner: DRAFT → Submit or Withdraw ── */}
-                {paper.is_submission && paper.status === 'ANALYZED' && paper.submission_status === 'DRAFT' && (
+                {/* 🚀 Action Banner: DRAFT -> Submit or Withdraw 🚀 */}
+                {paper.is_submission && paper.status === 'ANALYZED' && paper.submission_status === 'DRAFT' && props.auth?.user?.id === paper.uploaded_by && (
                     <div className="bg-[#faf8f5] border-2 border-rose-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
                         <div>
                             <h3 className="text-lg font-bold text-stone-900">Tindakan Lanjutan Pengajuan Jurnal</h3>
@@ -392,7 +392,13 @@ export default function PaperDetail() {
 
                                 {paper.reviews && paper.reviews.length > 0 ? (
                                     <div className="p-6 space-y-5">
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="bg-[#faf8f5] rounded-xl p-4 border border-[#e8e4dc]">
+                                                <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Nama Reviewer</p>
+                                                <p className="font-bold text-sm text-stone-900 truncate">
+                                                    {paper.reviews[0].reviewer?.name || 'Reviewer Sistem'}
+                                                </p>
+                                            </div>
                                             <div className="bg-[#faf8f5] rounded-xl p-4 border border-[#e8e4dc]">
                                                 <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-2">Status Kelayakan</p>
                                                 <Badge color={

@@ -57,7 +57,7 @@ export default function Compare() {
         </div>
 
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-stone-900">Bandingkan Paper (On-The-Fly)</h2>
+          <h2 className="text-2xl font-bold text-stone-900">Bandingkan Paper</h2>
           <p className="text-stone-500 mt-1">Unggah dua file PDF untuk melihat perbandingan dari AI secara langsung tanpa perlu menyimpannya ke database.</p>
         </div>
 

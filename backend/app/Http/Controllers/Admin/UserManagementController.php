@@ -27,7 +27,7 @@ class UserManagementController extends Controller
         $reviewersQuery = User::role('reviewer')->orderBy('name');
         
         if ($expertiseFilter) {
-            $reviewersQuery->where('expertise', $expertiseFilter);
+            $reviewersQuery->where('expertise', 'like', "%{$expertiseFilter}%");
         }
         if ($search) {
             $reviewersQuery->where(function ($q) use ($search) {
@@ -56,5 +56,61 @@ class UserManagementController extends Controller
                 'search' => $search,
             ]
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'role' => 'required|in:reviewer,researcher',
+            'expertise' => 'nullable|array'
+        ]);
+
+        $expertiseStr = $request->expertise && is_array($request->expertise) ? implode(', ', $request->expertise) : null;
+
+        $user = new User();
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        $user->expertise = $expertiseStr;
+        $user->save();
+
+        $user->assignRole($request->role);
+
+        return redirect()->back()->with('success', 'Pengguna berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8',
+            'expertise' => 'nullable|array'
+        ]);
+
+        $expertiseStr = $request->expertise && is_array($request->expertise) ? implode(', ', $request->expertise) : null;
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+        if ($request->password) {
+            $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        }
+        $user->expertise = $expertiseStr;
+        $user->save();
+
+        return redirect()->back()->with('success', 'Pengguna berhasil diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+        $user->delete();
+
+        return redirect()->back()->with('success', 'Pengguna berhasil dihapus.');
     }
 }

@@ -186,9 +186,6 @@ export default function MyPapers() {
                                                 Judul Paper <SortIcon field="title" />
                                             </button>
                                         </th>
-                                        <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc] w-[20%]">
-                                            Bidang Paper
-                                        </th>
                                         <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc] w-[17%]">
                                             <button onClick={() => handleSort('created_at')} className="flex items-center font-semibold hover:text-stone-900 transition">
                                                 Tanggal Unggah <SortIcon field="created_at" />
@@ -220,15 +217,6 @@ export default function MyPapers() {
                                                         <p className="text-xs text-stone-400 mt-0.5">
                                                             {p.authors.map(a => a.name).join(', ')}
                                                         </p>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {domain ? (
-                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${getDomainColor(domain)}`}>
-                                                            {domain}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-stone-400 text-xs">—</span>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 text-stone-500 text-xs whitespace-nowrap">

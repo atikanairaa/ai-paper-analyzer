@@ -45,6 +45,9 @@ export interface PaperFinding {
   category: string;
   finding: string;
   explanation: string;
+  page: string | null;
+  section: string | null;
+  confidence: number | null;
   evidence: string;
 }
 
@@ -103,4 +106,5 @@ export interface Review {
   recommendation: 'ACCEPT' | 'MINOR_REVISION' | 'MAJOR_REVISION' | 'REJECT' | null;
   score: number | null;
   comments: string | null;
+  reviewer?: { id: number; name: string };
 }

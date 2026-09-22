@@ -30,6 +30,10 @@ class AnalyzePaperJob implements ShouldQueue
     public function handle(): void
     {
         $paper = Paper::findOrFail($this->paperId);
+        
+        // Pastikan status paper menjadi PROCESSING (penting jika ini adalah auto-retry dari Laravel Queue)
+        $paper->update(['status' => 'PROCESSING']);
+
         $fastApiUrl = config('services.fastapi.url');
         $token = config('services.fastapi.token');
 
@@ -151,6 +155,9 @@ class AnalyzePaperJob implements ShouldQueue
                         'category'    => $finding['category'],
                         'finding'     => $finding['finding'],
                         'explanation' => $finding['explanation'],
+                        'page'        => $finding['page'] ?? null,
+                        'section'     => $finding['section'] ?? null,
+                        'confidence'  => $finding['confidence'] ?? null,
                         'evidence'    => $finding['evidence'],
                         'created_at'  => now(),
                         'updated_at'  => now(),

@@ -11,9 +11,9 @@ class PaperManagementController extends Controller
 {
     public function index()
     {
-        $papers = Paper::with(['authors', 'latestJob', 'uploader'])
+        $papers = Paper::with(['authors', 'latestJob', 'uploader', 'reviews.reviewer'])
             ->orderBy('id', 'desc')
-            ->get();
+            ->paginate(10);
 
         return Inertia::render('Admin/MasterPaper', [
             'papers' => $papers

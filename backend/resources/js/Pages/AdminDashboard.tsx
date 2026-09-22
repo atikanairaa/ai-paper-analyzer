@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { FileText, CheckCircle, Loader2, XCircle, TrendingUp, RefreshCw, AlertCircle, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AiJob, AuditLog } from '@/types/paper';
@@ -12,19 +12,19 @@ import {
 const CHART_COLORS = ['#be123c', '#059669', '#d97706', '#44403c', '#ea580c', '#e11d48'];
 
 export default function AdminDashboard() {
-  const { stats, domains, failedJobs: initialFailedJobs, uploadsPerMonth, statusChart } = usePage<any>().props;
+  const { stats, domains, failedJobs: initialFailedJobs, uploadTrend, statusChart, filters } = usePage<any>().props;
 
   const [toast, setToast]           = useState<string | null>(null);
   const [auditLogs, setAuditLogs]   = useState<AuditLog[]>([]);
   const [failedJobs, setFailedJobs] = useState<AiJob[]>(initialFailedJobs || []);
   
-  // Pagination & Search States
+  // Trend Timeframe Filter
+  const [timeframe, setTimeframe] = useState(filters?.timeframe || 'daily');
+  
+  // Pagination & Search States for Failed Jobs
   const [failedSearch, setFailedSearch] = useState('');
   const [failedPage, setFailedPage] = useState(1);
   const failedPerPage = 5;
-  
-  const [auditPage, setAuditPage] = useState(1);
-  const auditPerPage = 10;
 
   const formatErrorMessage = (errMsg: string) => {
     if (!errMsg) return "Kesalahan tidak diketahui.";
@@ -56,11 +56,10 @@ export default function AdminDashboard() {
   // Filter & Paginate Failed Jobs
   const paginatedFailedJobs = useMemo(() => {
       let filtered = failedJobs;
-      if (failedSearch.trim()) {
+      if (failedSearch) {
           const q = failedSearch.toLowerCase();
-          filtered = filtered.filter(j => 
-              j.paper?.title?.toLowerCase().includes(q) || 
-              String(j.id).includes(q) ||
+          filtered = failedJobs.filter(j => 
+              j.paper?.title?.toLowerCase().includes(q) ||
               j.error_message?.toLowerCase().includes(q)
           );
       }
@@ -71,16 +70,6 @@ export default function AdminDashboard() {
           totalPages: Math.ceil(filtered.length / failedPerPage)
       };
   }, [failedJobs, failedSearch, failedPage]);
-
-  // Paginate Audit Logs
-  const paginatedAuditLogs = useMemo(() => {
-      const start = (auditPage - 1) * auditPerPage;
-      return {
-          data: auditLogs.slice(start, start + auditPerPage),
-          total: auditLogs.length,
-          totalPages: Math.ceil(auditLogs.length / auditPerPage)
-      };
-  }, [auditLogs, auditPage]);
 
   const handleRetry = async (job: AiJob) => {
     try {
@@ -137,7 +126,10 @@ export default function AdminDashboard() {
                         <PieChart>
                             <Pie data={statusChart} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                                 {statusChart.map((entry: any, index: number) => (
-                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                    <Cell 
+                                        key={`cell-${index}`} 
+                                        fill={entry.name === 'Berhasil (Analyzed)' ? '#059669' : entry.name === 'Gagal (Failed)' ? '#be123c' : CHART_COLORS[index % CHART_COLORS.length]} 
+                                    />
                                 ))}
                             </Pie>
                             <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e8e4dc', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
@@ -174,15 +166,31 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Uploads per Month */}
+          {/* Uploads Trend */}
           <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-6 flex flex-col lg:col-span-2">
-            <h2 className="text-base font-bold text-stone-900 mb-4">Tren Unggahan</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-bold text-stone-900">Tren Unggahan</h2>
+              <select 
+                value={timeframe}
+                onChange={e => {
+                  setTimeframe(e.target.value);
+                  router.get('/admin', { timeframe: e.target.value }, { preserveState: true, preserveScroll: true });
+                }}
+                className="bg-stone-50 border border-stone-200 text-stone-700 text-xs rounded-lg px-3 py-1.5 focus:border-rose-300 focus:ring-rose-200 outline-none"
+              >
+                <option value="daily">Harian</option>
+                <option value="weekly">Mingguan</option>
+                <option value="monthly">Bulanan</option>
+                <option value="yearly">Tahunan</option>
+              </select>
+            </div>
+            
             <div className="flex-1 min-h-[300px]">
-                {uploadsPerMonth && uploadsPerMonth.length > 0 ? (
+                {uploadTrend && uploadTrend.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={uploadsPerMonth} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                        <LineChart data={uploadTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8e4dc" />
-                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#57534e' }} dy={10} />
+                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#57534e' }} dy={10} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#57534e' }} allowDecimals={false} />
                             <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e8e4dc' }} />
                             <Line type="monotone" dataKey="count" stroke="#be123c" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
@@ -265,11 +273,16 @@ export default function AdminDashboard() {
             )}
         </div>
 
-        {/* Audit Log */}
+        {/* Audit Log Table */}
         <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#e8e4dc] bg-stone-50 flex items-center space-x-2">
-            <Activity className="w-5 h-5 text-stone-500" />
-            <h2 className="text-base font-bold text-stone-900">Log Aktivitas (Audit Log)</h2>
+          <div className="px-6 py-4 border-b border-[#e8e4dc] bg-stone-50 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Activity className="w-5 h-5 text-stone-500" />
+              <h2 className="text-base font-bold text-stone-900">Log Aktivitas (Audit Log)</h2>
+            </div>
+            <a href="/admin/audit" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center">
+              Lihat Semua <ChevronRight className="w-3 h-3 ml-1" />
+            </a>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -282,41 +295,29 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedAuditLogs.data.map(log => {
+                {auditLogs.slice(0, 5).map(log => {
                   const dateObj = new Date(log.created_at);
                   const formattedDate = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                   
-                  let targetInfo = `Data #${log.paper_id || log.id}`;
-                  if (log.paper) {
-                      targetInfo = log.paper.title.replace(/\.pdf$/i, '');
-                  }
-                  
                   return (
-                  <tr key={log.id} className="hover:bg-stone-50 border-b border-[#e8e4dc] transition-colors">
-                    <td className="px-6 py-4 text-stone-500 font-mono text-[11px]">{formattedDate}</td>
-                    <td className="px-6 py-4 font-semibold text-stone-800">{log.user?.name ?? 'System AI'}</td>
-                    <td className="px-6 py-4">
-                      <span className="bg-rose-50 text-rose-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-rose-200">{log.action}</span>
-                    </td>
-                    <td className="px-6 py-4 text-stone-700 text-xs font-medium max-w-[200px] truncate" title={targetInfo}>
-                      {targetInfo}
-                    </td>
+                    <tr key={log.id} className="border-b border-stone-100/50 hover:bg-stone-50 transition">
+                      <td className="px-6 py-3 text-stone-400 text-xs font-medium">{formattedDate}</td>
+                      <td className="px-6 py-3 text-stone-900 font-medium">{log.user?.name || 'Sistem'}</td>
+                      <td className="px-6 py-3">
+                        <span className="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-full text-[10px] font-bold uppercase tracking-wider">{log.action}</span>
+                      </td>
+                      <td className="px-6 py-3 text-stone-600 truncate max-w-[200px]">{log.paper?.title || `Data #${log.paper_id}`}</td>
+                    </tr>
+                  );
+                })}
+                {auditLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-stone-400">Belum ada riwayat aktivitas.</td>
                   </tr>
-                )})}
+                )}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination Controls for Audit Logs */}
-          {paginatedAuditLogs.totalPages > 1 && (
-            <div className="px-6 py-3 border-t border-[#e8e4dc] bg-stone-50 flex items-center justify-between">
-                <span className="text-xs text-stone-500 font-medium">Halaman {auditPage} dari {paginatedAuditLogs.totalPages}</span>
-                <div className="flex space-x-2">
-                    <button onClick={() => setAuditPage(p => Math.max(1, p - 1))} disabled={auditPage === 1} className="p-1.5 rounded-lg border border-[#e8e4dc] bg-white text-stone-500 hover:text-stone-800 disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-                    <button onClick={() => setAuditPage(p => Math.min(paginatedAuditLogs.totalPages, p + 1))} disabled={auditPage === paginatedAuditLogs.totalPages} className="p-1.5 rounded-lg border border-[#e8e4dc] bg-white text-stone-500 hover:text-stone-800 disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
-                </div>
-            </div>
-          )}
         </div>
       </div>
 

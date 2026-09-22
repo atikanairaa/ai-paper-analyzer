@@ -65,6 +65,9 @@ export default function Upload() {
           // Refresh paper status
           const response = await axios.get(`/api/papers/${paperId}`);
           setAnalyzedPaper(response.data);
+          if (action === 'withdraw') {
+              setUploadPurpose('study');
+          }
       } catch (err: any) {
           setError(err?.response?.data?.error || 'Gagal memproses tindakan.');
       } finally {
@@ -215,51 +218,18 @@ export default function Upload() {
                       </div>
                   </div>
 
-                  {uploadPurpose === 'journal' ? (
-                      analyzedPaper.submission_status === 'DRAFT' ? (
-                          <div className="bg-[#faf8f5] border-2 border-rose-100 rounded-2xl p-6 flex flex-col items-center text-center">
-                              <h3 className="text-lg font-bold text-stone-900 mb-2">Tindakan Lanjutan Pengajuan Jurnal</h3>
-                              <p className="text-sm text-stone-600 mb-6 max-w-md">Hasil analisis sudah tersedia. Apakah Anda ingin melanjutkan mengirim paper ini ke Reviewer, atau menariknya untuk direvisi terlebih dahulu?</p>
-                              
-                              <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-                                  <button
-                                      onClick={() => handleAction('withdraw')}
-                                      disabled={isActionLoading}
-                                      className="inline-flex items-center justify-center px-6 py-3 bg-white border-2 border-[#e8e4dc] text-stone-700 rounded-xl hover:bg-stone-50 hover:border-stone-300 font-bold text-sm transition focus:ring-2 focus:ring-stone-200 disabled:opacity-50"
-                                  >
-                                      Tarik Kembali untuk Revisi Mandiri
-                                  </button>
-                                  <button
-                                      onClick={() => handleAction('submit')}
-                                      disabled={isActionLoading}
-                                      className="inline-flex items-center justify-center px-6 py-3 bg-rose-700 border-2 border-rose-700 text-white rounded-xl hover:bg-rose-800 hover:border-rose-800 font-bold text-sm transition shadow-sm focus:ring-2 focus:ring-rose-200 disabled:opacity-50"
-                                  >
-                                      Lanjut Kirim ke Reviewer
-                                  </button>
-                              </div>
-                          </div>
-                      ) : (
-                          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 flex flex-col items-center text-center">
-                              <CheckCircle2 className="w-12 h-12 text-emerald-600 mb-3" />
-                              <h3 className="text-lg font-bold text-emerald-900 mb-2">Paper Berhasil Diajukan</h3>
-                              <p className="text-sm text-emerald-700 mb-4 max-w-md">Paper Anda sekarang berada dalam antrean untuk dinilai oleh Reviewer.</p>
-                              <Link href={`/upload/${paperId}`} className="text-emerald-700 hover:text-emerald-900 font-semibold text-sm underline">Lihat Detail Lengkap</Link>
-                          </div>
-                      )
-                  ) : (
-                      <div className="flex justify-center">
-                          <Link
-                              href={`/upload/${paperId}`}
-                              className="inline-flex items-center justify-center px-8 py-3 bg-rose-700 border border-transparent text-white rounded-xl hover:bg-rose-800 font-bold text-sm transition shadow-sm"
-                          >
-                              Lihat Detail Hasil Analisis Lengkap
-                          </Link>
-                      </div>
-                  )}
-              </div>
-          </div>
-        )}
-      </div>
+                    <div className="flex justify-center mt-6">
+                        <Link
+                            href={`/upload/${paperId}`}
+                            className="inline-flex items-center justify-center px-8 py-3 bg-rose-700 border border-transparent text-white rounded-xl hover:bg-rose-800 font-bold text-sm transition shadow-sm"
+                        >
+                            {uploadPurpose === 'journal' ? 'Lihat Detail & Lanjutkan Pengajuan' : 'Lihat Detail Hasil Analisis Lengkap'}
+                        </Link>
+                    </div>
+                </div>
+            </div>
+          )}
+        </div>
     </AppLayout>
   );
 }

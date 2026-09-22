@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { PaperFinding } from '../types/paper';
 
@@ -40,6 +40,27 @@ export const WeaknessCard: React.FC<WeaknessCardProps> = ({ finding }) => {
             <p className="text-sm text-stone-700 font-medium">
               <span className="font-bold text-stone-800">Penjelasan: </span>{finding.explanation}
             </p>
+            
+            {(finding.page || finding.section || finding.confidence !== null) && (
+              <div className="flex flex-wrap gap-2 py-1">
+                {finding.page && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
+                    Hal: {finding.page}
+                  </span>
+                )}
+                {finding.section && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-600 border border-stone-200">
+                    Bab: {finding.section}
+                  </span>
+                )}
+                {finding.confidence !== null && (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${finding.confidence >= 0.8 ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : finding.confidence >= 0.5 ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
+                    AI Confidence: {Math.round(finding.confidence * 100)}%
+                  </span>
+                )}
+              </div>
+            )}
+
             <p className="mt-2 text-xs text-stone-700 font-medium bg-white p-2 rounded-lg border border-[#e8e4dc]">
               <span className="font-bold text-stone-800">Bukti: </span>{finding.evidence}
             </p>

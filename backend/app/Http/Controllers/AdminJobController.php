@@ -25,7 +25,7 @@ class AdminJobController extends Controller
         \App\Helpers\AuditLogger::log('Admin retry', $paper->id);
 
         // Dispatch job again
-        ProcessPaperJob::dispatch($paper);
+        \App\Jobs\AnalyzePaperJob::dispatch($paper->id);
 
         return response()->json(['message' => 'Job retried successfully', 'job' => $job]);
     }

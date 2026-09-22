@@ -177,6 +177,9 @@ class PaperController extends Controller
             'created_at' => now(),
         ]);
 
+        $admins = \App\Models\User::role('admin')->get();
+        \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\JournalSubmittedNotification($paper->id, $paper->title, auth()->user()->name));
+
         return response()->json(['message' => 'Paper berhasil disubmit ke Jurnal', 'paper' => $paper]);
     }
 
@@ -239,6 +242,12 @@ class PaperController extends Controller
                 ]);
 
             if ($response->failed()) {
+                \Illuminate\Support\Facades\DB::table('audit_logs')->insert([
+                    'user_id' => auth()->id() ?? 1,
+                    'action' => 'COMPARE_FAILED',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
                 return response()->json(['error' => 'Gagal menghubungi AI Server untuk membandingkan paper', 'details' => $response->body()], 500);
             }
 
@@ -246,10 +255,17 @@ class PaperController extends Controller
                 'user_id' => auth()->id() ?? 1,
                 'action' => 'COMPARE_PAPERS',
                 'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             return response()->json($response->json());
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::table('audit_logs')->insert([
+                'user_id' => auth()->id() ?? 1,
+                'action' => 'COMPARE_FAILED',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

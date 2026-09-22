@@ -35,7 +35,7 @@ class ReviewerManagementController extends Controller
             ->where('is_submission', true)
             ->whereIn('submission_status', ['IN_REVIEW', 'REVIEWED'])
             ->orderBy('updated_at', 'desc')
-            ->get();
+            ->paginate(10);
 
         $reviewers = User::role('reviewer')
             ->withCount(['reviews' => function ($query) {
