@@ -37,11 +37,12 @@ ATURAN MUTLAK SISTEM:
 INSTRUKSI KHUSUS & ATURAN SISTEM:
 1. DUKUNGAN BILINGUAL: Dokumen dapat berbahasa INDONESIA atau INGGRIS.
 2. DILARANG HALUSINASI: Jika data/bagian tidak ditemukan di teks dokumen, kembalikan null atau {{"is_found": false, "summary": null}}.
-3. NILAI KATEGORI (WAJIB PILIH DARI OPSI BERIKUT):
+3. NILAI KATEGORI (WAJIB BAHASA INGGRIS):
    - research_domain: {domain_list}
    - research_type: Experimental | Survey | Literature Review | Systematic Review | Case Study | Qualitative | Quantitative | Mixed Method
    - severity: LOW | MEDIUM | HIGH | CRITICAL
-4. BAHASA PENJELASAN: Seluruh teks ulasan, ringkasan, alasan skor, dan kelemahan WAJIB ditulis dalam BAHASA INDONESIA yang baku dan ilmiah.
+4. AI EVIDENCE MAPPING: Pada setiap item "paper_findings", sertakan nomor halaman ("page"), nama bab ("section"), dan skor keyakinan AI ("confidence" bernilai desimal 0.0 sampai 1.0).
+5. BAHASA PENJELASAN: Seluruh teks ulasan, ringkasan, alasan skor, dan kelemahan WAJIB ditulis dalam BAHASA INDONESIA yang baku dan ilmiah.
 
 TEKS PAPER:
 \"\"\"
@@ -49,19 +50,17 @@ TEKS PAPER:
 \"\"\"
 
 TARGET SKEMA JSON:
-```json
 {{
   "paper": {{
-    "title": "Judul asli",
-    "abstract": "Abstrak bahasa indonesia",
-    "publication_year": 2024,
-    "journal": "Nama jurnal (jika ada)",
-    "doi": "DOI (jika ada)"
+    "title": "Judul asli paper / dokumen",
+    "abstract": "Teks lengkap abstrak",
+    "publication_year": "integer (tahun terbit, misal: 2024 atau null)",
+    "journal": "Nama Jurnal / Prosiding Konferensi atau null",
+    "doi": "Nomor DOI atau null"
   }},
   "authors": [
     {{
-      "name": "Nama Penulis 1",
-      "affiliation": "Afiliasi (jika ada)"
+      "name": "Nama Lengkap Penulis"
     }}
   ],
   "paper_analyses": {{
@@ -86,16 +85,16 @@ TARGET SKEMA JSON:
     ]
   }},
   "paper_sections": [
-    {{"section_name": "Research Problem", "is_found": boolean, "summary": "Penjelasan rumusan masalah atau null"}},
-    {{"section_name": "Research Question", "is_found": boolean, "summary": "Teks pertanyaan penelitian atau null"}},
-    {{"section_name": "Research Objective", "is_found": boolean, "summary": "Tujuan penelitian atau null"}},
-    {{"section_name": "Hypothesis", "is_found": boolean, "summary": "Penjelasan hipotesis jika ada atau null"}},
-    {{"section_name": "Methodology", "is_found": boolean, "summary": "Penjelasan metode penelitian atau null"}},
-    {{"section_name": "Dataset", "is_found": boolean, "summary": "Nama dataset dan jumlah sampel data atau null"}},
-    {{"section_name": "Experiment", "is_found": boolean, "summary": "Ringkasan pengujian / eksperimen atau null"}},
-    {{"section_name": "Results", "is_found": boolean, "summary": "Ringkasan hasil penelitian atau null"}},
-    {{"section_name": "Conclusion", "is_found": boolean, "summary": "Ringkasan kesimpulan atau null"}},
-    {{"section_name": "Limitations", "is_found": boolean, "summary": "Poin-poin batasan riset atau null"}}
+    {{"section_name": "Research Problem", "is_found": "boolean", "summary": "Penjelasan rumusan masalah atau null"}},
+    {{"section_name": "Research Question", "is_found": "boolean", "summary": "Teks pertanyaan penelitian atau null"}},
+    {{"section_name": "Research Objective", "is_found": "boolean", "summary": "Tujuan penelitian atau null"}},
+    {{"section_name": "Hypothesis", "is_found": "boolean", "summary": "Penjelasan hipotesis jika ada atau null"}},
+    {{"section_name": "Methodology", "is_found": "boolean", "summary": "Penjelasan metode penelitian atau null"}},
+    {{"section_name": "Dataset", "is_found": "boolean", "summary": "Nama dataset dan jumlah sampel data atau null"}},
+    {{"section_name": "Experiment", "is_found": "boolean", "summary": "Ringkasan pengujian / eksperimen atau null"}},
+    {{"section_name": "Results", "is_found": "boolean", "summary": "Ringkasan hasil penelitian atau null"}},
+    {{"section_name": "Conclusion", "is_found": "boolean", "summary": "Ringkasan kesimpulan atau null"}},
+    {{"section_name": "Limitations", "is_found": "boolean", "summary": "Poin-poin batasan riset atau null"}}
   ],
   "paper_scores": {{
     "overall_score": "integer (0-100, nilai rata-rata keseluruhan)",
@@ -118,7 +117,10 @@ TARGET SKEMA JSON:
       "category": "methodology | sample_size | clarity | claims | limitations | evidence | reproducibility | citation",
       "finding": "Judul singkat temuan atau kelemahan",
       "explanation": "Penjelasan lengkap mengapa hal ini menjadi masalah",
-      "evidence": "Kutipan atau rujukan halaman/bagian dari paper"
+      "page": "Page X (nomor halaman letak masalah)",
+      "section": "Nama bab/bagian letak masalah",
+      "confidence": "float (0.0 - 1.0, skor keyakinan AI)",
+      "evidence": "Kutipan atau rujukan kalimat bukti dari paper"
     }}
   ],
   "paper_references": {{

@@ -59,6 +59,9 @@ class FindingItem(BaseModel):
     category: str
     finding: str
     explanation: str
+    page: str
+    section: str
+    confidence: float
     evidence: str
 
 class PaperReferences(BaseModel):
