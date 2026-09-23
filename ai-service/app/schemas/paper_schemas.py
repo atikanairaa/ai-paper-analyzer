@@ -139,3 +139,19 @@ class CompareVerdicts(BaseModel):
 class CompareDataResponse(BaseModel):
     comparison_table: List[ComparisonTableItem]
     verdict: CompareVerdicts
+
+# ==========================================
+# SKEMA ENDPOINT ORCID: POST /api/v1/recommend-reviewers
+# ==========================================
+class ReviewerCandidate(BaseModel):
+    name: str
+    orcid_id: str
+    institution: str
+    email: str
+    expertise: List[str]
+    match_score: int
+
+class RecommendReviewersResponse(BaseModel):
+    keywords_searched: List[str]
+    total_found: int
+    reviewers: List[ReviewerCandidate]

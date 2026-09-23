@@ -1,7 +1,13 @@
 import os
 import uuid
 
-from fastapi import FastAPI, HTTPException, status, Depends, UploadFile, File, Form
+import io
+from fastapi.responses import StreamingResponse
+
+from app.services.orcid_service import ORCIDService
+from app.schemas.paper_schemas import RecommendReviewersResponse
+
+from fastapi import FastAPI, HTTPException, status, Depends, UploadFile, File, Form, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -267,6 +273,64 @@ def compare_papers_endpoint(
                 "message": str(e)
             }
         )
+
+# ====================================================================
+# ENDPOINT WATERMARK PDF (DENGAN FORCED DOWNLOAD ATTACHMENT)
+# ====================================================================
+@app.post(
+    "/api/v1/pdf/watermark",
+    responses={200: {"content": {"application/pdf": {}}}}, # Beritahu Swagger ini file PDF murni
+    dependencies=[Depends(verify_internal_token)],
+    tags=["PDF Engine"]
+)
+async def watermark_pdf_endpoint(
+    file: UploadFile = File(...),
+    watermark_text: str = Form("CONFIDENTIAL - FOR PEER REVIEW ONLY")
+):
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File wajib berformat PDF!")
+
+    try:
+        pdf_bytes = await file.read()
+        watermarked_pdf = PDFService.add_watermark(pdf_bytes, watermark_text)
+
+        # Gunakan StreamingResponse agar browser langsung memicu download file .pdf asli
+        return StreamingResponse(
+            io.BytesIO(watermarked_pdf),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="watermarked_{file.filename}"'
+            }
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal menempelkan watermark: {str(e)}")
+
+# ====================================================================
+# ENDPOINT REVIEWER: POST /api/v1/recommend-reviewers
+# ====================================================================
+@app.post(
+    "/api/v1/recommend-reviewers",
+    response_model=APIResponse[RecommendReviewersResponse],
+    dependencies=[Depends(verify_internal_token)],
+    tags=["Reviewer Matchmaking"]
+)
+async def recommend_reviewers_endpoint(
+    keywords: str = Form(..., description="Kata kunci paper, pisahkan dengan koma"),
+    domain: str = Form(None, description="Bidang riset opsional")
+):
+    keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
+    if not keyword_list:
+        keyword_list = ["Artificial Intelligence"]
+
+    # Cari kandidat dosen ke ORCID
+    orcid_data = ORCIDService.find_reviewers_by_keywords(keyword_list)
+
+    return APIResponse(
+        success=True,
+        request_id=str(uuid.uuid4()),
+        data=orcid_data
+    )
 
 
 # ====================================================================
