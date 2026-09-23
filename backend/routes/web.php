@@ -35,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/detail',  fn () => Inertia::render('MyPapers'))->name('paper.detail');
     Route::get('/detail/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('paper.detail.show');
     Route::get('/papers/{id}/export-review', [\App\Http\Controllers\PaperController::class, 'exportReview'])->name('paper.export-review');
+    Route::get('/papers/{id}/pdf-view', [\App\Http\Controllers\PaperController::class, 'viewPdf'])->name('papers.pdf.view');
     Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
 
     // ── Rute halaman Reviewer ──
