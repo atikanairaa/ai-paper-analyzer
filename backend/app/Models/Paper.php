@@ -45,6 +45,16 @@ class Paper extends Model
         return $this->hasMany(Review::class);
     }
 
+    public function sections()
+    {
+        return $this->hasMany(PaperSection::class);
+    }
+
+    public function references()
+    {
+        return $this->hasOne(PaperReference::class);
+    }
+
     public function uploader()
     {
         return $this->belongsTo(User::class, 'uploaded_by');

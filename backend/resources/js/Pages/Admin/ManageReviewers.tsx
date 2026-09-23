@@ -177,7 +177,7 @@ export default function ManageReviewers() {
                         onClick={() => { setEditingExp(null); setExpName(''); setShowExpModal(true); }}
                         className="w-full mt-2 py-2 border-2 border-dashed border-stone-300 text-stone-500 rounded-xl text-sm font-semibold hover:border-stone-400 hover:text-stone-600 transition flex items-center justify-center"
                     >
-                        <Plus className="w-4 h-4 mr-2" /> Tambah Bidang Keahlian
+                        <Plus className="w-4 h-4 mr-2" /> Tambah Keahlian
                     </button>
                 </div>
             </div>
@@ -223,7 +223,7 @@ export default function ManageReviewers() {
         {/* Modal Kelola Expertise */}
         <Modal show={showExpModal} onClose={() => setShowExpModal(false)} maxWidth="sm">
             <div className="p-6">
-                <h2 className="text-lg font-bold text-stone-900 mb-4">{editingExp ? 'Edit Bidang Keahlian' : 'Tambah Bidang Keahlian'}</h2>
+                <h2 className="text-lg font-bold text-stone-900 mb-4">{editingExp ? 'Edit Bidang Keahlian' : 'Tambah Keahlian'}</h2>
                 <form onSubmit={handleSaveExp} className="space-y-4">
                     <div>
                         <label className="text-xs font-bold uppercase tracking-wider text-stone-700 mb-1.5 block">Nama Bidang Keahlian</label>

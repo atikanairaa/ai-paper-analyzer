@@ -53,6 +53,23 @@ export interface PaperFinding {
 
 export type PaperStatus = 'UPLOADED' | 'PROCESSING' | 'ANALYZED' | 'FAILED' | 'ARCHIVED';
 
+export interface PaperSection {
+  id: number;
+  paper_id: number;
+  section_name: string;
+  is_found: boolean;
+  summary: string | null;
+}
+
+export interface PaperReference {
+  id: number;
+  paper_id: number;
+  total_references: number;
+  recent_references: number;
+  old_references: number;
+  potential_issues: string[] | null;
+}
+
 export interface Paper {
   id: number;
   uploaded_by: number;
@@ -72,6 +89,8 @@ export interface Paper {
   analyses?: PaperAnalysis[];
   scores?: PaperScore | null;
   findings?: PaperFinding[];
+  sections?: PaperSection[];
+  references?: PaperReference | null;
   latest_job?: AiJob | null;
   reviews?: Review[];
 }
