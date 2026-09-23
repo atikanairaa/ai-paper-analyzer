@@ -88,7 +88,7 @@ export default function ManageExpertises({ expertises }: any) {
                 onClick={() => { setEditingExp(null); setExpName(''); setShowExpModal(true); }}
                 className="bg-rose-700 hover:bg-rose-800 text-white font-medium shadow-sm rounded-xl px-5 py-2.5 transition-all flex items-center"
             >
-                <Plus className="w-4 h-4 mr-2" /> Tambah Bidang Keahlian
+                <Plus className="w-4 h-4 mr-2" /> Tambah Keahlian
             </button>
         </div>
 
@@ -123,7 +123,7 @@ export default function ManageExpertises({ expertises }: any) {
         {/* Modal Kelola Expertise */}
         <Modal show={showExpModal} onClose={() => setShowExpModal(false)} maxWidth="sm">
             <div className="p-6">
-                <h2 className="text-lg font-bold text-stone-900 mb-4">{editingExp ? 'Edit Bidang Keahlian' : 'Tambah Bidang Keahlian'}</h2>
+                <h2 className="text-lg font-bold text-stone-900 mb-4">{editingExp ? 'Edit Bidang Keahlian' : 'Tambah Keahlian'}</h2>
                 <form onSubmit={handleSaveExp} className="space-y-4">
                     <div>
                         <InputLabel value="Nama Bidang Keahlian" />

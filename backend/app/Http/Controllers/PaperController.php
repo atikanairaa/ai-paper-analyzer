@@ -70,7 +70,12 @@ class PaperController extends Controller
 
     public function showWeb($id)
     {
-        $paper = Paper::with(['authors', 'analyses', 'scores', 'findings', 'latestJob', 'reviews.reviewer'])->findOrFail($id);
+        $paper = Paper::with(['authors', 'analyses', 'scores', 'findings', 'sections', 'references', 'latestJob', 'reviews.reviewer'])->findOrFail($id);
+        
+        if (auth()->user() && auth()->user()->hasRole('reviewer')) {
+            return \Inertia\Inertia::render('ReviewDetail', ['paper' => $paper]);
+        }
+
         return \Inertia\Inertia::render('PaperDetail', ['paper' => $paper]);
     }
 
@@ -268,5 +273,36 @@ class PaperController extends Controller
             ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function viewPdf($id)
+    {
+        $paper = Paper::findOrFail($id);
+        
+        $paths = [
+            storage_path('app/public/' . $paper->file_path),
+            storage_path('app/' . $paper->file_path),
+            public_path('storage/' . $paper->file_path),
+            public_path($paper->file_path),
+        ];
+        
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                return response()->file($path, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="' . basename($path) . '"'
+                ]);
+            }
+        }
+        
+        return response("
+          <html><body style='margin:0;display:flex;height:100vh;align-items:center;justify-content:center;font-family:sans-serif;background:#faf8f5;color:#78716c;text-align:center;padding:24px;'>
+            <div style='max-width:420px;background:white;padding:32px;border-radius:16px;border:1px solid #e8e4dc;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);'>
+              <div style='font-size:36px;margin-bottom:12px;'>📄</div>
+              <h3 style='color:#1c1917;margin:0 0 8px 0;font-size:18px;font-weight:700;'>Pratinjau PDF Belum Tersedia</h3>
+              <p style='font-size:13px;line-height:1.6;margin:0;color:#57534e;'>Paper ini merupakan data contoh dari seeder sehingga file dokumen .pdf aslinya belum tersimpan di disk lokal Anda.<br><br>Untuk melihat dokumen PDF asli di penampil ini, silakan unggah file paper baru melalui menu <b>Unggah Paper</b>.</p>
+            </div>
+          </body></html>
+        ", 200, ['Content-Type' => 'text/html']);
     }
 }

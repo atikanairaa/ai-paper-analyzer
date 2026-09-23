@@ -11,10 +11,11 @@ interface Message {
 
 interface ChatWidgetProps {
   paperId: number;
+  embedded?: boolean;
 }
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId }) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId, embedded = false }) => {
+  const [isOpen, setIsOpen] = useState(embedded);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,10 +33,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId }) => {
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || embedded) {
       scrollToBottom();
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen, embedded]);
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -78,10 +79,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId }) => {
     }
   };
 
+  const containerClasses = embedded
+    ? "flex flex-col h-full bg-white rounded-2xl border border-[#e8e4dc] overflow-hidden"
+    : "fixed bottom-6 right-6 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-[#e8e4dc] overflow-hidden flex flex-col z-50 h-[520px] max-h-[85vh]";
+
   return (
     <>
-      {/* Floating Button */}
-      {!isOpen && (
+      {/* Floating Button (hanya jika tidak embedded dan belum open) */}
+      {!embedded && !isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           title="Tanya AI tentang paper ini"
@@ -97,9 +102,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId }) => {
       )}
 
       {/* Chat Window */}
-      {isOpen && (
-        <div className="fixed bottom-6 right-6 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-[#e8e4dc] overflow-hidden flex flex-col z-50 h-[520px] max-h-[85vh]">
-
+      {(isOpen || embedded) && (
+        <div className={containerClasses}>
           {/* Header */}
           <div className="bg-gradient-to-r from-stone-800 to-stone-900 px-4 py-3 flex justify-between items-center flex-shrink-0">
             <div className="flex items-center space-x-3">
@@ -111,13 +115,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ paperId }) => {
                 <p className="text-[10px] text-stone-400 leading-tight">Tanya jawab seputar isi paper & sitasi</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/60 rounded-lg transition-colors"
-              aria-label="Tutup chat"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {!embedded && (
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-700/60 rounded-lg transition-colors"
+                aria-label="Tutup chat"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Messages Area */}

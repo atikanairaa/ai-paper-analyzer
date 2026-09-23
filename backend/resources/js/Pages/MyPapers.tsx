@@ -223,9 +223,20 @@ export default function MyPapers() {
                                                     {new Date(p.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusCfg.classes}`}>
-                                                        {statusCfg.label}
-                                                    </span>
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusCfg.classes}`}>
+                                                            {statusCfg.label}
+                                                        </span>
+                                                        {p.submission_status === 'REVISION_REQUIRED' || p.submission_status === 'REVISION' ? (
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-100 text-amber-800 border-amber-200">
+                                                                Perlu Revisi
+                                                            </span>
+                                                        ) : (p.submission_status === 'ACCEPTED' || p.submission_status === 'ACCEPT') ? (
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-100 text-emerald-800 border-emerald-200">
+                                                                Diterima (Accepted)
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
                                                     <Link
