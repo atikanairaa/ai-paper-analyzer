@@ -88,3 +88,57 @@ class PDFService:
     @classmethod
     def get_full_text(cls, pages_content: List[Dict]) -> str:
         return "\n\n".join([f"=== [HALAMAN {p['page']}] ===\n{p['text']}" for p in pages_content])
+
+    @classmethod
+    def add_watermark(cls, pdf_bytes: bytes, watermark_text: str = "CONFIDENTIAL — FOR PEER REVIEW ONLY") -> bytes:
+        """
+        Watermark 1 Baris Ramping (Slim & Subtle) Standar Publisher:
+        - 1 Baris diagonal tunggal tepat di poros tengah
+        - Font ramping (26pt) dan warna ultra-pudar (tidak menutupi tabel/teks)
+        """
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+        for page in doc:
+            rect = page.rect
+            center = fitz.Point(rect.width / 2, rect.height / 2)
+
+            # 1. Warna abu-abu ultra-soft (0.91) - Sangat transparan & ramah di mata
+            ghost_color = (0.91, 0.91, 0.91)
+            fontname = "helv"
+            fontsize = 26  # Ukuran ramping agar tidak memblokir isi tabel
+
+            text_line = "CONFIDENTIAL — FOR PEER REVIEW ONLY"
+            text_len = fitz.get_text_length(text_line, fontname=fontname, fontsize=fontsize)
+            
+            # Titik penempatan agar titik tengah teks presisi di titik tengah halaman
+            start_point = fitz.Point(center.x - (text_len / 2), center.y + (fontsize / 3))
+
+            # Tempel 1 baris tunggal miring diagonal (-40 derajat)
+            page.insert_text(
+                start_point,
+                text_line,
+                fontsize=fontsize,
+                fontname=fontname,
+                color=ghost_color,
+                morph=(center, fitz.Matrix(-40)),
+                overlay=True
+            )
+
+            # 2. Header Tipis di Atas Halaman
+            header_text = "MANUSCRIPT UNDER PEER REVIEW — DO NOT DISTRIBUTE OR CITE"
+            header_size = 8
+            header_len = fitz.get_text_length(header_text, fontname=fontname, fontsize=header_size)
+            header_point = fitz.Point(center.x - (header_len / 2), 22)
+
+            page.insert_text(
+                header_point,
+                header_text,
+                fontsize=header_size,
+                fontname=fontname,
+                color=(0.75, 0.75, 0.75),
+                overlay=True
+            )
+
+        watermarked_bytes = doc.tobytes()
+        doc.close()
+        return watermarked_bytes
