@@ -66,3 +66,8 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__ . '/auth.php';
+
+
+// Magic Link (1-Klik Login)
+Route::get('/magic-link/reviewer', [\App\Http\Controllers\MagicLinkController::class, 'directAccess'])->name('reviewer.direct-access');
+

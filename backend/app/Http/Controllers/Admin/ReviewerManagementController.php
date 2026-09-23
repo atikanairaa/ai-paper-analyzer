@@ -160,6 +160,14 @@ Do not include markdown blocks or any other text, just the raw JSON.";
         ]);
 
         $reviewer->notify(new \App\Notifications\PaperAssignedNotification($paper->id, $paper->title));
+        
+        try {
+            \Illuminate\Support\Facades\Mail::to($reviewer->email)->send(
+                new \App\Mail\ReviewerInvitationMail($paper, $reviewer->name, $reviewer->email)
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Gagal mengirim email undangan: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Berhasil menugaskan reviewer.']);
     }
