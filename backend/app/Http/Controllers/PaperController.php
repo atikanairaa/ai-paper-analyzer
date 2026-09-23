@@ -278,16 +278,26 @@ class PaperController extends Controller
     public function viewPdf($id)
     {
         $paper = Paper::findOrFail($id);
-        
-        $paths = [
-            storage_path('app/public/' . $paper->file_path),
-            storage_path('app/' . $paper->file_path),
-            public_path('storage/' . $paper->file_path),
-            public_path($paper->file_path),
+        $filePath = $paper->file_path;
+
+        // Bersihkan prefix jika tersimpan 'storage/' atau 'public/' di database
+        $cleanPath = ltrim(preg_replace('#^(public/|storage/)#', '', $filePath), '/');
+
+        $candidatePaths = [
+            // Storage public disk
+            Storage::disk('public')->path($cleanPath),
+            storage_path('app/public/' . $cleanPath),
+            // Storage local/private disk (Laravel 11 default)
+            storage_path('app/private/' . $cleanPath),
+            storage_path('app/' . $cleanPath),
+            Storage::disk('local')->path($cleanPath),
+            // Public path langsung
+            public_path('storage/' . $cleanPath),
+            public_path($cleanPath),
         ];
-        
-        foreach ($paths as $path) {
-            if (file_exists($path)) {
+
+        foreach ($candidatePaths as $path) {
+            if (file_exists($path) && is_file($path)) {
                 return response()->file($path, [
                     'Content-Type' => 'application/pdf',
                     'Content-Disposition' => 'inline; filename="' . basename($path) . '"'

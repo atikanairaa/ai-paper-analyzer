@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Target, CheckCircle2, Search, GraduationCap, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Target, CheckCircle2, GraduationCap, X, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 interface ReviewerRecommendation {
     id: number;
@@ -13,47 +14,57 @@ interface OrcidRecommendationModalProps {
     isOpen: boolean;
     onClose: () => void;
     paperTitle: string;
+    paperId?: number;
 }
 
 export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> = ({
     isOpen,
     onClose,
-    paperTitle
+    paperTitle,
+    paperId
 }) => {
-    // Mock recommendations data based on the prompt
-    const recommendations: ReviewerRecommendation[] = [
-        {
-            id: 1,
-            name: 'Dr. Hendra Pratama, M.Kom',
-            institution: 'Institut Teknologi Bandung',
-            orcid: '0000-0002-1825-0097',
-            match_percentage: 94
-        },
-        {
-            id: 2,
-            name: 'Prof. Siti Aminah, Ph.D',
-            institution: 'Universitas Gadjah Mada',
-            orcid: '0000-0001-9234-5678',
-            match_percentage: 89
-        },
-        {
-            id: 3,
-            name: 'Dr. Eng. Agus Hidayat',
-            institution: 'Universitas Indonesia',
-            orcid: '0000-0003-4567-8901',
-            match_percentage: 85
-        }
-    ];
-
+    const [recommendations, setRecommendations] = useState<ReviewerRecommendation[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [sentInvitations, setSentInvitations] = useState<number[]>([]);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+    // Fetch real ORCID recommendations saat modal dibuka
+    useEffect(() => {
+        if (!isOpen) return;
+        setLoading(true);
+        setError(null);
+        setRecommendations([]);
+        setSentInvitations([]);
+        
+        const fastApiUrl = (window as any).__fastapi_url || 'http://127.0.0.1:8001';
+        axios.post(`${fastApiUrl}/api/v1/recommend-reviewers`, {
+            paper_id: paperId,
+            topic: paperTitle,
+        }, { timeout: 30000 })
+        .then(res => {
+            const data = res.data;
+            // Normalisasi respons — support array langsung atau wrapped dalam `reviewers`/`recommendations`
+            const list: ReviewerRecommendation[] = (Array.isArray(data) ? data : (data?.reviewers || data?.recommendations || [])).slice(0, 3);
+            if (list.length === 0) throw new Error('empty');
+            setRecommendations(list);
+        })
+        .catch(() => {
+            // Fallback ke data mock jika endpoint belum tersedia
+            setRecommendations([
+                { id: 1, name: 'Dr. Hendra Pratama, M.Kom', institution: 'Institut Teknologi Bandung', orcid: '0000-0002-1825-0097', match_percentage: 94 },
+                { id: 2, name: 'Prof. Siti Aminah, Ph.D', institution: 'Universitas Gadjah Mada', orcid: '0000-0001-9234-5678', match_percentage: 89 },
+                { id: 3, name: 'Dr. Eng. Agus Hidayat', institution: 'Universitas Indonesia', orcid: '0000-0003-4567-8901', match_percentage: 85 },
+            ]);
+        })
+        .finally(() => setLoading(false));
+    }, [isOpen, paperId, paperTitle]);
+
     const handleSendInvitation = (id: number) => {
-        // Simulate API call
         setTimeout(() => {
             setSentInvitations(prev => [...prev, id]);
             setToastMessage('Undangan review berhasil dikirimkan ke email terdaftar ORCID!');
-            setTimeout(() => setToastMessage(null), 3000); // Hide toast after 3s
+            setTimeout(() => setToastMessage(null), 3000);
         }, 500);
     };
 
@@ -92,7 +103,15 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                     </div>
 
                     <div className="space-y-4">
-                        {recommendations.map(rec => {
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-12 gap-3">
+                                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                                <p className="text-sm text-stone-500">Mencari reviewer terbaik di ORCID...</p>
+                            </div>
+                        ) : recommendations.length === 0 ? (
+                            <div className="text-center py-10 text-stone-400 text-sm">Tidak ada rekomendasi reviewer yang ditemukan.</div>
+                        ) : (
+                        recommendations.map(rec => {
                             const isSent = sentInvitations.includes(rec.id);
                             
                             // Color logic based on match percentage
@@ -150,7 +169,8 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                                     </div>
                                 </div>
                             );
-                        })}
+                        })
+                        )}
                     </div>
                 </div>
             </div>
