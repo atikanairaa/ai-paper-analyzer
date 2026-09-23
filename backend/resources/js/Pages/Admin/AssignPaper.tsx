@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { Users, FileText, Activity, ArrowLeft } from 'lucide-react';
+import { Users, FileText, Activity, ArrowLeft, Target } from 'lucide-react';
 import axios from 'axios';
 import { Paper } from '@/types/paper';
 import { Badge } from '@/Components/Badge';
 import { ConfirmModal } from '@/Components/ConfirmModal';
+import { OrcidRecommendationModal } from '@/Components/OrcidRecommendationModal';
 
 export default function AssignPaper() {
   const { papers, inReviewPapers, reviewers } = usePage<{ papers: Paper[], inReviewPapers: any[], reviewers: any[] }>().props;
@@ -27,6 +28,15 @@ export default function AssignPaper() {
       message: '',
       paperId: null,
       reviewerId: null,
+  });
+
+  // Orcid Modal State
+  const [orcidModal, setOrcidModal] = useState<{
+      isOpen: boolean;
+      paperTitle: string;
+  }>({
+      isOpen: false,
+      paperTitle: ''
   });
 
   const getRecommendations = (paperId: number) => {
@@ -102,6 +112,12 @@ export default function AssignPaper() {
           onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
       />
 
+      <OrcidRecommendationModal 
+          isOpen={orcidModal.isOpen}
+          onClose={() => setOrcidModal({ isOpen: false, paperTitle: '' })}
+          paperTitle={orcidModal.paperTitle}
+      />
+
       <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 pb-20">
         
         {/* Back Button */}
@@ -140,6 +156,15 @@ export default function AssignPaper() {
                                 <p className="text-sm text-stone-600 mb-6 line-clamp-2">{p.abstract}</p>
                                 
                                 <div className="border-t border-stone-100 pt-4">
+                                      <div className="flex justify-end mb-4">
+                                          <button 
+                                              onClick={() => setOrcidModal({ isOpen: true, paperTitle: p.title })}
+                                              className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl hover:bg-emerald-100 font-semibold text-sm transition shadow-sm"
+                                          >
+                                              <Target className="w-4 h-4" />
+                                              <span>Rekomendasi ORCID</span>
+                                          </button>
+                                      </div>
                                       {(() => {
                                           const domain = p.analyses?.[0]?.research_domain;
                                           const matchingReviewers = reviewers.filter(r => {
@@ -148,14 +173,14 @@ export default function AssignPaper() {
                                           });
                                           
                                           if (matchingReviewers.length === 0) {
-                                              return <p className="text-sm text-rose-500 font-medium">Tidak ada reviewer yang memiliki bidang keahlian cocok dengan paper ini.</p>;
+                                              return <p className="text-sm text-rose-500 font-medium">Tidak ada reviewer internal yang memiliki bidang keahlian cocok dengan paper ini. Silakan gunakan Rekomendasi ORCID di atas.</p>;
                                           }
 
                                         return (
                                             <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
                                                 <h4 className="text-sm font-bold text-stone-800 mb-2 flex items-center">
                                                     <Users className="w-4 h-4 mr-2" />
-                                                    Rekomendasi Reviewer (Match Domain):
+                                                    Rekomendasi Reviewer Internal (Match Domain):
                                                 </h4>
                                                 {matchingReviewers.map(reviewer => (
                                                     <div key={reviewer.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
