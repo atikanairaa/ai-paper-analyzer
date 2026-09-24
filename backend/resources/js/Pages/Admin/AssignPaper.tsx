@@ -34,9 +34,11 @@ export default function AssignPaper() {
   const [orcidModal, setOrcidModal] = useState<{
       isOpen: boolean;
       paperTitle: string;
+      paperId: number | null;
   }>({
       isOpen: false,
-      paperTitle: ''
+      paperTitle: '',
+      paperId: null,
   });
 
   const getRecommendations = (paperId: number) => {
@@ -114,8 +116,9 @@ export default function AssignPaper() {
 
       <OrcidRecommendationModal 
           isOpen={orcidModal.isOpen}
-          onClose={() => setOrcidModal({ isOpen: false, paperTitle: '' })}
+          onClose={() => setOrcidModal({ isOpen: false, paperTitle: '', paperId: null })}
           paperTitle={orcidModal.paperTitle}
+          paperId={orcidModal.paperId ?? undefined}
       />
 
       <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 pb-20">
@@ -158,7 +161,7 @@ export default function AssignPaper() {
                                 <div className="border-t border-stone-100 pt-4">
                                       <div className="flex justify-end mb-4">
                                           <button 
-                                              onClick={() => setOrcidModal({ isOpen: true, paperTitle: p.title })}
+                                              onClick={() => setOrcidModal({ isOpen: true, paperTitle: p.title, paperId: p.id })}
                                               className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl hover:bg-emerald-100 font-semibold text-sm transition shadow-sm"
                                           >
                                               <Target className="w-4 h-4" />

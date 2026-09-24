@@ -124,6 +124,57 @@ Do not include markdown blocks or any other text, just the raw JSON.";
         return response()->json(['recommendations' => $fallback]);
     }
 
+    public function orcidRecommend(Request $request, $paperId)
+    {
+        $paper = Paper::with('analyses')->findOrFail($paperId);
+
+        // Ambil keywords nyata dari hasil analisis AI
+        $keywords = [];
+        $domain    = null;
+
+        if ($paper->analyses && $paper->analyses->count() > 0) {
+            $analysis = $paper->analyses->first();
+            $domain   = $analysis->research_domain ?? null;
+            $kws      = json_decode($analysis->keywords ?? '[]', true);
+            if (is_array($kws) && count($kws) > 0) {
+                $keywords = array_slice($kws, 0, 6);
+            }
+        }
+
+        // Fallback: gunakan kata-kata penting dari judul paper
+        if (empty($keywords)) {
+            $stopwords = ['dan', 'atau', 'untuk', 'pada', 'yang', 'dengan', 'dalam', 'of', 'the', 'a', 'an', 'in', 'on', 'for', 'to', 'by'];
+            $words = preg_split('/\s+/', strtolower($paper->title ?? ''));
+            $keywords = array_values(array_filter($words, fn($w) => strlen($w) > 3 && !in_array($w, $stopwords)));
+            $keywords = array_slice($keywords, 0, 5);
+        }
+
+        $keywordsStr = implode(', ', $keywords);
+        $fastApiUrl  = config('services.fastapi.url');
+        $token       = config('services.fastapi.token');
+
+        try {
+            $response = Http::timeout(20)
+                ->withToken($token)
+                ->asForm()
+                ->post("{$fastApiUrl}/api/v1/recommend-reviewers", [
+                    'keywords' => $keywordsStr,
+                    'domain'   => $domain ?? '',
+                ]);
+
+            if ($response->successful()) {
+                $body = $response->json();
+                // FastAPI returns { success, request_id, data: { reviewers, total_found, ... } }
+                return response()->json($body['data'] ?? $body);
+            }
+
+            return response()->json(['reviewers' => [], 'total_found' => 0, 'keywords_searched' => $keywords, 'error' => $response->body()], 200);
+        } catch (\Exception $e) {
+            return response()->json(['reviewers' => [], 'total_found' => 0, 'keywords_searched' => $keywords, 'error' => $e->getMessage()], 200);
+        }
+    }
+
+
     public function assign(Request $request)
     {
         $request->validate([
