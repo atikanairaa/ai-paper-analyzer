@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         Route::post('/reviewers/{paperId}/recommend', [\App\Http\Controllers\Admin\ReviewerManagementController::class, 'recommend']);
+        Route::post('/reviewers/{paperId}/orcid', [\App\Http\Controllers\Admin\ReviewerManagementController::class, 'orcidRecommend']);
         Route::post('/reviewers/assign', [\App\Http\Controllers\Admin\ReviewerManagementController::class, 'assign']);
 
         Route::post('/expertises', [\App\Http\Controllers\Admin\ExpertiseController::class, 'store']);
