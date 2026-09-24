@@ -247,7 +247,7 @@ export default function AdminDashboard() {
                         <span className="text-xs text-rose-700 bg-rose-50 px-2 py-1 rounded border border-rose-200 block whitespace-normal">
                             {formatErrorMessage(job.error_message || "")}
                         </span>
-                        <div className="text-[11px] text-stone-400 mt-1">Durasi: {job.duration_seconds}d - Retry: {job.retry_count}/3</div>
+                        <div className="text-[11px] text-stone-400 mt-1">Durasi: {job.duration_seconds !== null ? `${job.duration_seconds}s` : '-'} - Retry: {job.retry_count}/3</div>
                         </td>
                         <td className="px-6 py-4 text-right">
                         <button onClick={() => handleRetry(job)}
