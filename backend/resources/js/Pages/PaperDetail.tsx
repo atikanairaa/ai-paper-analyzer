@@ -62,14 +62,23 @@ export default function PaperDetail() {
     const closeModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
     const [revisionModalOpen, setRevisionModalOpen] = useState(false);
-    const handleRevisionSubmit = (file: File | null, notes: string) => {
+    const handleRevisionSubmit = async (file: File | null, notes: string) => {
+        if (!file) return;
         setRevisionModalOpen(false);
         setIsActionLoading(true);
-        setTimeout(() => {
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (notes) formData.append('notes', notes);
+
+        try {
+            await axios.post(`/papers/${paper.id}/revision`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             setConfirmModal({
                 isOpen: true,
                 title: 'Revisi Berhasil Diunggah',
-                message: 'Naskah revisi Anda telah berhasil dikirim ke editor.',
+                message: 'Naskah revisi Anda telah berhasil dikirim, sedang dianalisis ulang, dan dikembalikan ke reviewer.',
                 confirmLabel: 'Tutup',
                 variant: 'success',
                 onConfirm: () => {
@@ -77,8 +86,11 @@ export default function PaperDetail() {
                     window.location.reload();
                 }
             });
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Gagal mengunggah file revisi.');
+        } finally {
             setIsActionLoading(false);
-        }, 1500);
+        }
     };
 
     const handleAction = (action: 'submit' | 'withdraw') => {

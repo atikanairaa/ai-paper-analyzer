@@ -72,3 +72,9 @@ require __DIR__ . '/auth.php';
 // Magic Link (1-Klik Login)
 Route::get('/magic-link/reviewer', [\App\Http\Controllers\MagicLinkController::class, 'directAccess'])->name('reviewer.direct-access');
 
+
+Route::get('/admin/reviewers/recommend-orcid/{paperId}', [\App\Http\Controllers\Admin\ReviewerManagementController::class, 'recommendOrcid'])->name('admin.reviewers.recommend-orcid')->middleware(['auth', 'role:admin']);
+
+
+Route::post('/papers/{id}/revision', [\App\Http\Controllers\PaperController::class, 'submitRevision'])->name('paper.revision')->middleware(['auth']);
+

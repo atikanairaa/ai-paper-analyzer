@@ -26,7 +26,12 @@ class ReviewController extends Controller
         );
 
         $paper = \App\Models\Paper::with('uploader')->findOrFail($paperId);
-        $paper->update(['submission_status' => 'REVIEWED']);
+        
+        if (in_array($request->recommendation, ['MINOR_REVISION', 'MAJOR_REVISION'])) {
+            $paper->update(['submission_status' => 'REVISION']);
+        } else {
+            $paper->update(['submission_status' => 'REVIEWED']);
+        }
 
         if ($paper->uploader) {
             $paper->uploader->notify(new \App\Notifications\PaperReviewedNotification($paper->id, $paper->title));

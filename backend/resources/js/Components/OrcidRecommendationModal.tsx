@@ -1,60 +1,73 @@
-import React, { useState } from 'react';
-import { Target, CheckCircle2, Search, GraduationCap, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Target, CheckCircle2, Search, GraduationCap, X, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 interface ReviewerRecommendation {
-    id: number;
+    id?: number;
     name: string;
     institution: string;
-    orcid: string;
-    match_percentage: number;
+    orcid_id?: string;
+    orcid?: string;
+    email?: string;
+    match_score?: number;
+    match_percentage?: number;
 }
 
 interface OrcidRecommendationModalProps {
     isOpen: boolean;
     onClose: () => void;
     paperTitle: string;
+    paperId?: number | null;
 }
 
 export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> = ({
     isOpen,
     onClose,
-    paperTitle
+    paperTitle,
+    paperId
 }) => {
-    // Mock recommendations data based on the prompt
-    const recommendations: ReviewerRecommendation[] = [
-        {
-            id: 1,
-            name: 'Dr. Hendra Pratama, M.Kom',
-            institution: 'Institut Teknologi Bandung',
-            orcid: '0000-0002-1825-0097',
-            match_percentage: 94
-        },
-        {
-            id: 2,
-            name: 'Prof. Siti Aminah, Ph.D',
-            institution: 'Universitas Gadjah Mada',
-            orcid: '0000-0001-9234-5678',
-            match_percentage: 89
-        },
-        {
-            id: 3,
-            name: 'Dr. Eng. Agus Hidayat',
-            institution: 'Universitas Indonesia',
-            orcid: '0000-0003-4567-8901',
-            match_percentage: 85
-        }
-    ];
-
+    const [recommendations, setRecommendations] = useState<ReviewerRecommendation[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [sentInvitations, setSentInvitations] = useState<number[]>([]);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-    const handleSendInvitation = (id: number) => {
-        // Simulate API call
-        setTimeout(() => {
-            setSentInvitations(prev => [...prev, id]);
+    useEffect(() => {
+        if (isOpen && paperId) {
+            fetchRecommendations();
+        } else {
+            setRecommendations([]);
+            setSentInvitations([]);
+        }
+    }, [isOpen, paperId]);
+
+    const fetchRecommendations = async () => {
+        setIsLoading(true);
+        try {
+            const res = await axios.get(`/admin/reviewers/recommend-orcid/${paperId}`);
+            // FastAPI wraps it in APIResponse { success: true, data: { reviewers: [...] } }
+            const reviewersList = res.data?.data?.reviewers || res.data?.reviewers || [];
+            setRecommendations(reviewersList);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSendInvitation = async (rec: ReviewerRecommendation, index: number) => {
+        try {
+            await axios.post('/api/admin/reviewers/assign', {
+                paper_id: paperId,
+                orcid_email: rec.email || `${rec.name.replace(/\s+/g, '').toLowerCase()}@example.com`,
+                orcid_name: rec.name
+            });
+            
+            setSentInvitations(prev => [...prev, index]);
             setToastMessage('Undangan review berhasil dikirimkan ke email terdaftar ORCID!');
-            setTimeout(() => setToastMessage(null), 3000); // Hide toast after 3s
-        }, 500);
+            setTimeout(() => setToastMessage(null), 3000);
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Gagal mengirim undangan');
+        }
     };
 
     if (!isOpen) return null;
@@ -91,67 +104,78 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        {recommendations.map(rec => {
-                            const isSent = sentInvitations.includes(rec.id);
-                            
-                            // Color logic based on match percentage
-                            const matchColorClass = rec.match_percentage >= 90 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                            
-                            return (
-                                <div key={rec.id} className="bg-white rounded-xl border border-[#e8e4dc] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-stone-300 transition-colors">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <h3 className="font-bold text-stone-900 text-lg flex items-center gap-2">
-                                                {rec.name}
-                                                {rec.match_percentage >= 90 && (
-                                                    <span title="Sangat Cocok" className="text-rose-500 text-xs">★</span>
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-stone-500">
+                            <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-4" />
+                            <p>Menghubungkan ke API ORCID Global...</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {recommendations.length === 0 && !isLoading && (
+                                <p className="text-center text-stone-500 py-8">Tidak ada rekomendasi ORCID ditemukan.</p>
+                            )}
+                            {recommendations.map((rec, index) => {
+                                const isSent = sentInvitations.includes(index);
+                                const matchVal = rec.match_score || rec.match_percentage || 0;
+                                const orcidVal = rec.orcid_id || rec.orcid || 'N/A';
+                                
+                                const matchColorClass = matchVal >= 90 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                                
+                                return (
+                                    <div key={index} className="bg-white rounded-xl border border-[#e8e4dc] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-stone-300 transition-colors">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h3 className="font-bold text-stone-900 text-lg flex items-center gap-2">
+                                                    {rec.name}
+                                                    {matchVal >= 90 && (
+                                                        <span title="Sangat Cocok" className="text-rose-500 text-xs">✨</span>
+                                                    )}
+                                                </h3>
+                                                <div className={`px-2.5 py-1 rounded-full text-xs font-bold border ${matchColorClass}`}>
+                                                    Kecocokan: {matchVal}%
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm text-stone-600">
+                                                <div className="flex items-center gap-1.5">
+                                                    <GraduationCap className="w-4 h-4 text-stone-400" />
+                                                    <span>{rec.institution}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="w-4 h-4 bg-lime-100 text-lime-700 font-black text-[10px] rounded-full flex items-center justify-center">iD</span>
+                                                    <a href={`https://orcid.org/${orcidVal}`} target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-rose-600 hover:underline">
+                                                        ORCID: {orcidVal}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex-shrink-0">
+                                            <button
+                                                onClick={() => handleSendInvitation(rec, index)}
+                                                disabled={isSent}
+                                                className={`w-full md:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                                                    isSent 
+                                                        ? 'bg-stone-100 text-stone-500 border border-stone-200 cursor-not-allowed'
+                                                        : 'bg-stone-900 hover:bg-stone-800 text-white shadow-sm border border-transparent'
+                                                }`}
+                                            >
+                                                {isSent ? (
+                                                    <>
+                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                        <span>Terkirim ✓</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span>✉️</span>
+                                                        <span>Kirim Undangan</span>
+                                                    </>
                                                 )}
-                                            </h3>
-                                            <div className={`px-2.5 py-1 rounded-full text-xs font-bold border ${matchColorClass}`}>
-                                                Kecocokan: {rec.match_percentage}%
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm text-stone-600">
-                                            <div className="flex items-center gap-1.5">
-                                                <GraduationCap className="w-4 h-4 text-stone-400" />
-                                                <span>{rec.institution}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <span className="w-4 h-4 bg-lime-100 text-lime-700 font-black text-[10px] rounded-full flex items-center justify-center">iD</span>
-                                                <a href={`https://orcid.org/${rec.orcid}`} target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-rose-600 hover:underline">
-                                                    ORCID: {rec.orcid}
-                                                </a>
-                                            </div>
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="flex-shrink-0">
-                                        <button
-                                            onClick={() => handleSendInvitation(rec.id)}
-                                            disabled={isSent}
-                                            className={`w-full md:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                                                isSent 
-                                                    ? 'bg-stone-100 text-stone-500 border border-stone-200 cursor-not-allowed'
-                                                    : 'bg-stone-900 hover:bg-stone-800 text-white shadow-sm border border-transparent'
-                                            }`}
-                                        >
-                                            {isSent ? (
-                                                <>
-                                                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                                    <span>Terkirim ✓</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span>✉️</span>
-                                                    <span>Kirim Undangan</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
 
