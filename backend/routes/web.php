@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/detail/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('paper.detail.show');
     Route::get('/papers/{id}/export-review', [\App\Http\Controllers\PaperController::class, 'exportReview'])->name('paper.export-review');
     Route::get('/papers/{id}/pdf-view', [\App\Http\Controllers\PaperController::class, 'viewPdf'])->name('papers.pdf.view');
+    Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
     Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
 
     // ── Rute halaman Reviewer ──
@@ -66,6 +67,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('notifications.markRead');
 });
 
+Route::post('/papers/{paperId}/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviewer.store')->middleware(['auth']);
 require __DIR__ . '/auth.php';
 
 

@@ -200,7 +200,7 @@ Do not include markdown blocks or any other text, just the raw JSON.";
         $paper->update(['submission_status' => 'IN_REVIEW']);
 
         DB::table('audit_logs')->insert([
-            'user_id' => auth()->id(),
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
             'action' => 'ASSIGN_REVIEWER',
             'paper_id' => $paper->id,
             'created_at' => now(),

@@ -427,7 +427,7 @@ export default function PaperDetail() {
                         )}
 
                         {/* ── 2. Hasil Review (Full Width) ── */}
-                        {isAnalyzed && paper.submission_status === 'REVIEWED' && (
+                        {(paper.submission_status === 'REVIEWED' || paper.submission_status === 'REVISION') && (
                             <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
                                 <div className="bg-emerald-50 p-5 border-b border-emerald-100 flex items-center justify-between">
                                     <div>

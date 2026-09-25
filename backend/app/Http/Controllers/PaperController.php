@@ -307,12 +307,12 @@ class PaperController extends Controller
             ]);
 
             // Bersihkan analisis lama
-            $paper->aiJob()->delete();
+            $paper->aiJobs()->delete();
             $paper->analyses()->delete();
             $paper->findings()->delete();
 
             // Jalankan ulang AI
-            dispatch(new \App\Jobs\AnalyzePaperJob($paper));
+            dispatch(new \App\Jobs\AnalyzePaperJob($paper->id));
 
             // Notifikasi ulang ke Reviewer lama
             $reviews = \Illuminate\Support\Facades\DB::table('reviews')
@@ -323,6 +323,13 @@ class PaperController extends Controller
                 $reviewer = \App\Models\User::find($review->reviewer_id);
                 if ($reviewer) {
                     $reviewer->notify(new \App\Notifications\PaperAssignedNotification($paper->id, $paper->title . " (Revisi)"));
+                    try {
+                        \Illuminate\Support\Facades\Mail::to($reviewer->email)->send(
+                            new \App\Mail\ReviewerInvitationMail($paper, $reviewer->name, $reviewer->email)
+                        );
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Gagal mengirim email undangan revisi: ' . $e->getMessage());
+                    }
                 }
             }
 
@@ -332,11 +339,63 @@ class PaperController extends Controller
         return response()->json(['message' => 'Gagal mengunggah file revisi.'], 400);
     }
 
+    public function viewWatermarkedPdf($id)
+    {
+        $paper = Paper::findOrFail($id);
+        
+        $paths = [
+            storage_path('app/private/' . $paper->file_path),
+            storage_path('app/public/' . $paper->file_path),
+            storage_path('app/' . $paper->file_path),
+            public_path('storage/' . $paper->file_path),
+            public_path($paper->file_path),
+        ];
+        
+        $pdfPath = null;
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                $pdfPath = $path;
+                break;
+            }
+        }
+        
+        if (!$pdfPath || empty($paper->file_path)) {
+            return $this->viewPdf($id); // Fallback ke tampilan seeder
+        }
+        
+        $fastApiUrl = config('services.fastapi.url', 'http://127.0.0.1:8001');
+        $token = config('services.fastapi.token');
+        
+        try {
+            $response = \Illuminate\Support\Facades\Http::withToken($token)
+                ->attach('file', file_get_contents($pdfPath), basename($pdfPath))
+                ->post("{$fastApiUrl}/api/v1/pdf/watermark", [
+                    'watermark_text' => 'CONFIDENTIAL'
+                ]);
+                
+            if ($response->successful()) {
+                return response($response->body(), 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="watermarked_' . basename($pdfPath) . '"'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Gagal watermark PDF: " . $e->getMessage());
+        }
+        
+        // Fallback jika gagal watermark
+        return response()->file($pdfPath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . basename($pdfPath) . '"'
+        ]);
+    }
+
     public function viewPdf($id)
     {
         $paper = Paper::findOrFail($id);
         
         $paths = [
+            storage_path('app/private/' . $paper->file_path),
             storage_path('app/public/' . $paper->file_path),
             storage_path('app/' . $paper->file_path),
             public_path('storage/' . $paper->file_path),

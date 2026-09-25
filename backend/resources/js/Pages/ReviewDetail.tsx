@@ -59,17 +59,18 @@ export default function ReviewDetail() {
             variant: 'info',
             onConfirm: () => {
                 closeModal();
-                axios.post(`/api/papers/${paper!.id}/reviews`, {
+                axios.post(`/papers/${paper!.id}/reviews`, {
                     score: form.score.value,
                     recommendation: recommendation,
                     comments: form.comments.value
                 }).then(() => {
                     window.location.reload();
-                }).catch(() => {
+                }).catch((error: any) => {
+                    const errorMsg = error.response?.data?.message || 'Terjadi kesalahan saat mengirim review. Silakan coba kembali.';
                     setConfirmModal({
                         isOpen: true,
                         title: 'Gagal Mengirim Review',
-                        message: 'Terjadi kesalahan saat mengirim review. Silakan coba kembali.',
+                        message: errorMsg,
                         confirmLabel: 'Tutup',
                         variant: 'danger',
                         onConfirm: closeModal,
@@ -128,18 +129,12 @@ export default function ReviewDetail() {
                             <span className="font-bold text-stone-700 text-sm">Dokumen Naskah</span>
                         </div>
                         <div className="flex-1 relative w-full h-full min-h-[500px]">
-                            {/* PDF iframe */}
+                            {/* PDF iframe with REAL AI Watermark Endpoint */}
                             <iframe 
-                                src={`/papers/${paper.id}/pdf-view`}
-                                className="w-full h-full border-none relative z-10 mix-blend-multiply"
+                                src={`/papers/${paper.id}/watermark-pdf`}
+                                className="w-full h-full border-none relative z-10"
                                 title="PDF Viewer"
                             />
-                            {/* Watermark Overlay */}
-                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none overflow-hidden z-20 mix-blend-overlay">
-                                <div className="text-stone-400/20 font-black text-4xl sm:text-5xl md:text-6xl tracking-widest uppercase transform -rotate-[30deg] whitespace-nowrap">
-                                    CONFIDENTIAL — DOKUMEN RAHASIA REVIEW
-                                </div>
-                            </div>
                         </div>
                     </div>
 
