@@ -37,13 +37,16 @@ class AnalyzePaperJob implements ShouldQueue
         $fastApiUrl = config('services.fastapi.url');
         $token = config('services.fastapi.token');
 
+        $startTime = microtime(true);
+
         // Catat di tabel ai_jobs bahwa proses dimulai
         $jobLog = DB::table('ai_jobs')->insertGetId([
-            'paper_id'   => $paper->id,
-            'status'     => 'PROCESSING',
-            'started_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'paper_id'    => $paper->id,
+            'status'      => 'PROCESSING',
+            'retry_count' => max(0, $this->attempts() - 1),
+            'started_at'  => now(),
+            'created_at'  => now(),
+            'updated_at'  => now(),
         ]);
 
         $filePath = Storage::path($paper->file_path);
@@ -178,8 +181,9 @@ class AnalyzePaperJob implements ShouldQueue
 
                 // Update log ai_jobs menjadi COMPLETED
                 DB::table('ai_jobs')->where('id', $jobLog)->update([
-                    'status'       => 'COMPLETED',
-                    'completed_at' => now(),
+                    'status'           => 'COMPLETED',
+                    'duration_seconds' => round(microtime(true) - $startTime),
+                    'completed_at'     => now(),
                 ]);
 
                 // Catat di audit_logs
@@ -196,9 +200,10 @@ class AnalyzePaperJob implements ShouldQueue
             $paper->update(['status' => 'FAILED']);
             
             DB::table('ai_jobs')->where('id', $jobLog)->update([
-                'status'        => 'FAILED',
-                'error_message' => $e->getMessage(),
-                'completed_at'  => now(),
+                'status'           => 'FAILED',
+                'duration_seconds' => round(microtime(true) - $startTime),
+                'error_message'    => $e->getMessage(),
+                'completed_at'     => now(),
             ]);
 
             throw $e; // Lempar agar Laravel Queue mencatat failed_jobs

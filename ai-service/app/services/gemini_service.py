@@ -10,7 +10,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 T = TypeVar("T", bound=BaseModel)
 
 class GeminiService:
-    MODEL_NAME = "gemini-flash-latest"
+    MODEL_NAME = "gemini-3.6-flash"
 
     @classmethod
     def call_gemini_with_repair(
@@ -51,13 +51,14 @@ class GeminiService:
             except Exception as e:
                 err_str = str(e)
                 
-                # JIKA KENA LIMIT 1-2 DETIK (429): Otomatis tidur 30 detik lalu coba lagi!
+                # JIKA KENA LIMIT (429): Otomatis tidur dengan exponential backoff
                 if "429" in err_str or "ResourceExhausted" in err_str:
                     if attempts <= max_retries:
-                        time.sleep(30)  # Tunggu 30 detik di background
+                        sleep_time = 30 * attempts
+                        time.sleep(sleep_time)  # Tunggu 30, 60 detik di background
                         continue
 
-                # JIKA ERROR PYDANTIC: Jalankan repair loop
+                # JIKA ERROR PYDANTIC ATAU LAINNYA: Jalankan repair loop
                 if attempts > max_retries:
                     raise ValueError(f"AI_PROCESSING_FAILED: {err_str}")
 

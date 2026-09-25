@@ -3,10 +3,11 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { Database, ChevronRight, User } from 'lucide-react';
 import { Paper } from '@/types/paper';
+import { PageProps } from '@/types';
 import { Badge } from '@/Components/Badge';
 
 export default function MasterPaper() {
-  const { props } = usePage<{ papers: { data: Paper[], links: any[] } }>();
+  const { props } = usePage<PageProps & { papers: { data: Paper[], links: any[] } }>();
   const papers = props.papers?.data || [];
 
   return (

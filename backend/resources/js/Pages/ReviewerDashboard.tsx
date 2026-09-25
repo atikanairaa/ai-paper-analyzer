@@ -3,13 +3,14 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { ClipboardList, FileText, Search, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Paper } from '@/types/paper';
+import { PageProps } from '@/types';
 import { Badge } from '@/Components/Badge';
 
 type SortField = 'title' | 'updated_at' | 'score';
 type SortDir = 'asc' | 'desc';
 
 export default function ReviewerDashboard() {
-  const { papers, url } = usePage<{ papers: Paper[], url: string }>().props;
+  const { papers, url } = usePage<PageProps & { papers: Paper[], url: string }>().props;
   
   // Get active tab from URL query param, default to 'pending'
   const tabParam = new URLSearchParams(window.location.search).get('tab') || 'pending';
