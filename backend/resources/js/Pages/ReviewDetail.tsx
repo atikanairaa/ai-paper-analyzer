@@ -310,7 +310,7 @@ export default function ReviewDetail() {
                                             </button>
                                         </div>
                                         {/* Hidden input to store recommendation clicked */}
-                                        <input type="hidden" name="recommendation" value="" />
+                                        <input type="hidden" name="recommendation" defaultValue="" />
                                     </div>
                                 </form>
                             )}

@@ -275,6 +275,63 @@ class PaperController extends Controller
         }
     }
 
+    public function submitRevision(Request $request, $id)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:pdf|max:10240'
+        ]);
+
+        $paper = Paper::where('uploaded_by', auth()->id())->findOrFail($id);
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            
+            // Hapus file lama
+            if (\Illuminate\Support\Facades\Storage::exists($paper->file_path)) {
+                \Illuminate\Support\Facades\Storage::delete($paper->file_path);
+            }
+
+            $path = $file->store('papers');
+            
+            $paper->update([
+                'file_path' => $path,
+                'status' => 'PROCESSING',
+                'submission_status' => 'IN_REVIEW' // Kembalikan statusnya ke review
+            ]);
+
+            \Illuminate\Support\Facades\DB::table('audit_logs')->insert([
+                'user_id' => auth()->id(),
+                'action' => 'SUBMIT_REVISION',
+                'paper_id' => $paper->id,
+                'created_at' => now(),
+            ]);
+
+            // Bersihkan analisis lama
+            $paper->aiJob()->delete();
+            $paper->analyses()->delete();
+            $paper->findings()->delete();
+
+            // Jalankan ulang AI
+            dispatch(new \App\Jobs\AnalyzePaperJob($paper));
+
+            // Notifikasi ulang ke Reviewer lama
+            $reviews = \Illuminate\Support\Facades\DB::table('reviews')
+                        ->where('paper_id', $paper->id)
+                        ->get();
+            
+            foreach ($reviews as $review) {
+                $reviewer = \App\Models\User::find($review->reviewer_id);
+                if ($reviewer) {
+                    $reviewer->notify(new \App\Notifications\PaperAssignedNotification($paper->id, $paper->title . " (Revisi)"));
+                }
+            }
+
+            return response()->json(['message' => 'File revisi berhasil diunggah, paper sedang dianalisis ulang dan ditugaskan kembali.']);
+        }
+        
+        return response()->json(['message' => 'Gagal mengunggah file revisi.'], 400);
+    }
+
     public function viewPdf($id)
     {
         $paper = Paper::findOrFail($id);

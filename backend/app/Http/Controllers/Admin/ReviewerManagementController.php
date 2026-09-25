@@ -124,66 +124,62 @@ Do not include markdown blocks or any other text, just the raw JSON.";
         return response()->json(['recommendations' => $fallback]);
     }
 
-    public function orcidRecommend(Request $request, $paperId)
+    public function recommendOrcid(Request $request, $paperId)
     {
         $paper = Paper::with('analyses')->findOrFail($paperId);
-
-        // Ambil keywords nyata dari hasil analisis AI
-        $keywords = [];
-        $domain    = null;
-
-        if ($paper->analyses && $paper->analyses->count() > 0) {
-            $analysis = $paper->analyses->first();
-            $domain   = $analysis->research_domain ?? null;
-            $kws      = json_decode($analysis->keywords ?? '[]', true);
-            if (is_array($kws) && count($kws) > 0) {
-                $keywords = array_slice($kws, 0, 6);
-            }
-        }
-
-        // Fallback: gunakan kata-kata penting dari judul paper
-        if (empty($keywords)) {
-            $stopwords = ['dan', 'atau', 'untuk', 'pada', 'yang', 'dengan', 'dalam', 'of', 'the', 'a', 'an', 'in', 'on', 'for', 'to', 'by'];
-            $words = preg_split('/\s+/', strtolower($paper->title ?? ''));
-            $keywords = array_values(array_filter($words, fn($w) => strlen($w) > 3 && !in_array($w, $stopwords)));
-            $keywords = array_slice($keywords, 0, 5);
-        }
-
-        $keywordsStr = implode(', ', $keywords);
-        $fastApiUrl  = config('services.fastapi.url');
-        $token       = config('services.fastapi.token');
+        $keywords = $paper->analyses->first()->keywords ?? $paper->title; // fallback if keywords missing
+        $domain = $paper->analyses->first()->research_domain ?? '';
+        
+        $fastApiUrl = config('services.fastapi.url', 'http://127.0.0.1:8001');
+        $token = config('services.fastapi.token');
 
         try {
-            $response = Http::timeout(20)
+            $response = Http::asForm()
                 ->withToken($token)
-                ->asForm()
                 ->post("{$fastApiUrl}/api/v1/recommend-reviewers", [
-                    'keywords' => $keywordsStr,
-                    'domain'   => $domain ?? '',
+                    'keywords' => $keywords,
+                    'domain' => $domain
                 ]);
 
             if ($response->successful()) {
-                $body = $response->json();
-                // FastAPI returns { success, request_id, data: { reviewers, total_found, ... } }
-                return response()->json($body['data'] ?? $body);
+                return response()->json($response->json());
             }
-
-            return response()->json(['reviewers' => [], 'total_found' => 0, 'keywords_searched' => $keywords, 'error' => $response->body()], 200);
         } catch (\Exception $e) {
-            return response()->json(['reviewers' => [], 'total_found' => 0, 'keywords_searched' => $keywords, 'error' => $e->getMessage()], 200);
+            \Illuminate\Support\Facades\Log::error('Gagal panggil FastAPI ORCID: ' . $e->getMessage());
         }
-    }
 
+        return response()->json(['error' => 'Gagal mendapatkan rekomendasi ORCID.'], 500);
+    }
 
     public function assign(Request $request)
     {
         $request->validate([
             'paper_id' => 'required|exists:papers,id',
-            'reviewer_id' => 'required|exists:users,id',
+            'reviewer_id' => 'nullable|exists:users,id',
+            'orcid_email' => 'nullable|email',
+            'orcid_name' => 'nullable|string',
         ]);
 
         $paper = Paper::findOrFail($request->paper_id);
-        $reviewer = User::findOrFail($request->reviewer_id);
+        
+        // Cek apakah reviewer dari DB internal atau dari ORCID
+        if ($request->reviewer_id) {
+            $reviewer = User::findOrFail($request->reviewer_id);
+        } else if ($request->orcid_email && $request->orcid_name) {
+            $reviewer = User::firstOrCreate(
+                ['email' => $request->orcid_email],
+                [
+                    'name' => $request->orcid_name,
+                    'password' => bcrypt(\Illuminate\Support\Str::random(16)),
+                ]
+            );
+            // Ensure they have the reviewer role
+            if (!$reviewer->hasRole('reviewer')) {
+                $reviewer->assignRole('reviewer');
+            }
+        } else {
+            return response()->json(['message' => 'Reviewer ID atau Data ORCID dibutuhkan.'], 400);
+        }
 
         $exists = DB::table('reviews')
             ->where('paper_id', $paper->id)

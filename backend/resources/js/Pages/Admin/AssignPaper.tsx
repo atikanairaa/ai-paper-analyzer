@@ -33,12 +33,10 @@ export default function AssignPaper() {
   // Orcid Modal State
   const [orcidModal, setOrcidModal] = useState<{
       isOpen: boolean;
-      paperTitle: string;
-      paperId: number | null;
+      paperTitle: string; paperId: number | null;
   }>({
       isOpen: false,
-      paperTitle: '',
-      paperId: null,
+      paperTitle: ''
   });
 
   const getRecommendations = (paperId: number) => {
@@ -117,8 +115,8 @@ export default function AssignPaper() {
       <OrcidRecommendationModal 
           isOpen={orcidModal.isOpen}
           onClose={() => setOrcidModal({ isOpen: false, paperTitle: '', paperId: null })}
-          paperTitle={orcidModal.paperTitle}
-          paperId={orcidModal.paperId ?? undefined}
+          paperTitle={orcidModal.paperTitle} 
+          paperId={orcidModal.paperId}
       />
 
       <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 pb-20">
