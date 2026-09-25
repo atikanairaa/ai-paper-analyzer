@@ -40,6 +40,11 @@ class Paper extends Model
         return $this->hasOne(AiJob::class)->latestOfMany();
     }
 
+    public function aiJobs()
+    {
+        return $this->hasMany(AiJob::class);
+    }
+
     public function reviews()
     {
         return $this->hasMany(Review::class);

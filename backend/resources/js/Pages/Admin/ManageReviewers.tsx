@@ -5,9 +5,10 @@ import { CheckCircle, Plus, Trash2, Edit2 } from 'lucide-react';
 import axios from 'axios';
 import Modal from '@/Components/Modal';
 import { ConfirmModal } from '@/Components/ConfirmModal';
+import { PageProps } from '@/types';
 
 export default function ManageReviewers() {
-  const { reviewers, expertises } = usePage<{ reviewers: any[], expertises: any[] }>().props;
+  const { reviewers, expertises } = usePage<PageProps<{ reviewers: any[], expertises: any[] }>>().props;
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newReviewer, setNewReviewer] = useState({ name: '', email: '', password: '', expertise: '' });

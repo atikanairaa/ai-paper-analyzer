@@ -1,286 +1,440 @@
-import React, { useState } from 'react';
-import { Head, Link, usePage, router } from '@inertiajs/react';
-import { AppLayout } from '@/Layouts/AppLayout';
-import { Users, FileText, Activity, ArrowLeft, Target } from 'lucide-react';
-import axios from 'axios';
-import { Paper } from '@/types/paper';
-import { Badge } from '@/Components/Badge';
-import { ConfirmModal } from '@/Components/ConfirmModal';
-import { OrcidRecommendationModal } from '@/Components/OrcidRecommendationModal';
+import React, { useState } from "react";
+import { Head, Link, usePage, router } from "@inertiajs/react";
+import { AppLayout } from "@/Layouts/AppLayout";
+import { Users, FileText, Activity, ArrowLeft, Target } from "lucide-react";
+import axios from "axios";
+import { Paper } from "@/types/paper";
+import { Badge } from "@/Components/Badge";
+import { ConfirmModal } from "@/Components/ConfirmModal";
+import { OrcidRecommendationModal } from "@/Components/OrcidRecommendationModal";
+
+import { PageProps } from "@/types";
 
 export default function AssignPaper() {
-  const { papers, inReviewPapers, reviewers } = usePage<{ papers: Paper[], inReviewPapers: any[], reviewers: any[] }>().props;
-  
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [isLoadingRecs, setIsLoadingRecs] = useState<number | null>(null);
-  const [isAssigning, setIsAssigning] = useState<number | null>(null);
+    const { papers, inReviewPapers, reviewers } = usePage<
+        PageProps<{
+            papers: Paper[];
+            inReviewPapers: any;
+            reviewers: any[];
+        }>
+    >().props;
 
-  // Modal state
-  const [confirmModal, setConfirmModal] = useState<{
-      isOpen: boolean;
-      title: string;
-      message: string;
-      paperId: number | null;
-      reviewerId: number | null;
-  }>({
-      isOpen: false,
-      title: '',
-      message: '',
-      paperId: null,
-      reviewerId: null,
-  });
+    const [recommendations, setRecommendations] = useState<any[]>([]);
+    const [isLoadingRecs, setIsLoadingRecs] = useState<number | null>(null);
+    const [isAssigning, setIsAssigning] = useState<number | null>(null);
 
-  // Orcid Modal State
-  const [orcidModal, setOrcidModal] = useState<{
-      isOpen: boolean;
-      paperTitle: string; paperId: number | null;
-  }>({
-      isOpen: false,
-      paperTitle: ''
-  });
+    // Modal state
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        paperId: number | null;
+        reviewerId: number | null;
+    }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        paperId: null,
+        reviewerId: null,
+    });
 
-  const getRecommendations = (paperId: number) => {
-    setIsLoadingRecs(paperId);
-    
-    setTimeout(() => {
-        const paper = papers.find(p => p.id === paperId);
-        const domain = paper?.analyses?.[0]?.research_domain?.toLowerCase() || '';
+    // Orcid Modal State
+    const [orcidModal, setOrcidModal] = useState<{
+        isOpen: boolean;
+        paperTitle: string;
+        paperId: number | null;
+    }>({
+        isOpen: false,
+        paperTitle: "",
+        paperId: null,
+    });
 
-        const recs = reviewers.filter(r => {
-            if (!domain || !r.expertise) return false;
-            return r.expertise.toLowerCase().includes(domain);
-        }).map(r => ({
-            paper_id: paperId,
-            reviewer_id: r.id,
-            match_percentage: 100,
-            reasoning: `Reviewer memiliki keahlian yang cocok dengan domain paper`
-        }));
+    const getRecommendations = (paperId: number) => {
+        setIsLoadingRecs(paperId);
 
-        setRecommendations(recs);
-        setIsLoadingRecs(null);
-    }, 500);
-  };
+        setTimeout(() => {
+            const paper = papers.find((p) => p.id === paperId);
+            const domain =
+                paper?.analyses?.[0]?.research_domain?.toLowerCase() || "";
 
-  const handleAssignClick = (paperId: number, reviewerId: number, reviewerName: string) => {
-      setConfirmModal({
-          isOpen: true,
-          title: 'Tugaskan Reviewer?',
-          message: `Apakah Anda yakin ingin menugaskan paper ini kepada reviewer ${reviewerName}?`,
-          paperId,
-          reviewerId,
-      });
-  };
+            const recs = reviewers
+                .filter((r) => {
+                    if (!domain || !r.expertise) return false;
+                    return r.expertise.toLowerCase().includes(domain);
+                })
+                .map((r) => ({
+                    paper_id: paperId,
+                    reviewer_id: r.id,
+                    match_percentage: 100,
+                    reasoning: `Reviewer memiliki keahlian yang cocok dengan domain paper`,
+                }));
 
-  const confirmAssign = async () => {
-    const { paperId, reviewerId } = confirmModal;
-    if (!paperId || !reviewerId) return;
+            setRecommendations(recs);
+            setIsLoadingRecs(null);
+        }, 500);
+    };
 
-    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-    setIsAssigning(reviewerId);
-    
-    try {
-        await axios.post('/api/admin/reviewers/assign', {
-            paper_id: paperId,
-            reviewer_id: reviewerId
-        });
-        router.reload();
-    } catch (e: any) {
+    const handleAssignClick = (
+        paperId: number,
+        reviewerId: number,
+        reviewerName: string,
+    ) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Gagal Menugaskan',
-            message: e.response?.data?.message || 'Terjadi kesalahan saat menugaskan reviewer.',
-            paperId: null,
-            reviewerId: null,
+            title: "Tugaskan Reviewer?",
+            message: `Apakah Anda yakin ingin menugaskan paper ini kepada reviewer ${reviewerName}?`,
+            paperId,
+            reviewerId,
         });
-    } finally {
-        setIsAssigning(null);
-    }
-  };
+    };
 
-  return (
-    <AppLayout defaultRole="admin">
-      <Head title="Assign Paper" />
+    const confirmAssign = async () => {
+        const { paperId, reviewerId } = confirmModal;
+        if (!paperId || !reviewerId) return;
 
-      <ConfirmModal
-          isOpen={confirmModal.isOpen}
-          title={confirmModal.title}
-          message={confirmModal.message}
-          confirmLabel={confirmModal.paperId ? "Ya, Tugaskan" : "Tutup"}
-          cancelLabel="Batal"
-          variant={confirmModal.paperId ? "info" : "danger"}
-          onConfirm={confirmModal.paperId ? confirmAssign : () => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-          onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-      />
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        setIsAssigning(reviewerId);
 
-      <OrcidRecommendationModal 
-          isOpen={orcidModal.isOpen}
-          onClose={() => setOrcidModal({ isOpen: false, paperTitle: '', paperId: null })}
-          paperTitle={orcidModal.paperTitle} 
-          paperId={orcidModal.paperId}
-      />
+        try {
+            await axios.post("/api/admin/reviewers/assign", {
+                paper_id: paperId,
+                reviewer_id: reviewerId,
+            });
+            router.reload();
+        } catch (e: any) {
+            setConfirmModal({
+                isOpen: true,
+                title: "Gagal Menugaskan",
+                message:
+                    e.response?.data?.message ||
+                    "Terjadi kesalahan saat menugaskan reviewer.",
+                paperId: null,
+                reviewerId: null,
+            });
+        } finally {
+            setIsAssigning(null);
+        }
+    };
 
-      <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 pb-20">
-        
-        {/* Back Button */}
-        <div className="mb-2">
-            <Link 
-                href="/admin" 
-                className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 font-semibold text-sm transition-all shadow-sm group"
-            >
-                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-                <span>Kembali ke Dashboard</span>
-            </Link>
-        </div>
+    return (
+        <AppLayout defaultRole="admin">
+            <Head title="Assign Paper" />
 
-        <div>
-          <h1 className="text-2xl font-bold text-stone-900">Assign Paper</h1>
-          <p className="text-sm text-stone-500 mt-1">Tugaskan paper baru ke reviewer dan pantau status review secara real-time.</p>
-        </div>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmLabel={confirmModal.paperId ? "Ya, Tugaskan" : "Tutup"}
+                cancelLabel="Batal"
+                variant={confirmModal.paperId ? "info" : "danger"}
+                onConfirm={
+                    confirmModal.paperId
+                        ? confirmAssign
+                        : () =>
+                              setConfirmModal((prev) => ({
+                                  ...prev,
+                                  isOpen: false,
+                              }))
+                }
+                onCancel={() =>
+                    setConfirmModal((prev) => ({ ...prev, isOpen: false }))
+                }
+            />
 
-        <div className="grid grid-cols-1 gap-8">
-            {/* Bagian: Paper Menunggu Reviewer */}
-            <div>
-                <h2 className="text-lg font-bold text-stone-900 flex items-center mb-4"><FileText className="w-5 h-5 mr-2 text-stone-400"/> Paper Perlu Ditugaskan</h2>
-                
-                {papers.length === 0 ? (
-                    <div className="bg-white border border-[#e8e4dc] rounded-2xl p-8 text-center text-stone-500 shadow-sm">
-                        Tidak ada paper baru yang perlu di-assign saat ini.
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {papers.map(p => (
-                            <div key={p.id} className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-sm">
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="font-bold text-lg text-stone-900">{p.title}</h3>
-                                    <Badge color="blue">{p.analyses?.[0]?.research_domain || 'Umum'}</Badge>
-                                </div>
-                                <p className="text-sm text-stone-600 mb-6 line-clamp-2">{p.abstract}</p>
-                                
-                                <div className="border-t border-stone-100 pt-4">
-                                      <div className="flex justify-end mb-4">
-                                          <button 
-                                              onClick={() => setOrcidModal({ isOpen: true, paperTitle: p.title, paperId: p.id })}
-                                              className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl hover:bg-emerald-100 font-semibold text-sm transition shadow-sm"
-                                          >
-                                              <Target className="w-4 h-4" />
-                                              <span>Rekomendasi ORCID</span>
-                                          </button>
-                                      </div>
-                                      {(() => {
-                                          const domain = p.analyses?.[0]?.research_domain;
-                                          const matchingReviewers = reviewers.filter(r => {
-                                              if (!domain || !r.expertise) return false;
-                                              return r.expertise.includes(domain);
-                                          });
-                                          
-                                          if (matchingReviewers.length === 0) {
-                                              return <p className="text-sm text-rose-500 font-medium">Tidak ada reviewer internal yang memiliki bidang keahlian cocok dengan paper ini. Silakan gunakan Rekomendasi ORCID di atas.</p>;
-                                          }
+            <OrcidRecommendationModal
+                isOpen={orcidModal.isOpen}
+                onClose={() =>
+                    setOrcidModal({
+                        isOpen: false,
+                        paperTitle: "",
+                        paperId: null,
+                    })
+                }
+                paperTitle={orcidModal.paperTitle}
+                paperId={orcidModal.paperId}
+            />
 
-                                        return (
-                                            <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
-                                                <h4 className="text-sm font-bold text-stone-800 mb-2 flex items-center">
-                                                    <Users className="w-4 h-4 mr-2" />
-                                                    Rekomendasi Reviewer Internal (Match Domain):
-                                                </h4>
-                                                {matchingReviewers.map(reviewer => (
-                                                    <div key={reviewer.id} className="flex flex-col md:flex-row md:items-center justify-between bg-white p-4 rounded-lg border border-stone-200 shadow-sm">
-                                                        <div className="flex-1 mb-3 md:mb-0 pr-4">
-                                                            <div className="flex items-center space-x-2 mb-1">
-                                                                <span className="font-bold text-stone-900">{reviewer.name}</span>
-                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold bg-emerald-100 text-emerald-700`}>
-                                                                    Match
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-xs text-stone-500 mb-1 font-bold text-amber-600">Beban Saat Ini: {reviewer.reviews_count || 0} Paper Aktif</p>
-                                                        </div>
-                                                        <div>
-                                                            <button 
-                                                                onClick={() => handleAssignClick(p.id, reviewer.id, reviewer.name)}
-                                                                disabled={isAssigning === reviewer.id}
-                                                                className="whitespace-nowrap px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition disabled:opacity-50"
-                                                            >
-                                                                {isAssigning === reviewer.id ? 'Menugaskan...' : 'Assign Reviewer'}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
+            <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8 pb-20">
+                {/* Back Button */}
+                <div className="mb-2">
+                    <Link
+                        href="/admin"
+                        className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 font-semibold text-sm transition-all shadow-sm group"
+                    >
+                        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                        <span>Kembali ke Dashboard</span>
+                    </Link>
+                </div>
+
+                <div>
+                    <h1 className="text-2xl font-bold text-stone-900">
+                        Assign Paper
+                    </h1>
+                    <p className="text-sm text-stone-500 mt-1">
+                        Tugaskan paper baru ke reviewer dan pantau status review
+                        secara real-time.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-8">
+                    {/* Bagian: Paper Menunggu Reviewer */}
+                    <div>
+                        <h2 className="text-lg font-bold text-stone-900 flex items-center mb-4">
+                            <FileText className="w-5 h-5 mr-2 text-stone-400" />{" "}
+                            Paper Perlu Ditugaskan
+                        </h2>
+
+                        {papers.length === 0 ? (
+                            <div className="bg-white border border-[#e8e4dc] rounded-2xl p-8 text-center text-stone-500 shadow-sm">
+                                Tidak ada paper baru yang perlu di-assign saat
+                                ini.
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Bagian: Pantau Status Review */}
-            <div>
-                <h2 className="text-lg font-bold text-stone-900 flex items-center mb-4"><Activity className="w-5 h-5 mr-2 text-stone-400"/> Pantau Status Review</h2>
-                
-                {(!inReviewPapers?.data || inReviewPapers.data.length === 0) ? (
-                    <div className="bg-white border border-[#e8e4dc] rounded-2xl p-8 text-center text-stone-500 shadow-sm">
-                        Tidak ada paper yang sedang dalam proses review.
-                    </div>
-                ) : (
-                    <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
-                                <thead className="bg-[#faf8f5] text-stone-500 text-[10px] uppercase tracking-wider">
-                                <tr>
-                                    <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Paper</th>
-                                    <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Reviewer</th>
-                                    <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">Status</th>
-                                </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#e8e4dc] text-stone-700">
-                                {inReviewPapers.data.map((p: any) => (
-                                    <tr key={p.id} className="hover:bg-stone-50 transition-colors">
-                                        <td className="px-6 py-4 max-w-[400px] truncate" title={p.title}>
-                                            <Link href={`/detail/${p.id}`} className="font-semibold text-stone-900 hover:text-rose-600 transition">
+                        ) : (
+                            <div className="space-y-4">
+                                {papers.map((p) => (
+                                    <div
+                                        key={p.id}
+                                        className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-sm"
+                                    >
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h3 className="font-bold text-lg text-stone-900">
                                                 {p.title}
-                                            </Link>
-                                        </td>
-                                        <td className="px-6 py-4 text-stone-600">
-                                            {p.reviews?.[0]?.reviewer?.name || '-'}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Badge color={p.submission_status === 'REVIEWED' ? 'green' : 'yellow'}>
-                                                {p.submission_status}
+                                            </h3>
+                                            <Badge color="blue">
+                                                {p.analyses?.[0]
+                                                    ?.research_domain || "Umum"}
                                             </Badge>
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        {/* Pagination Links */}
-                        {inReviewPapers.links && inReviewPapers.links.length > 3 && (
-                            <div className="px-6 py-4 border-t border-[#e8e4dc] flex items-center justify-center space-x-1 bg-stone-50">
-                                {inReviewPapers.links.map((link: any, index: number) => (
-                                    <Link
-                                        key={index}
-                                        href={link.url || '#'}
-                                        preserveScroll
-                                        className={`px-3 py-1.5 text-sm rounded-lg border ${
-                                            link.active 
-                                                ? 'bg-rose-600 border-rose-600 text-white font-bold shadow-sm' 
-                                                : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
-                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
+                                        </div>
+                                        <p className="text-sm text-stone-600 mb-6 line-clamp-2">
+                                            {p.abstract}
+                                        </p>
+
+                                        <div className="border-t border-stone-100 pt-4">
+                                            <div className="flex justify-end mb-4">
+                                                <button
+                                                    onClick={() =>
+                                                        setOrcidModal({
+                                                            isOpen: true,
+                                                            paperTitle: p.title,
+                                                            paperId: p.id,
+                                                        })
+                                                    }
+                                                    className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl hover:bg-emerald-100 font-semibold text-sm transition shadow-sm"
+                                                >
+                                                    <Target className="w-4 h-4" />
+                                                    <span>
+                                                        Rekomendasi ORCID
+                                                    </span>
+                                                </button>
+                                            </div>
+                                            {(() => {
+                                                const domain =
+                                                    p.analyses?.[0]
+                                                        ?.research_domain;
+                                                const matchingReviewers =
+                                                    reviewers.filter((r) => {
+                                                        if (
+                                                            !domain ||
+                                                            !r.expertise
+                                                        )
+                                                            return false;
+                                                        return r.expertise.includes(
+                                                            domain,
+                                                        );
+                                                    });
+
+                                                if (
+                                                    matchingReviewers.length ===
+                                                    0
+                                                ) {
+                                                    return (
+                                                        <p className="text-sm text-rose-500 font-medium">
+                                                            Tidak ada reviewer
+                                                            internal yang
+                                                            memiliki bidang
+                                                            keahlian cocok
+                                                            dengan paper ini.
+                                                            Silakan gunakan
+                                                            Rekomendasi ORCID di
+                                                            atas.
+                                                        </p>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
+                                                        <h4 className="text-sm font-bold text-stone-800 mb-2 flex items-center">
+                                                            <Users className="w-4 h-4 mr-2" />
+                                                            Rekomendasi Reviewer
+                                                            Internal (Match
+                                                            Domain):
+                                                        </h4>
+                                                        {matchingReviewers.map(
+                                                            (reviewer) => (
+                                                                <div
+                                                                    key={
+                                                                        reviewer.id
+                                                                    }
+                                                                    className="flex flex-col md:flex-row md:items-center justify-between bg-white p-4 rounded-lg border border-stone-200 shadow-sm"
+                                                                >
+                                                                    <div className="flex-1 mb-3 md:mb-0 pr-4">
+                                                                        <div className="flex items-center space-x-2 mb-1">
+                                                                            <span className="font-bold text-stone-900">
+                                                                                {
+                                                                                    reviewer.name
+                                                                                }
+                                                                            </span>
+                                                                            <span
+                                                                                className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold bg-emerald-100 text-emerald-700`}
+                                                                            >
+                                                                                Match
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-xs text-stone-500 mb-1 font-bold text-amber-600">
+                                                                            Beban
+                                                                            Saat
+                                                                            Ini:{" "}
+                                                                            {reviewer.reviews_count ||
+                                                                                0}{" "}
+                                                                            Paper
+                                                                            Aktif
+                                                                        </p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                handleAssignClick(
+                                                                                    p.id,
+                                                                                    reviewer.id,
+                                                                                    reviewer.name,
+                                                                                )
+                                                                            }
+                                                                            disabled={
+                                                                                isAssigning ===
+                                                                                reviewer.id
+                                                                            }
+                                                                            className="whitespace-nowrap px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition disabled:opacity-50"
+                                                                        >
+                                                                            {isAssigning ===
+                                                                            reviewer.id
+                                                                                ? "Menugaskan..."
+                                                                                : "Assign Reviewer"}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         )}
                     </div>
-                )}
+
+                    {/* Bagian: Pantau Status Review */}
+                    <div>
+                        <h2 className="text-lg font-bold text-stone-900 flex items-center mb-4">
+                            <Activity className="w-5 h-5 mr-2 text-stone-400" />{" "}
+                            Pantau Status Review
+                        </h2>
+
+                        {!inReviewPapers?.data ||
+                        inReviewPapers.data.length === 0 ? (
+                            <div className="bg-white border border-[#e8e4dc] rounded-2xl p-8 text-center text-stone-500 shadow-sm">
+                                Tidak ada paper yang sedang dalam proses review.
+                            </div>
+                        ) : (
+                            <div className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
+                                        <thead className="bg-[#faf8f5] text-stone-500 text-[10px] uppercase tracking-wider">
+                                            <tr>
+                                                <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">
+                                                    Paper
+                                                </th>
+                                                <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">
+                                                    Reviewer
+                                                </th>
+                                                <th className="px-6 py-4 font-semibold border-b border-[#e8e4dc]">
+                                                    Status
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#e8e4dc] text-stone-700">
+                                            {inReviewPapers.data.map(
+                                                (p: any) => (
+                                                    <tr
+                                                        key={p.id}
+                                                        className="hover:bg-stone-50 transition-colors"
+                                                    >
+                                                        <td
+                                                            className="px-6 py-4 max-w-[400px] truncate"
+                                                            title={p.title}
+                                                        >
+                                                            <Link
+                                                                href={`/detail/${p.id}`}
+                                                                className="font-semibold text-stone-900 hover:text-rose-600 transition"
+                                                            >
+                                                                {p.title}
+                                                            </Link>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-stone-600">
+                                                            {p.reviews?.[0]
+                                                                ?.reviewer
+                                                                ?.name || "-"}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <Badge
+                                                                color={
+                                                                    p.submission_status ===
+                                                                    "REVIEWED"
+                                                                        ? "green"
+                                                                        : "yellow"
+                                                                }
+                                                            >
+                                                                {
+                                                                    p.submission_status
+                                                                }
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Pagination Links */}
+                                {inReviewPapers.links &&
+                                    inReviewPapers.links.length > 3 && (
+                                        <div className="px-6 py-4 border-t border-[#e8e4dc] flex items-center justify-center space-x-1 bg-stone-50">
+                                            {inReviewPapers.links.map(
+                                                (link: any, index: number) => (
+                                                    <Link
+                                                        key={index}
+                                                        href={link.url || "#"}
+                                                        preserveScroll
+                                                        className={`px-3 py-1.5 text-sm rounded-lg border ${
+                                                            link.active
+                                                                ? "bg-rose-600 border-rose-600 text-white font-bold shadow-sm"
+                                                                : "bg-white border-stone-200 text-stone-600 hover:bg-stone-100"
+                                                        } ${!link.url ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: link.label,
+                                                        }}
+                                                    />
+                                                ),
+                                            )}
+                                        </div>
+                                    )}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
-
-        </div>
-
-      </div>
-    </AppLayout>
-  );
+        </AppLayout>
+    );
 }

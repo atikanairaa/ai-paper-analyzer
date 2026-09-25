@@ -16,6 +16,12 @@ class ReviewController extends Controller
             'comments' => 'nullable|string',
         ]);
 
+        $paper = \App\Models\Paper::with('uploader')->findOrFail($paperId);
+        
+        if ($paper->status !== 'ANALYZED') {
+            return response()->json(['message' => 'Naskah masih diproses oleh AI. Silakan tunggu hingga selesai sebelum mengirim evaluasi.'], 403);
+        }
+
         $review = Review::updateOrCreate(
             ['paper_id' => $paperId, 'reviewer_id' => auth()->id()],
             [
@@ -25,8 +31,6 @@ class ReviewController extends Controller
             ]
         );
 
-        $paper = \App\Models\Paper::with('uploader')->findOrFail($paperId);
-        
         if (in_array($request->recommendation, ['MINOR_REVISION', 'MAJOR_REVISION'])) {
             $paper->update(['submission_status' => 'REVISION']);
         } else {
