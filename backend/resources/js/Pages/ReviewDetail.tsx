@@ -107,7 +107,7 @@ export default function ReviewDetail() {
     // Safe Extraction Analisis
     const analysis = Array.isArray(paper?.analyses)
         ? paper.analyses[0]
-        : paper?.analyses || {};
+        : paper?.analyses || {} as any;
     const strengths = Array.isArray(analysis?.strengths)
         ? analysis.strengths
         : [];
