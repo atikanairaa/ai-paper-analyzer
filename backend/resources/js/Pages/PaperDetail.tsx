@@ -79,7 +79,7 @@ export default function PaperDetail() {
 
     const [revisionModalOpen, setRevisionModalOpen] = useState(false);
     const handleRevisionSubmit = async (file: File | null, notes: string) => {
-        if (!file) return;
+        if (!file || !paper) return;
         setRevisionModalOpen(false);
         setIsActionLoading(true);
 
