@@ -5,7 +5,6 @@ import { CheckCircle, Plus, Trash2, Edit2 } from 'lucide-react';
 import axios from 'axios';
 import Modal from '@/Components/Modal';
 import { ConfirmModal } from '@/Components/ConfirmModal';
-import axios from 'axios';
 
 export default function ManageReviewers() {
   const { reviewers, expertises } = usePage<{ reviewers: any[], expertises: any[] }>().props;
