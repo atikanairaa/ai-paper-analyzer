@@ -81,7 +81,7 @@ export interface Paper {
   file_path: string;
   status: PaperStatus;
   is_submission: boolean;
-  submission_status?: 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'REVIEWED' | 'REJECTED';
+  submission_status?: 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'REVIEWED' | 'REVISION' | 'REJECTED';
   created_at: string;
   updated_at: string;
   // Relasi (eager loaded)
