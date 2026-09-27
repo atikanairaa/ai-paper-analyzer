@@ -182,6 +182,16 @@ export default function PaperDetail() {
     const handleReviewSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.target as any;
+
+        const scoreValue = form.score.value;
+        const recommendationValue = form.recommendation.value;
+        const commentsValue = form.comments.value;
+
+        if (!recommendationValue) {
+            alert("Silakan pilih salah satu keputusan (Terima/Revisi/Tolak).");
+            return;
+        }
+
         setConfirmModal({
             isOpen: true,
             title: "Kirim Keputusan Review?",
@@ -193,17 +203,18 @@ export default function PaperDetail() {
                 closeModal();
                 axios
                     .post(`/papers/${paper!.id}/reviews`, {
-                        score: form.score.value,
-                        recommendation: form.recommendation.value,
-                        comments: form.comments.value,
+                        score: scoreValue,
+                        recommendation: recommendationValue,
+                        comments: commentsValue,
                     })
                     .then(() => window.location.reload())
-                    .catch(() => {
+                    .catch((error: any) => {
+                        console.error(error);
+                        const errorMsg = error.response?.data?.message || "Terjadi kesalahan saat mengirim review. Silakan coba kembali.";
                         setConfirmModal({
                             isOpen: true,
                             title: "Gagal Mengirim Review",
-                            message:
-                                "Terjadi kesalahan saat mengirim review. Silakan coba kembali.",
+                            message: errorMsg,
                             confirmLabel: "Tutup",
                             variant: "danger",
                             onConfirm: closeModal,

@@ -10,6 +10,8 @@ class ReviewController extends Controller
 {
     public function store(Request $request, $paperId)
     {
+        \Illuminate\Support\Facades\Log::info('Review endpoint reached', ['paperId' => $paperId, 'payload' => $request->all()]);
+        
         $request->validate([
             'recommendation' => 'required|in:ACCEPT,MINOR_REVISION,MAJOR_REVISION,REJECT',
             'score' => 'required|integer',
