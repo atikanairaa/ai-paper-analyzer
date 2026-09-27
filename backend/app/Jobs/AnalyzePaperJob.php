@@ -81,7 +81,7 @@ class AnalyzePaperJob implements ShouldQueue
             $data = $result['data'];
 
             // SIMPAN SEMUA DATA DARI FASTAPI KE TABEL-TABEL DATABASE
-            DB::transaction(function () use ($paper, $data, $jobLog, $response) {
+            DB::transaction(function () use ($paper, $data, $jobLog, $response, $startTime) {
                 // 1. Update Metadata Paper
                 $paper->update([
                     'title'            => $data['paper']['title'] ?? $paper->title,

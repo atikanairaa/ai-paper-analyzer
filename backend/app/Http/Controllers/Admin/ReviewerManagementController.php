@@ -127,8 +127,19 @@ Do not include markdown blocks or any other text, just the raw JSON.";
     public function recommendOrcid(Request $request, $paperId)
     {
         $paper = Paper::with('analyses')->findOrFail($paperId);
-        $keywords = $paper->analyses->first()->keywords ?? $paper->title; // fallback if keywords missing
-        $domain = $paper->analyses->first()->research_domain ?? '';
+        
+        $keywords = $paper->title; // fallback
+        $analysis = $paper->analyses->first();
+        if ($analysis && $analysis->keywords) {
+            $decoded = json_decode($analysis->keywords, true);
+            if (is_array($decoded)) {
+                $keywords = implode(', ', $decoded);
+            } else {
+                $keywords = $analysis->keywords;
+            }
+        }
+        
+        $domain = $analysis->research_domain ?? '';
         
         $fastApiUrl = config('services.fastapi.url', 'http://127.0.0.1:8001');
         $token = config('services.fastapi.token');

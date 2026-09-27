@@ -431,4 +431,29 @@ class PaperController extends Controller
           </body></html>
         ", 200, ['Content-Type' => 'text/html']);
     }
+
+    /**
+     * Publish paper setelah pembayaran selesai.
+     * Hanya bisa dilakukan jika payment_status = PAID dan submission_status = ACCEPTED.
+     */
+    public function publishPaper(Paper $paper)
+    {
+        if ($paper->uploaded_by !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        if ($paper->submission_status !== 'ACCEPTED') {
+            return response()->json(['error' => 'Paper belum diterima (ACCEPTED) oleh reviewer.'], 422);
+        }
+
+        if (($paper->payment_status ?? 'UNPAID') !== 'PAID') {
+            return response()->json(['error' => 'Pembayaran belum selesai. Silakan selesaikan pembayaran terlebih dahulu.'], 422);
+        }
+
+        $paper->update(['submission_status' => 'PUBLISHED']);
+
+        \App\Helpers\AuditLogger::log('Paper dipublikasikan', $paper->id);
+
+        return response()->json(['message' => 'Paper berhasil dipublikasikan!', 'paper' => $paper]);
+    }
 }

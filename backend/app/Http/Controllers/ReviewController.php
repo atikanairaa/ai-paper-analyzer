@@ -33,6 +33,10 @@ class ReviewController extends Controller
 
         if (in_array($request->recommendation, ['MINOR_REVISION', 'MAJOR_REVISION'])) {
             $paper->update(['submission_status' => 'REVISION']);
+        } elseif ($request->recommendation === 'ACCEPT') {
+            $paper->update(['submission_status' => 'ACCEPTED']);
+        } elseif ($request->recommendation === 'REJECT') {
+            $paper->update(['submission_status' => 'REJECTED']);
         } else {
             $paper->update(['submission_status' => 'REVIEWED']);
         }

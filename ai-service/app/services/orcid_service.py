@@ -118,8 +118,8 @@ class ORCIDService:
                     base_percentage = (matched_count / len(clean_keywords)) * 100
                     # Beri bonus peringkat pencarian: Peneliti urutan atas mendapat skor lebih tinggi
                     rank_bonus = max(0, 15 - (len(reviewers_list) * 3))
-                    calculated_score = int(base_percentage * 0.85 + rank_bonus)
-                    final_score = min(98, max(calculated_score, 60))
+                    base_score = int(base_percentage * 0.85)
+                    final_score = min(98, base_score + rank_bonus)
                 else:
                     final_score = 50
 

@@ -57,6 +57,7 @@ export default function PaperDetail() {
 
     const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
 
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
@@ -152,6 +153,30 @@ export default function PaperDetail() {
                 }
             },
         });
+    };
+
+    const handleGeneratePayment = async () => {
+        if (!paper || isGeneratingPayment) return;
+        setIsGeneratingPayment(true);
+        try {
+            const response = await axios.post(`/papers/${paper.id}/generate-payment`);
+            // Reload the page to get the updated paper object with payment_url
+            window.location.reload();
+        } catch (error: any) {
+            alert(error.response?.data?.error || "Gagal membuat tagihan pembayaran.");
+            setIsGeneratingPayment(false);
+        }
+    };
+
+    const handlePublishPaper = async () => {
+        if (!paper) return;
+        if (!confirm("Konfirmasi: Paper Anda akan dipublikasikan ke jurnal. Lanjutkan?")) return;
+        try {
+            await axios.post(`/papers/${paper.id}/publish`);
+            window.location.reload();
+        } catch (error: any) {
+            alert(error.response?.data?.error || "Gagal mempublikasikan paper.");
+        }
     };
 
     const handleReviewSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -351,43 +376,103 @@ export default function PaperDetail() {
                                 </div>
                             )}
 
-                        {/* ── Banner ACCEPTED ── */}
-                        {(paper.submission_status === "ACCEPTED" ||
-                            paper.submission_status === "ACCEPT") &&
+                        {/* ── Banner PUBLISHED ── */}
+                        {paper.submission_status === "PUBLISHED" &&
                             props.auth?.user?.id === paper.uploaded_by && (
-                                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-200">
-                                            <PartyPopper className="w-6 h-6 text-emerald-600" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-emerald-900">
-                                                Selamat! Paper Anda Diterima
-                                                untuk Dipublikasikan
-                                            </h3>
-                                            <p className="text-sm text-emerald-700 mt-1">
-                                                Silakan selesaikan administrasi
-                                                publikasi jurnal dengan
-                                                melakukan pembayaran melalui
-                                                DOKU.
-                                            </p>
-                                        </div>
+                                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
+                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-200">
+                                        <span className="text-2xl">🎉</span>
                                     </div>
-                                    <div className="flex-shrink-0 mt-4 md:mt-0">
-                                        <a
-                                            href="https://jokul.doku.com/checkout/link/v2/SU1H0142R0022204"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-emerald-200"
-                                        >
-                                            <CreditCard className="w-5 h-5" />
-                                            <span>
-                                                Bayar Biaya Publikasi (DOKU)
-                                            </span>
-                                        </a>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-blue-900">Paper Berhasil Dipublikasikan!</h3>
+                                        <p className="text-sm text-blue-700 mt-1">Paper Anda telah resmi dipublikasikan ke jurnal. Terima kasih telah berkontribusi pada pengembangan ilmu pengetahuan.</p>
                                     </div>
                                 </div>
                             )}
+
+                        {/* ── Banner REJECTED ── */}
+                        {paper.submission_status === "REJECTED" &&
+                            props.auth?.user?.id === paper.uploaded_by && (
+                                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
+                                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 border border-red-200">
+                                        <span className="text-2xl">❌</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-red-900">Paper Ditolak</h3>
+                                        <p className="text-sm text-red-700 mt-1">Mohon maaf, paper Anda tidak diterima untuk dipublikasikan. Silakan baca catatan reviewer untuk perbaikan.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                        {/* ── Banner ACCEPTED ── */}
+                        {(paper.submission_status === "ACCEPTED" ||
+                            paper.submission_status === "ACCEPT") &&
+                            props.auth?.user?.id === paper.uploaded_by && (() => {
+                                const isPaid = (paper as any).payment_status === "PAID";
+                                return (
+                                    <div className={`${isPaid ? 'bg-indigo-50 border-indigo-200' : 'bg-emerald-50 border-emerald-200'} border rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm`}>
+                                        <div className="flex items-start gap-4">
+                                            <div className={`w-12 h-12 ${isPaid ? 'bg-indigo-100 border-indigo-200' : 'bg-emerald-100 border-emerald-200'} rounded-full flex items-center justify-center flex-shrink-0 border`}>
+                                                <PartyPopper className={`w-6 h-6 ${isPaid ? 'text-indigo-600' : 'text-emerald-600'}`} />
+                                            </div>
+                                            <div>
+                                                <h3 className={`text-lg font-bold ${isPaid ? 'text-indigo-900' : 'text-emerald-900'}`}>
+                                                    {isPaid ? "Pembayaran Selesai — Siap Dipublikasikan!" : "Selamat! Paper Anda Diterima untuk Dipublikasikan"}
+                                                </h3>
+                                                <p className={`text-sm ${isPaid ? 'text-indigo-700' : 'text-emerald-700'} mt-1`}>
+                                                    {isPaid
+                                                        ? "Pembayaran Anda telah dikonfirmasi. Klik tombol di bawah untuk mempublikasikan paper Anda ke jurnal."
+                                                        : "Silakan selesaikan administrasi publikasi jurnal dengan melakukan pembayaran."}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex-shrink-0 mt-4 md:mt-0">
+                                            {isPaid ? (
+                                                /* === STATE 2: Sudah bayar → Tombol Publish === */
+                                                <button
+                                                    onClick={handlePublishPaper}
+                                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-indigo-200"
+                                                >
+                                                    <span>🚀</span>
+                                                    <span>Publikasikan Paper</span>
+                                                </button>
+                                            ) : (paper as any).payment_url ? (
+                                                /* === STATE 1b: Invoice sudah dibuat → Tombol Bayar + Simulasi === */
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <a
+                                                        href={(paper as any).payment_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-emerald-200"
+                                                    >
+                                                        <CreditCard className="w-5 h-5" />
+                                                        <span>Bayar Biaya Publikasi (DOKU)</span>
+                                                    </a>
+                                                    {/* Tombol simulasi DEV — hapus di production */}
+                                                    <a
+                                                        href={`/simulasi-lunas/${paper.id}`}
+                                                        className="inline-flex items-center space-x-2 px-4 py-2 bg-amber-100 text-amber-800 border border-amber-300 rounded-xl hover:bg-amber-200 font-semibold text-xs transition"
+                                                        title="Simulasi pembayaran berhasil (DEV only)"
+                                                    >
+                                                        <span>🧪</span>
+                                                        <span>Simulasi Pembayaran Berhasil</span>
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                /* === STATE 1a: Belum ada invoice → Generate Invoice === */
+                                                <button
+                                                    onClick={handleGeneratePayment}
+                                                    disabled={isGeneratingPayment}
+                                                    className="inline-flex items-center space-x-2 px-6 py-3 bg-stone-800 text-white rounded-xl hover:bg-stone-900 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-stone-200 disabled:opacity-50"
+                                                >
+                                                    <CreditCard className="w-5 h-5" />
+                                                    <span>{isGeneratingPayment ? "Memproses..." : "Generate Tagihan Pembayaran"}</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                         {/* ── 1. Metadata Header ── */}
                         <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] p-7">

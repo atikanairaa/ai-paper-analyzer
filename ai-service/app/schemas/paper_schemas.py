@@ -155,3 +155,19 @@ class RecommendReviewersResponse(BaseModel):
     keywords_searched: List[str]
     total_found: int
     reviewers: List[ReviewerCandidate]
+
+# ==========================================
+# SKEMA ENDPOINT PAYMENT (DOKU)
+# ==========================================
+class CreateInvoiceRequest(BaseModel):
+    paper_id: str
+    amount: int
+    customer_name: str
+    customer_email: str
+
+class PaymentInvoiceResponse(BaseModel):
+    invoice_number: str
+    amount: int
+    payment_url: str
+    status: str
+    expired_date: str

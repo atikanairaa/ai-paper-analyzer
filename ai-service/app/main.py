@@ -18,13 +18,16 @@ from app.services.analyze_service import AnalyzeService
 from app.services.review_service import ReviewService
 from app.services.qa_service import QAService
 from app.services.compare_service import CompareService
+from app.services.doku_service import DokuService
 
 from app.schemas.paper_schemas import (
     APIResponse,
     FullAnalyzeDataResponse,
     ReviewDataResponse,
     QADataResponse,
-    CompareDataResponse
+    CompareDataResponse,
+    CreateInvoiceRequest,
+    PaymentInvoiceResponse
 )
 
 # ====================================================================
@@ -331,6 +334,31 @@ async def recommend_reviewers_endpoint(
         request_id=str(uuid.uuid4()),
         data=orcid_data
     )
+
+
+
+# ====================================================================
+# PAYMENT GATEWAY (DOKU)
+# ====================================================================
+@app.post("/api/payment/invoice", summary="Generate DOKU Payment Invoice", dependencies=[Depends(verify_internal_token)])
+async def create_invoice(req: CreateInvoiceRequest):
+    """
+    Generate DOKU Sandbox payment URL for a given paper.
+    """
+    try:
+        payment_data = DokuService.create_checkout_invoice(req)
+        return APIResponse(
+            success=True,
+            request_id=str(uuid.uuid4()),
+            data=payment_data.model_dump()
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Gagal generate invoice DOKU: {str(e)}"
+        )
 
 
 # ====================================================================

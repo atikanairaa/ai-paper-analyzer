@@ -17,7 +17,10 @@ class Paper extends Model
         'file_path',
         'status',
         'is_submission',
-        'submission_status'
+        'submission_status',
+        'payment_status',
+        'invoice_id',
+        'payment_url'
     ];
     public function authors()
     {

@@ -36,3 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/expertises/{id}', [\App\Http\Controllers\Admin\ExpertiseController::class, 'destroy']);
     });
 });
+
+// ====================================================
+// PUBLIC ROUTE: DOKU Payment Webhook (Server-to-Server)
+// Tidak memerlukan auth karena dipanggil langsung oleh
+// server DOKU. Validasi keamanan via Signature di controller.
+// ====================================================
+Route::post('/payment/doku/webhook', [\App\Http\Controllers\PaymentController::class, 'handleWebhook']);

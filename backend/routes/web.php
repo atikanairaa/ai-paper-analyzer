@@ -38,6 +38,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/papers/{id}/pdf-view', [\App\Http\Controllers\PaperController::class, 'viewPdf'])->name('papers.pdf.view');
     Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
     Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
+    Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
+    Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
+
+    // ── [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok ──
+    Route::get('/simulasi-lunas/{id}', function ($id) {
+        $paper = \App\Models\Paper::findOrFail($id);
+        $paper->update(['payment_status' => 'PAID']);
+        return redirect("/detail/{$id}")->with('success', 'Simulasi: Pembayaran DOKU berhasil dikonfirmasi!');
+    })->name('payment.simulasi');
 
     // ── Rute halaman Reviewer ──
     Route::get('/reviewer', [\App\Http\Controllers\ReviewerDashboardController::class, 'index'])->name('reviewer');
