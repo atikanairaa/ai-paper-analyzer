@@ -192,7 +192,7 @@ export default function PaperDetail() {
             onConfirm: () => {
                 closeModal();
                 axios
-                    .post(`/api/papers/${paper!.id}/reviews`, {
+                    .post(`/papers/${paper!.id}/reviews`, {
                         score: form.score.value,
                         recommendation: form.recommendation.value,
                         comments: form.comments.value,
