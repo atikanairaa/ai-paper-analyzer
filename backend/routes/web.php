@@ -89,4 +89,4 @@ Route::get('/admin/reviewers/recommend-orcid/{paperId}', [\App\Http\Controllers\
 
 Route::post('/papers/{id}/revision', [\App\Http\Controllers\PaperController::class, 'submitRevision'])->name('paper.revision')->middleware(['auth']);
 
-require __DIR__ . '/test_review.php';
+
