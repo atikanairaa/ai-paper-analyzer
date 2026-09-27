@@ -360,7 +360,11 @@ export default function PaperDetail() {
                             }`}
                         >
                             <BookOpen className="w-4 h-4" />
-                            <span>Baca Paper &amp; Chat AI</span>
+                            <span>
+                                {props.auth?.peran === "reviewer"
+                                    ? "Baca Paper & Review Paper"
+                                    : "Baca Paper & Chat AI"}
+                            </span>
                         </button>
                     </div>
                 </div>
