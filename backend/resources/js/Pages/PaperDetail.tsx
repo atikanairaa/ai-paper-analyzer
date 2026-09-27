@@ -1230,154 +1230,157 @@ export default function PaperDetail() {
                         <div className="lg:w-[40%] h-full min-h-[400px]">
                             {props.auth?.peran === 'reviewer' ? (
                                 <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
-                                    {isAnalyzed && paper.submission_status === "IN_REVIEW" ? (
+                                    {paper.submission_status === "IN_REVIEW" ? (
+                                        isAnalyzed ? (
+                                            <div className="space-y-6">
+                                                {/* Bagian 1: Ringkasan AI */}
+                                                <div className="bg-white p-4 rounded-xl border border-[#e8e4dc] shadow-sm">
+                                                    <h3 className="text-sm font-bold text-stone-900 mb-2 uppercase tracking-wider">
+                                                        Ringkasan AI
+                                                    </h3>
+                                                    <p className="text-sm text-stone-700 mb-3 leading-relaxed">
+                                                        {paper?.abstract || "Tidak ada abstrak."}
+                                                    </p>
 
-<div className="space-y-6">
-    {/* Bagian 1: Ringkasan AI */}
-                            <div className="bg-white p-4 rounded-xl border border-[#e8e4dc] shadow-sm">
-                                <h3 className="text-sm font-bold text-stone-900 mb-2 uppercase tracking-wider">
-                                    Ringkasan AI
-                                </h3>
-                                <p className="text-sm text-stone-700 mb-3 leading-relaxed">
-                                    {paper?.abstract || "Tidak ada abstrak."}
-                                </p>
+                                                    {strengths.length > 0 && (
+                                                        <div className="mb-3">
+                                                            <p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                                                                Kekuatan
+                                                            </p>
+                                                            <ul className="list-disc pl-5 text-sm text-stone-700 space-y-1">
+                                                                {strengths
+                                                                    .slice(0, 3)
+                                                                    .map((s: string, i: number) => (
+                                                                        <li key={i}>{s}</li>
+                                                                    ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    {weaknesses.length > 0 && (
+                                                        <div className="mb-3">
+                                                            <p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                                                                Kelemahan
+                                                            </p>
+                                                            <ul className="list-disc pl-5 text-sm text-stone-700 space-y-1">
+                                                                {weaknesses
+                                                                    .slice(0, 3)
+                                                                    .map((s: string, i: number) => (
+                                                                        <li key={i}>{s}</li>
+                                                                    ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <form
+                                                    onSubmit={handleReviewSubmit}
+                                                    className="bg-white p-5 rounded-xl border border-[#e8e4dc] shadow-sm space-y-5"
+                                                >
+                                                    <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider mb-4 border-b border-[#e8e4dc] pb-2">
+                                                        Formulir Keputusan
+                                                    </h3>
 
-                                {strengths.length > 0 && (
-                                    <div className="mb-3">
-                                        <p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
-                                            Kekuatan
-                                        </p>
-                                        <ul className="list-disc pl-5 text-sm text-stone-700 space-y-1">
-                                            {strengths
-                                                .slice(0, 3)
-                                                .map((s: string, i: number) => (
-                                                    <li key={i}>{s}</li>
-                                                ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                {weaknesses.length > 0 && (
-                                    <div className="mb-3">
-                                        <p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
-                                            Kelemahan
-                                        </p>
-                                        <ul className="list-disc pl-5 text-sm text-stone-700 space-y-1">
-                                            {weaknesses
-                                                .slice(0, 3)
-                                                .map((s: string, i: number) => (
-                                                    <li key={i}>{s}</li>
-                                                ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-    <form
-                                    onSubmit={handleReviewSubmit}
-                                    className="bg-white p-5 rounded-xl border border-[#e8e4dc] shadow-sm space-y-5"
-                                >
-                                    <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider mb-4 border-b border-[#e8e4dc] pb-2">
-                                        Formulir Keputusan
-                                    </h3>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2">
+                                                            Skor Evaluasi (0 - 100)
+                                                        </label>
+                                                        <input
+                                                            required
+                                                            name="score"
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            defaultValue={currentScore}
+                                                            placeholder="Contoh: 85"
+                                                            className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-3 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition"
+                                                        />
+                                                    </div>
 
-                                    <div>
-                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2">
-                                            Skor Evaluasi (0 - 100)
-                                        </label>
-                                        <input
-                                            required
-                                            name="score"
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            defaultValue={currentScore}
-                                            placeholder="Contoh: 85"
-                                            className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-3 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition"
-                                        />
-                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2">
+                                                            Catatan Evaluasi Mendalam
+                                                        </label>
+                                                        <textarea
+                                                            required
+                                                            name="comments"
+                                                            rows={6}
+                                                            defaultValue={currentComments}
+                                                            placeholder="Tuliskan catatan komprehensif, koreksi naskah, dan saran perbaikan..."
+                                                            className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-3 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition resize-y"
+                                                        />
+                                                    </div>
 
-                                    <div>
-                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2">
-                                            Catatan Evaluasi Mendalam
-                                        </label>
-                                        <textarea
-                                            required
-                                            name="comments"
-                                            rows={6}
-                                            defaultValue={currentComments}
-                                            placeholder="Tuliskan catatan komprehensif, koreksi naskah, dan saran perbaikan..."
-                                            className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-3 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition resize-y"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-3">
-                                            Vonis Keputusan Akhir
-                                        </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <button
-                                                type="submit"
-                                                onClick={(e) => {
-                                                    (
-                                                        e.currentTarget
-                                                            .form as any
-                                                    ).recommendation.value =
-                                                        "ACCEPT";
-                                                }}
-                                                className="w-full px-4 py-3 bg-[#115e59] hover:bg-[#0f4d4a] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
-                                            >
-                                                Terima
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                onClick={(e) => {
-                                                    (
-                                                        e.currentTarget
-                                                            .form as any
-                                                    ).recommendation.value =
-                                                        "MINOR_REVISION";
-                                                }}
-                                                className="w-full px-4 py-3 bg-[#b45309] hover:bg-[#92400e] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
-                                            >
-                                                Revisi Minor
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                onClick={(e) => {
-                                                    (
-                                                        e.currentTarget
-                                                            .form as any
-                                                    ).recommendation.value =
-                                                        "MAJOR_REVISION";
-                                                }}
-                                                className="w-full px-4 py-3 bg-[#9a3412] hover:bg-[#7c2d12] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
-                                            >
-                                                Revisi Mayor
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                onClick={(e) => {
-                                                    (
-                                                        e.currentTarget
-                                                            .form as any
-                                                    ).recommendation.value =
-                                                        "REJECT";
-                                                }}
-                                                className="w-full px-4 py-3 bg-[#be123c] hover:bg-[#9f1239] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
-                                            >
-                                                Tolak
-                                            </button>
-                                        </div>
-                                        {/* Hidden input to store recommendation clicked */}
-                                        <input
-                                            type="hidden"
-                                            name="recommendation"
-                                            defaultValue=""
-                                        />
-                                    </div>
-                                </form>
-</div>
-
-) : (
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-3">
+                                                            Vonis Keputusan Akhir
+                                                        </label>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            <button
+                                                                type="submit"
+                                                                onClick={(e) => {
+                                                                    (
+                                                                        e.currentTarget
+                                                                            .form as any
+                                                                    ).recommendation.value =
+                                                                        "ACCEPT";
+                                                                }}
+                                                                className="w-full px-4 py-3 bg-[#115e59] hover:bg-[#0f4d4a] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
+                                                            >
+                                                                Terima
+                                                            </button>
+                                                            <button
+                                                                type="submit"
+                                                                onClick={(e) => {
+                                                                    (
+                                                                        e.currentTarget
+                                                                            .form as any
+                                                                    ).recommendation.value =
+                                                                        "MINOR_REVISION";
+                                                                }}
+                                                                className="w-full px-4 py-3 bg-[#b45309] hover:bg-[#92400e] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
+                                                            >
+                                                                Revisi Minor
+                                                            </button>
+                                                            <button
+                                                                type="submit"
+                                                                onClick={(e) => {
+                                                                    (
+                                                                        e.currentTarget
+                                                                            .form as any
+                                                                    ).recommendation.value =
+                                                                        "MAJOR_REVISION";
+                                                                }}
+                                                                className="w-full px-4 py-3 bg-[#9a3412] hover:bg-[#7c2d12] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
+                                                            >
+                                                                Revisi Mayor
+                                                            </button>
+                                                            <button
+                                                                type="submit"
+                                                                onClick={(e) => {
+                                                                    (
+                                                                        e.currentTarget
+                                                                            .form as any
+                                                                    ).recommendation.value =
+                                                                        "REJECT";
+                                                                }}
+                                                                className="w-full px-4 py-3 bg-[#be123c] hover:bg-[#9f1239] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
+                                                            >
+                                                                Tolak
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            type="hidden"
+                                                            name="recommendation"
+                                                            defaultValue=""
+                                                        />
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] p-6 text-center text-amber-700 font-bold">
+                                                Naskah sedang diproses oleh AI. Mohon tunggu sejenak...
+                                            </div>
+                                        )
+                                    ) : (
                                         <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] p-6 text-center text-emerald-700 font-bold">
                                             Paper ini telah selesai direview.
                                         </div>
