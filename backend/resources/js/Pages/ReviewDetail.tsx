@@ -6,17 +6,21 @@ import { ConfirmModal } from "@/Components/ConfirmModal";
 import { Paper } from "@/types/paper";
 import { PageProps } from "@/types";
 import axios from "axios";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, BookOpen, BarChart2 } from "lucide-react";
+import { ChatWidget } from "@/Components/ChatWidget";
+
+type ActiveTab = "evaluation" | "read";
 
 export default function ReviewDetail() {
     const { props } = usePage<PageProps<{ paper?: Paper }>>();
     const paper = props.paper;
 
-    // Watermark PDF state — gunakan URL watermarked dari backend jika tersedia
+    // Watermark PDF state â€” gunakan URL watermarked dari backend jika tersedia
     const [watermarkedPdfUrl, setWatermarkedPdfUrl] = useState<string | null>(
         null,
     );
     const [watermarkLoading, setWatermarkLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<ActiveTab>("evaluation");
 
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
@@ -151,7 +155,7 @@ export default function ReviewDetail() {
                 );
                 formData.append(
                     "watermark_text",
-                    "CONFIDENTIAL — FOR PEER REVIEW ONLY",
+                    "CONFIDENTIAL â€” FOR PEER REVIEW ONLY",
                 );
 
                 return fetch(`${fastApiUrl}/api/v1/pdf/watermark`, {
@@ -221,8 +225,38 @@ export default function ReviewDetail() {
                 </div>
 
                 {/* Main Split Screen */}
-                <div className="flex flex-col lg:flex-row gap-6 flex-1 h-full min-h-0">
-                    {/* LEFT 60%: PDF Viewer */}
+                
+                {/* 2-Tab Switcher */}
+                <div className="bg-white border border-[#e8e4dc] rounded-2xl shadow-sm mb-6 overflow-hidden flex-shrink-0">
+                    <div className="flex">
+                        <button
+                            onClick={() => setActiveTab("evaluation")}
+                            className={`flex-1 flex items-center justify-center gap-2.5 py-4 px-6 text-sm font-semibold transition-all border-b-2 ${
+                                activeTab === "evaluation"
+                                    ? "bg-rose-50 text-rose-800 border-rose-600"
+                                    : "text-stone-500 border-transparent hover:text-stone-800 hover:bg-stone-50"
+                            }`}
+                        >
+                            <BarChart2 className="w-4 h-4" />
+                            <span>Dashboard Evaluasi</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("read")}
+                            className={`flex-1 flex items-center justify-center gap-2.5 py-4 px-6 text-sm font-semibold transition-all border-b-2 ${
+                                activeTab === "read"
+                                    ? "bg-rose-50 text-rose-800 border-rose-600"
+                                    : "text-stone-500 border-transparent hover:text-stone-800 hover:bg-stone-50"
+                            }`}
+                        >
+                            <BookOpen className="w-4 h-4" />
+                            <span>Baca Paper &amp; Chat AI</span>
+                        </button>
+                    </div>
+                </div>
+
+                {activeTab === "evaluation" && (
+                    <div className="flex flex-col lg:flex-row gap-6 flex-1 h-full min-h-0">
+                        {/* LEFT 60%: PDF Viewer */}
                     <div className="lg:w-[60%] flex flex-col bg-white border border-[#e8e4dc] rounded-2xl shadow-sm relative overflow-hidden">
                         <div className="bg-stone-50 p-3 border-b border-[#e8e4dc] flex items-center justify-between z-10 relative">
                             <span className="font-bold text-stone-700 text-sm">
@@ -238,8 +272,7 @@ export default function ReviewDetail() {
                             />
                         </div>
                     </div>
-
-                    {/* RIGHT 40%: Evaluasi Dosen Panel */}
+                        {/* RIGHT 40%: Evaluasi Dosen Panel */}
                     <div className="lg:w-[40%] flex flex-col h-full bg-white border border-[#e8e4dc] rounded-2xl shadow-sm overflow-hidden">
                         <div className="bg-stone-50 p-4 border-b border-[#e8e4dc]">
                             <h2 className="font-bold text-stone-900">
@@ -426,7 +459,32 @@ export default function ReviewDetail() {
                             )}
                         </div>
                     </div>
-                </div>
+                    </div>
+                )}
+
+                {activeTab === "read" && (
+                    <div className="flex flex-col lg:flex-row gap-6 flex-1 h-full min-h-0">
+                        {/* LEFT 60%: PDF Viewer */}
+                    <div className="lg:w-[60%] flex flex-col bg-white border border-[#e8e4dc] rounded-2xl shadow-sm relative overflow-hidden">
+                        <div className="bg-stone-50 p-3 border-b border-[#e8e4dc] flex items-center justify-between z-10 relative">
+                            <span className="font-bold text-stone-700 text-sm">
+                                Dokumen Naskah
+                            </span>
+                        </div>
+                        <div className="flex-1 relative w-full h-full min-h-[500px]">
+                            {/* PDF iframe with REAL AI Watermark Endpoint */}
+                            <iframe
+                                src={`/papers/${paper.id}/watermark-pdf`}
+                                className="w-full h-full border-none relative z-10"
+                                title="PDF Viewer"
+                            />
+                        </div>
+                    </div>
+                        <div className="lg:w-[40%] h-full min-h-[400px]">
+                            <ChatWidget paperId={paper.id!} embedded={true} />
+                        </div>
+                    </div>
+                )}
             </div>
         </AppLayout>
     );
