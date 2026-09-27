@@ -60,7 +60,7 @@ class DokuService:
                 "invoice_number": invoice_number,
                 "amount": req_data.amount,
                 "currency": "IDR",
-                "callback_url": f"http://localhost:8000/papers/{req_data.paper_id}",
+                "callback_url": f"http://127.0.0.1:8000/detail/{req_data.paper_id}",
                 "auto_redirect": True
             },
             "payment": {

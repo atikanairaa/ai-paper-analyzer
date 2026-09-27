@@ -113,7 +113,11 @@ export default function MyPapers() {
 
         // Filter by status
         if (filterStatus) {
-            data = data.filter((p) => p.status === filterStatus);
+            if (filterStatus === "PUBLISHED") {
+                data = data.filter((p) => p.submission_status === "PUBLISHED");
+            } else {
+                data = data.filter((p) => p.status === filterStatus);
+            }
         }
 
         // Sort
@@ -196,6 +200,7 @@ export default function MyPapers() {
                                         </option>
                                     ),
                                 )}
+                                <option value="PUBLISHED">Published</option>
                             </select>
                         </div>
                     </div>
@@ -344,8 +349,11 @@ export default function MyPapers() {
                                                           p.submission_status ===
                                                               "ACCEPT" ? (
                                                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-100 text-emerald-800 border-emerald-200">
-                                                                Diterima
-                                                                (Accepted)
+                                                                Diterima (Accepted)
+                                                            </span>
+                                                        ) : p.submission_status === "PUBLISHED" ? (
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border bg-blue-100 text-blue-800 border-blue-200">
+                                                                Published
                                                             </span>
                                                         ) : null}
                                                     </div>
