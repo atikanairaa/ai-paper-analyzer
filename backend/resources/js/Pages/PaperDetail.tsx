@@ -1261,7 +1261,7 @@ export default function PaperDetail() {
                             <div className="flex-1 min-h-0">
                                 {pdfUrl ? (
                                     <iframe
-                                        src={`/papers/${paper.id}/pdf-view#navpanes=0&pagemode=none&view=FitH`}
+                                        src={props.auth?.peran === 'admin' ? `/papers/${paper.id}/watermark-pdf#navpanes=0&pagemode=none&view=FitH` : `/papers/${paper.id}/pdf-view#navpanes=0&pagemode=none&view=FitH`}
                                         className="w-full h-full border-none"
                                         title="PDF Viewer"
                                     />
