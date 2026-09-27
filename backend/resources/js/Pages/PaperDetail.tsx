@@ -258,8 +258,31 @@ export default function PaperDetail() {
         old_references: 0,
         potential_issues: [],
     };
+    
     const analysis = paper?.analyses?.[0] || null;
     const isAnalyzed = paper.status === "ANALYZED";
+    
+    let strengths: string[] = [];
+    let weaknesses: string[] = [];
+
+    if (analysis) {
+        try {
+            const parsed =
+                typeof analysis.structured_results === "string"
+                    ? JSON.parse(analysis.structured_results)
+                    : analysis.structured_results;
+            strengths = parsed.strengths || [];
+            weaknesses = parsed.weaknesses || [];
+        } catch (e) {}
+    }
+
+    const existingReview = Array.isArray(paper?.reviews)
+        ? paper.reviews[0]
+        : paper?.reviews || null;
+    const currentScore =
+        existingReview?.score || paper?.scores?.overall_score || "";
+    const currentComments = existingReview?.comments || "";
+
 
     // Build sections lookup map from real data
     const sectionsMap: Record<string, boolean> = {};
@@ -1164,7 +1187,7 @@ export default function PaperDetail() {
                         }}
                     >
                         {/* LEFT 65%: PDF Viewer */}
-                        <div className="lg:w-[65%] flex flex-col bg-white border border-[#e8e4dc] rounded-2xl shadow-sm overflow-hidden h-full">
+                        <div className="lg:w-[60%] flex flex-col bg-white border border-[#e8e4dc] rounded-2xl shadow-sm overflow-hidden h-full">
                             <div className="bg-stone-50 px-5 py-3 border-b border-[#e8e4dc] flex items-center gap-2 flex-shrink-0">
                                 <BookOpen className="w-4 h-4 text-stone-400" />
                                 <span className="font-semibold text-stone-700 text-sm truncate">
@@ -1189,92 +1212,157 @@ export default function PaperDetail() {
                         </div>
 
                         {/* RIGHT 35%: Embedded ChatWidget */}
-                        <div className="lg:w-[35%] h-full min-h-[400px]">
+                        <div className="lg:w-[40%] h-full min-h-[400px]">
                             {props.auth?.peran === 'reviewer' ? (
                                 <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
                                     {isAnalyzed && paper.submission_status === "IN_REVIEW" ? (
-                                        <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
-                                    <div className="bg-rose-50 p-5 border-b border-rose-100">
-                                        <h2 className="text-lg font-bold text-rose-900">
-                                            Input Hasil Review
-                                        </h2>
-                                        <p className="text-xs text-rose-600 mt-0.5">
-                                            Berikan penilaian akhir Anda sebagai
-                                            reviewer
+
+<div className="space-y-6">
+    {/* Bagian 1: Ringkasan AI */}
+                            <div className="bg-white p-4 rounded-xl border border-[#e8e4dc] shadow-sm">
+                                <h3 className="text-sm font-bold text-stone-900 mb-2 uppercase tracking-wider">
+                                    Ringkasan AI
+                                </h3>
+                                <p className="text-sm text-stone-700 mb-3 leading-relaxed">
+                                    {paper?.abstract || "Tidak ada abstrak."}
+                                </p>
+
+                                {strengths.length > 0 && (
+                                    <div className="mb-3">
+                                        <p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                                            Kekuatan
                                         </p>
+                                        <ul className="list-disc pl-5 text-sm text-stone-700 space-y-1">
+                                            {strengths
+                                                .slice(0, 3)
+                                                .map((s: string, i: number) => (
+                                                    <li key={i}>{s}</li>
+                                                ))}
+                                        </ul>
                                     </div>
-                                    <div className="p-6">
-                                        <form
-                                            onSubmit={handleReviewSubmit}
-                                            className="space-y-4"
-                                        >
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">
-                                                        Skor Akhir (0–100)
-                                                    </label>
-                                                    <input
-                                                        required
-                                                        name="score"
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">
-                                                        Rekomendasi Kelayakan
-                                                    </label>
-                                                    <select
-                                                        required
-                                                        name="recommendation"
-                                                        className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition"
-                                                    >
-                                                        <option value="">
-                                                            -- Pilih Rekomendasi
-                                                            --
-                                                        </option>
-                                                        <option value="ACCEPT">
-                                                            ACCEPT — Terima
-                                                        </option>
-                                                        <option value="MINOR_REVISION">
-                                                            MINOR REVISION
-                                                        </option>
-                                                        <option value="MAJOR_REVISION">
-                                                            MAJOR REVISION
-                                                        </option>
-                                                        <option value="REJECT">
-                                                            REJECT — Tolak
-                                                        </option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-1.5">
-                                                    Alasan &amp; Komentar
-                                                </label>
-                                                <textarea
-                                                    required
-                                                    name="comments"
-                                                    rows={4}
-                                                    placeholder="Tuliskan catatan, alasan keputusan, dan saran perbaikan..."
-                                                    className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-2.5 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition resize-none"
-                                                />
-                                            </div>
+                                )}
+                                {weaknesses.length > 0 && (
+                                    <div className="mb-3">
+                                        <p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                                            Kelemahan
+                                        </p>
+                                        <ul className="list-disc pl-5 text-sm text-stone-700 space-y-1">
+                                            {weaknesses
+                                                .slice(0, 3)
+                                                .map((s: string, i: number) => (
+                                                    <li key={i}>{s}</li>
+                                                ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+    <form
+                                    onSubmit={handleReviewSubmit}
+                                    className="bg-white p-5 rounded-xl border border-[#e8e4dc] shadow-sm space-y-5"
+                                >
+                                    <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider mb-4 border-b border-[#e8e4dc] pb-2">
+                                        Formulir Keputusan
+                                    </h3>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2">
+                                            Skor Evaluasi (0 - 100)
+                                        </label>
+                                        <input
+                                            required
+                                            name="score"
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            defaultValue={currentScore}
+                                            placeholder="Contoh: 85"
+                                            className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-3 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2">
+                                            Catatan Evaluasi Mendalam
+                                        </label>
+                                        <textarea
+                                            required
+                                            name="comments"
+                                            rows={6}
+                                            defaultValue={currentComments}
+                                            placeholder="Tuliskan catatan komprehensif, koreksi naskah, dan saran perbaikan..."
+                                            className="w-full rounded-xl border border-[#e8e4dc] bg-[#faf8f5] px-4 py-3 text-sm text-stone-900 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition resize-y"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-3">
+                                            Vonis Keputusan Akhir
+                                        </label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <button
                                                 type="submit"
-                                                className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 bg-rose-700 text-white rounded-xl font-semibold text-sm hover:bg-rose-800 transition shadow-sm"
+                                                onClick={(e) => {
+                                                    (
+                                                        e.currentTarget
+                                                            .form as any
+                                                    ).recommendation.value =
+                                                        "ACCEPT";
+                                                }}
+                                                className="w-full px-4 py-3 bg-[#115e59] hover:bg-[#0f4d4a] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
                                             >
-                                                <Send className="w-4 h-4" />
-                                                <span>
-                                                    Kirim Keputusan Review
-                                                </span>
+                                                Terima
                                             </button>
-                                        </form>
+                                            <button
+                                                type="submit"
+                                                onClick={(e) => {
+                                                    (
+                                                        e.currentTarget
+                                                            .form as any
+                                                    ).recommendation.value =
+                                                        "MINOR_REVISION";
+                                                }}
+                                                className="w-full px-4 py-3 bg-[#b45309] hover:bg-[#92400e] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
+                                            >
+                                                Revisi Minor
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                onClick={(e) => {
+                                                    (
+                                                        e.currentTarget
+                                                            .form as any
+                                                    ).recommendation.value =
+                                                        "MAJOR_REVISION";
+                                                }}
+                                                className="w-full px-4 py-3 bg-[#9a3412] hover:bg-[#7c2d12] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
+                                            >
+                                                Revisi Mayor
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                onClick={(e) => {
+                                                    (
+                                                        e.currentTarget
+                                                            .form as any
+                                                    ).recommendation.value =
+                                                        "REJECT";
+                                                }}
+                                                className="w-full px-4 py-3 bg-[#be123c] hover:bg-[#9f1239] text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition"
+                                            >
+                                                Tolak
+                                            </button>
+                                        </div>
+                                        {/* Hidden input to store recommendation clicked */}
+                                        <input
+                                            type="hidden"
+                                            name="recommendation"
+                                            defaultValue=""
+                                        />
                                     </div>
-                                </div>
-                                    ) : (
+                                </form>
+</div>
+
+) : (
                                         <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] p-6 text-center text-emerald-700 font-bold">
                                             Paper ini telah selesai direview.
                                         </div>
