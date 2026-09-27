@@ -71,10 +71,6 @@ class PaperController extends Controller
     public function showWeb($id)
     {
         $paper = Paper::with(['authors', 'analyses', 'scores', 'findings', 'sections', 'references', 'latestJob', 'reviews.reviewer'])->findOrFail($id);
-        
-        if (auth()->user() && auth()->user()->hasRole('reviewer')) {
-            return \Inertia\Inertia::render('ReviewDetail', ['paper' => $paper]);
-        }
 
         return \Inertia\Inertia::render('PaperDetail', ['paper' => $paper]);
     }

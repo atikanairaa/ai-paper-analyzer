@@ -803,7 +803,7 @@ export default function PaperDetail() {
                         {/* ── Review Form (untuk Reviewer IN_REVIEW) ── */}
                         {isAnalyzed &&
                             paper.submission_status === "IN_REVIEW" &&
-                            props.auth?.user && (
+                            props.auth?.peran === 'reviewer' && (
                                 <div className="bg-white rounded-2xl shadow-sm border border-[#e8e4dc] overflow-hidden">
                                     <div className="bg-rose-50 p-5 border-b border-rose-100">
                                         <h2 className="text-lg font-bold text-rose-900">
@@ -1261,7 +1261,7 @@ export default function PaperDetail() {
                             <div className="flex-1 min-h-0">
                                 {pdfUrl ? (
                                     <iframe
-                                        src={props.auth?.peran === 'admin' ? `/papers/${paper.id}/watermark-pdf#navpanes=0&pagemode=none&view=FitH` : `/papers/${paper.id}/pdf-view#navpanes=0&pagemode=none&view=FitH`}
+                                        src={(props.auth?.peran === 'admin' || props.auth?.peran === 'reviewer') ? `/papers/${paper.id}/watermark-pdf#navpanes=0&pagemode=none&view=FitH` : `/papers/${paper.id}/pdf-view#navpanes=0&pagemode=none&view=FitH`}
                                         className="w-full h-full border-none"
                                         title="PDF Viewer"
                                     />
