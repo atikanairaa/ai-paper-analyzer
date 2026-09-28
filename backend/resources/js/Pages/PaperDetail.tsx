@@ -24,7 +24,6 @@ import {
     Library,
     UploadCloud,
     CreditCard,
-    PartyPopper,
 } from "lucide-react";
 import { RevisionUploadModal } from "@/Components/RevisionUploadModal";
 
@@ -105,10 +104,14 @@ export default function PaperDetail() {
                 },
             });
         } catch (error: any) {
-            alert(
-                error.response?.data?.message ||
-                    "Gagal mengunggah file revisi.",
-            );
+            setConfirmModal({
+                isOpen: true,
+                title: "Kesalahan",
+                message: error.response?.data?.message || "Gagal mengunggah file revisi.",
+                confirmLabel: "Tutup",
+                variant: "danger",
+                onConfirm: closeModal
+            });
         } finally {
             setIsActionLoading(false);
         }
@@ -163,20 +166,53 @@ export default function PaperDetail() {
             // Reload the page to get the updated paper object with payment_url
             window.location.reload();
         } catch (error: any) {
-            alert(error.response?.data?.error || "Gagal membuat tagihan pembayaran.");
+            setConfirmModal({
+                isOpen: true,
+                title: "Kesalahan",
+                message: error.response?.data?.error || "Gagal membuat tagihan pembayaran.",
+                confirmLabel: "Tutup",
+                variant: "danger",
+                onConfirm: closeModal
+            });
             setIsGeneratingPayment(false);
         }
     };
 
     const handlePublishPaper = async () => {
         if (!paper) return;
-        if (!confirm("Konfirmasi: Paper Anda akan dipublikasikan ke jurnal. Lanjutkan?")) return;
-        try {
-            await axios.post(`/papers/${paper.id}/publish`);
-            window.location.reload();
-        } catch (error: any) {
-            alert(error.response?.data?.error || "Gagal mempublikasikan paper.");
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: "Publikasi Paper",
+            message: "Konfirmasi: Paper Anda akan dipublikasikan ke jurnal. Lanjutkan?",
+            confirmLabel: "Ya, Publikasikan",
+            variant: "info",
+            onConfirm: async () => {
+                closeModal();
+                try {
+                    await axios.post(`/papers/${paper.id}/publish`);
+                    setConfirmModal({
+                        isOpen: true,
+                        title: "Publikasi Berhasil",
+                        message: "Paper Anda telah resmi dipublikasikan ke jurnal.",
+                        confirmLabel: "Tutup",
+                        variant: "success",
+                        onConfirm: () => {
+                            closeModal();
+                            window.location.reload();
+                        }
+                    });
+                } catch (error: any) {
+                    setConfirmModal({
+                        isOpen: true,
+                        title: "Kesalahan",
+                        message: error.response?.data?.error || "Gagal mempublikasikan paper.",
+                        confirmLabel: "Tutup",
+                        variant: "danger",
+                        onConfirm: closeModal
+                    });
+                }
+            }
+        });
     };
 
     const handleReviewSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -188,7 +224,14 @@ export default function PaperDetail() {
         const commentsValue = form.comments.value;
 
         if (!recommendationValue) {
-            alert("Silakan pilih salah satu keputusan (Terima/Revisi/Tolak).");
+            setConfirmModal({
+                isOpen: true,
+                title: "Perhatian",
+                message: "Silakan pilih salah satu keputusan (Terima/Revisi/Tolak).",
+                confirmLabel: "Tutup",
+                variant: "warning",
+                onConfirm: closeModal
+            });
             return;
         }
 
@@ -419,7 +462,7 @@ export default function PaperDetail() {
                             props.auth?.user?.id === paper.uploaded_by && (
                                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
                                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-200">
-                                        <span className="text-2xl">🎉</span>
+                                        <CheckCircle2 className="h-6 w-6 text-blue-600" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-blue-900">Paper Berhasil Dipublikasikan!</h3>
@@ -433,7 +476,7 @@ export default function PaperDetail() {
                             props.auth?.user?.id === paper.uploaded_by && (
                                 <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
                                     <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 border border-red-200">
-                                        <span className="text-2xl">❌</span>
+                                        <XCircle className="h-6 w-6 text-red-600" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-red-900">Paper Ditolak</h3>
@@ -451,7 +494,7 @@ export default function PaperDetail() {
                                     <div className={`${isPaid ? 'bg-indigo-50 border-indigo-200' : 'bg-emerald-50 border-emerald-200'} border rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm`}>
                                         <div className="flex items-start gap-4">
                                             <div className={`w-12 h-12 ${isPaid ? 'bg-indigo-100 border-indigo-200' : 'bg-emerald-100 border-emerald-200'} rounded-full flex items-center justify-center flex-shrink-0 border`}>
-                                                <PartyPopper className={`w-6 h-6 ${isPaid ? 'text-indigo-600' : 'text-emerald-600'}`} />
+                                                <CheckCircle2 className={`w-6 h-6 ${isPaid ? 'text-indigo-600' : 'text-emerald-600'}`} />
                                             </div>
                                             <div>
                                                 <h3 className={`text-lg font-bold ${isPaid ? 'text-indigo-900' : 'text-emerald-900'}`}>
@@ -471,7 +514,7 @@ export default function PaperDetail() {
                                                     onClick={handlePublishPaper}
                                                     className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-indigo-200"
                                                 >
-                                                    <span>🚀</span>
+                                                    <Send className="w-5 h-5" />
                                                     <span>Publikasikan Paper</span>
                                                 </button>
                                             ) : (paper as any).payment_url ? (
@@ -492,7 +535,7 @@ export default function PaperDetail() {
                                                         className="inline-flex items-center space-x-2 px-4 py-2 bg-amber-100 text-amber-800 border border-amber-300 rounded-xl hover:bg-amber-200 font-semibold text-xs transition"
                                                         title="Simulasi pembayaran berhasil (DEV only)"
                                                     >
-                                                        <span>🧪</span>
+                                                        <CheckCircle2 className="w-4 h-4" />
                                                         <span>Simulasi Pembayaran Berhasil</span>
                                                     </a>
                                                 </div>
