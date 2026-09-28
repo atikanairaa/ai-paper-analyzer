@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { FileText, CheckCircle, Loader2, XCircle, TrendingUp, RefreshCw, AlertCircle, Activity, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, CheckCircle, Loader2, XCircle, TrendingUp, RefreshCw, AlertCircle, Activity, Search, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import { AiJob, AuditLog } from '@/types/paper';
 import axios from 'axios';
 import { 
@@ -84,11 +84,12 @@ export default function AdminDashboard() {
   const totalDomain = domains ? domains.reduce((a: number, d: any) => a + d.count, 0) : 0;
 
   const statCards = [
-    { title: 'Total Paper',      value: stats?.total || 0,      icon: <FileText    className="w-5 h-5 text-stone-500"  />, bg: 'bg-stone-50',   border: 'border-stone-200'  },
-    { title: 'Dianalisis',       value: stats?.analyzed || 0,   icon: <CheckCircle className="w-5 h-5 text-emerald-600"/>, bg: 'bg-emerald-50', border: 'border-emerald-200' },
-    { title: 'Sedang Diproses',  value: stats?.processing || 0, icon: <Loader2    className="w-5 h-5 text-amber-600"  />, bg: 'bg-amber-50',   border: 'border-amber-200'  },
-    { title: 'Gagal',            value: stats?.failed || 0,     icon: <XCircle    className="w-5 h-5 text-rose-600"   />, bg: 'bg-rose-50',    border: 'border-rose-200'   },
-    { title: 'Rata-rata Skor',   value: stats?.avgScore || 0,   icon: <TrendingUp className="w-5 h-5 text-stone-500"  />, bg: 'bg-stone-50',   border: 'border-stone-200'  },
+    { title: 'Total Paper',      value: stats?.total || 0,      icon: <FileText    className="w-5 h-5 text-stone-500"  />, bg: 'bg-stone-50',   border: 'border-stone-200',  href: '/admin/papers'            },
+    { title: 'Dianalisis',       value: stats?.analyzed || 0,   icon: <CheckCircle className="w-5 h-5 text-emerald-600"/>, bg: 'bg-emerald-50', border: 'border-emerald-200', href: null                       },
+    { title: 'Sedang Diproses',  value: stats?.processing || 0, icon: <Loader2    className="w-5 h-5 text-amber-600"  />, bg: 'bg-amber-50',   border: 'border-amber-200',  href: null                       },
+    { title: 'Gagal',            value: stats?.failed || 0,     icon: <XCircle    className="w-5 h-5 text-rose-600"   />, bg: 'bg-rose-50',    border: 'border-rose-200',   href: null                       },
+    { title: 'Dipublikasikan',   value: stats?.published || 0,  icon: <Globe      className="w-5 h-5 text-indigo-600" />, bg: 'bg-indigo-50',  border: 'border-indigo-200', href: '/admin/published-papers'  },
+    { title: 'Rata-rata Skor',   value: stats?.avgScore || 0,   icon: <TrendingUp className="w-5 h-5 text-stone-500"  />, bg: 'bg-stone-50',   border: 'border-stone-200',  href: null                       },
   ];
 
   return (
@@ -104,13 +105,21 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {statCards.map((s, i) => (
-            <div key={i} className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-5 flex flex-col items-center text-center">
-              <div className={`w-11 h-11 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-3`}>{s.icon}</div>
-              <p className="text-2xl font-bold text-stone-900">{s.value}</p>
-              <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide mt-1">{s.title}</p>
-            </div>
+            s.href ? (
+              <a key={i} href={s.href} className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-5 flex flex-col items-center text-center hover:border-rose-300 hover:shadow-md transition-all group">
+                <div className={`w-11 h-11 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-3`}>{s.icon}</div>
+                <p className="text-2xl font-bold text-stone-900 group-hover:text-rose-700 transition-colors">{s.value}</p>
+                <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide mt-1">{s.title}</p>
+              </a>
+            ) : (
+              <div key={i} className="bg-white border border-[#e8e4dc] shadow-sm rounded-2xl p-5 flex flex-col items-center text-center">
+                <div className={`w-11 h-11 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-3`}>{s.icon}</div>
+                <p className="text-2xl font-bold text-stone-900">{s.value}</p>
+                <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide mt-1">{s.title}</p>
+              </div>
+            )
           ))}
         </div>
 
