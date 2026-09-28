@@ -14,12 +14,21 @@ export default function ManageExpertises({ expertises }: any) {
   const [editingExp, setEditingExp] = useState<any>(null);
   const [isExpSaving, setIsExpSaving] = useState(false);
 
-  const [confirmModal, setConfirmModal] = useState({
+  const [confirmModal, setConfirmModal] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      variant: 'info' | 'success' | 'danger' | 'warning';
+      onConfirm: () => void;
+  }>({
       isOpen: false,
       title: '',
       message: '',
-      variant: 'success' as 'info' | 'success' | 'danger' | 'warning',
+      variant: 'success',
+      onConfirm: () => {},
   });
+
+  const closeModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
   const handleSaveExp = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -35,16 +44,18 @@ export default function ManageExpertises({ expertises }: any) {
           setEditingExp(null);
           setConfirmModal({
               isOpen: true,
-              title: 'Berhasil',
-              message: '✓ Bidang keahlian berhasil disimpan!',
+              title: 'Berhasil Disimpan',
+              message: 'Bidang keahlian berhasil disimpan.',
               variant: 'success',
+              onConfirm: closeModal,
           });
       } catch (e: any) {
           setConfirmModal({
               isOpen: true,
-              title: 'Gagal',
+              title: 'Gagal Menyimpan',
               message: 'Gagal menyimpan bidang keahlian.',
               variant: 'danger',
+              onConfirm: closeModal,
           });
       } finally {
           setIsExpSaving(false);
@@ -52,13 +63,27 @@ export default function ManageExpertises({ expertises }: any) {
   };
 
   const deleteExp = async (id: number) => {
-      if (!confirm('Hapus bidang keahlian ini?')) return;
-      try {
-          await axios.delete(`/api/admin/expertises/${id}`);
-          router.reload();
-      } catch (e) {
-          alert('Gagal menghapus.');
-      }
+      setConfirmModal({
+          isOpen: true,
+          title: 'Hapus Bidang Keahlian',
+          message: 'Apakah Anda yakin ingin menghapus bidang keahlian ini? Tindakan ini tidak dapat dibatalkan.',
+          variant: 'danger',
+          onConfirm: async () => {
+              closeModal();
+              try {
+                  await axios.delete(`/api/admin/expertises/${id}`);
+                  router.reload();
+              } catch (e) {
+                  setConfirmModal({
+                      isOpen: true,
+                      title: 'Gagal Menghapus',
+                      message: 'Terjadi kesalahan saat menghapus bidang keahlian.',
+                      variant: 'danger',
+                      onConfirm: closeModal,
+                  });
+              }
+          },
+      });
   };
 
   return (
@@ -69,13 +94,10 @@ export default function ManageExpertises({ expertises }: any) {
           isOpen={confirmModal.isOpen}
           title={confirmModal.title}
           message={confirmModal.message}
-          confirmLabel="Tutup"
+          confirmLabel={confirmModal.variant === 'danger' ? 'Ya, Hapus' : 'Tutup'}
           variant={confirmModal.variant}
-          onConfirm={() => {
-              setConfirmModal({ ...confirmModal, isOpen: false });
-              if (confirmModal.variant === 'success') router.reload();
-          }}
-          onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={closeModal}
       />
 
       <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8 pb-20">

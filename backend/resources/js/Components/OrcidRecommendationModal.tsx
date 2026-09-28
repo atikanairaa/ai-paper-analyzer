@@ -66,7 +66,8 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
             setToastMessage('Undangan review berhasil dikirimkan ke email terdaftar ORCID!');
             setTimeout(() => setToastMessage(null), 3000);
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal mengirim undangan');
+            setToastMessage(error.response?.data?.message || 'Gagal mengirim undangan. Silakan coba kembali.');
+            setTimeout(() => setToastMessage(null), 4000);
         }
     };
 

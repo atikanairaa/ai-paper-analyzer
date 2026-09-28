@@ -19,6 +19,7 @@ class AdminDashboardController extends Controller
         $analyzed = Paper::where('status', 'ANALYZED')->count();
         $processing = Paper::where('status', 'PROCESSING')->count();
         $failed = Paper::where('status', 'FAILED')->count();
+        $published = Paper::where('submission_status', 'PUBLISHED')->count();
         $avgScore = DB::table('paper_scores')->avg('overall_score') ?? 0;
 
         $domains = DB::table('paper_analyses')
@@ -108,6 +109,7 @@ class AdminDashboardController extends Controller
                 'analyzed' => $analyzed,
                 'processing' => $processing,
                 'failed' => $failed,
+                'published' => $published,
                 'avgScore' => round($avgScore, 1)
             ],
             'domains' => $domains,

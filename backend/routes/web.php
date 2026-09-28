@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'update'])->name('admin.users.update');
         Route::delete('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/expertises', [\App\Http\Controllers\Admin\ExpertiseManagementController::class, 'index'])->name('admin.expertises');
+        Route::get('/published-papers', [\App\Http\Controllers\Admin\PublishedPapersController::class, 'index'])->name('admin.published-papers');
     });
 
     // ── Profile (bawaan Breeze) ──
