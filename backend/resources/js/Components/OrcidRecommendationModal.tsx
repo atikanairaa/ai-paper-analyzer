@@ -11,6 +11,8 @@ interface ReviewerRecommendation {
     email?: string;
     match_score?: number;
     match_percentage?: number;
+    keywords_searched?: string[];
+    expertise?: string[];
 }
 
 interface OrcidRecommendationModalProps {
@@ -119,6 +121,15 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                                 const isSent = sentInvitations.includes(index);
                                 const matchVal = rec.match_score || rec.match_percentage || 0;
                                 const orcidVal = rec.orcid_id || rec.orcid || 'N/A';
+                                const keywords = rec.keywords_searched || rec.expertise || [];
+                                
+                                const badgeColors = [
+                                    'bg-sky-50 text-sky-700 border-sky-200',
+                                    'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                    'bg-violet-50 text-violet-700 border-violet-200',
+                                    'bg-amber-50 text-amber-700 border-amber-200',
+                                    'bg-rose-50 text-rose-700 border-rose-200'
+                                ];
                                 
                                 const matchColorClass = matchVal >= 90 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
                                 
@@ -148,6 +159,15 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                                                     </a>
                                                 </div>
                                             </div>
+                                            {keywords.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mt-3">
+                                                    {keywords.map((kw, i) => (
+                                                        <span key={i} className={`text-xs font-semibold px-2.5 py-1 border rounded-full ${badgeColors[i % badgeColors.length]}`}>
+                                                            {kw}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex-shrink-0">
                                             <button

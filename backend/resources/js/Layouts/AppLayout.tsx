@@ -49,6 +49,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         return [
           { id: 'dashboard',         label: 'Dashboard Statistik',    href: '/admin',                    icon: <LayoutDashboard className="w-5 h-5" /> },
           { id: 'master-paper',       label: 'Master Paper',           href: '/admin/papers',             icon: <FileText className="w-5 h-5" /> },
+          { id: 'journal-template',   label: 'Kelola Template Jurnal', href: '/admin/journal-template',   icon: <FileText className="w-5 h-5" /> },
           { id: 'published-papers',   label: 'Paper Dipublikasikan',   href: '/admin/published-papers',   icon: <Globe className="w-5 h-5" /> },
           { id: 'assign-paper',       label: 'Assign Paper',           href: '/admin/assign-paper',       icon: <ClipboardList className="w-5 h-5" /> },
           { id: 'manage-users',       label: 'Kelola Pengguna',        href: '/admin/users',              icon: <Users className="w-5 h-5" /> },
