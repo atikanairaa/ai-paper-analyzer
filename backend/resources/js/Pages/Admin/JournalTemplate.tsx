@@ -143,14 +143,67 @@ export default function JournalTemplate() {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     const handleDownloadWord = () => {
-        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Template Naskah Jurnal</title><style>body{font-family:'Times New Roman',serif;}</style></head><body>";
+        let processedHtml = editorData;
+
+        // 1. Hapus tag figure bawaan CKEditor
+        processedHtml = processedHtml.replace(/<\/?figure[^>]*>/gi, '');
+
+        // 2. HAPUS tag <thead> dan <tbody> agar Word tidak membuat baris hantu/benjolan di atas tabel
+        processedHtml = processedHtml.replace(/<\/?(thead|tbody)[^>]*>/gi, '');
+
+        // 3. Ubah semua <th> menjadi <td> dengan styling header marun resmi Word yang kokoh
+        processedHtml = processedHtml.replace(/<th[^>]*>/gi, '<td bgcolor="#881337" style="background-color: #881337; color: #ffffff; font-weight: bold; border: 1px solid #78716c; padding: 6pt 10pt; font-size: 10pt; text-align: left;">');
+        processedHtml = processedHtml.replace(/<\/th>/gi, '</td>');
+
+        // 4. Pastikan semua <td> yang bukan header memiliki border tegas dan padding yang rapi
+        processedHtml = processedHtml.replace(/<td(?![^>]*bgcolor)([^>]*)>/gi, '<td style="border: 1px solid #78716c; padding: 6pt 10pt; font-size: 10pt; vertical-align: top;"$1>');
+
+        // 5. Pastikan tag <table> memiliki atribut tabel Word yang presisi
+        processedHtml = processedHtml.replace(/<table[^>]*>/gi, '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; width: 100%; border: 1px solid #78716c; margin: 12pt 0;">');
+
+        const wordStyles = `
+            <style>
+                @page {
+                    size: A4;
+                    margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+                }
+                body {
+                    font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+                    font-size: 11pt;
+                    line-height: 1.5;
+                    color: #1c1917;
+                }
+                table {
+                    border-collapse: collapse !important;
+                    width: 100% !important;
+                    margin: 12pt 0 !important;
+                    border: 1px solid #78716c !important;
+                }
+                td {
+                    border: 1px solid #78716c !important;
+                    padding: 6pt 10pt !important;
+                }
+            </style>
+        `;
+
+        const header = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                  xmlns:w='urn:schemas-microsoft-com:office:word' 
+                  xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>Template Naskah Jurnal</title>
+                ${wordStyles}
+            </head>
+            <body>
+        `;
         const footer = "</body></html>";
-        const sourceHTML = header + editorData + footer;
-        
-        const blob = new Blob(['\ufeff' + sourceHTML], {
-            type: 'application/msword'
+        const fullContent = header + processedHtml + footer;
+
+        const blob = new Blob(['\ufeff' + fullContent], {
+            type: 'application/msword;charset=utf-8'
         });
-        
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
