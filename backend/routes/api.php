@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Paper;
+use Illuminate\Support\Facades\Log;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -37,12 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-// ====================================================
-// PUBLIC ROUTE: DOKU Payment Webhook (Server-to-Server)
-// Tidak memerlukan auth karena dipanggil langsung oleh
-// server DOKU. Validasi keamanan via Signature di controller.
-// ====================================================
-Route::post('/payment/doku/webhook', [\App\Http\Controllers\PaymentController::class, 'handleWebhook']);
+
 
 // ====================================================
 // INTERNAL ROUTE: Untuk Python AI Service (Tanpa Sanctum)
@@ -68,3 +65,55 @@ Route::get('/internal/criteria', function (Request $request) {
         'data' => $criteria
     ]);
 });
+
+// ====================================================
+// WEBHOOK LISTENER DOKU — Bebas auth/CSRF, dipanggil oleh server DOKU
+// ====================================================
+Route::post('/payment/doku-webhook', function (Request $request) {
+    // Log setiap request masuk untuk debugging
+    Log::info('[DOKU Webhook] Request diterima', [
+        'ip'      => $request->ip(),
+        'headers' => $request->headers->all(),
+        'body'    => $request->all(),
+    ]);
+
+    $payload           = $request->all();
+    $invoiceNumber     = $payload['order']['invoice_number'] ?? null;
+    $transactionStatus = $payload['transaction']['status'] ?? null;
+
+    Log::info('[DOKU Webhook] Parsed payload', [
+        'invoice_number'     => $invoiceNumber,
+        'transaction_status' => $transactionStatus,
+    ]);
+
+    // Jika status pembayaran SUCCESS
+    if (strtoupper((string) $transactionStatus) === 'SUCCESS' && $invoiceNumber) {
+        preg_match('/INV-APC-(\d+)-/', $invoiceNumber, $matches);
+        $paperId = $matches[1] ?? null;
+
+        if ($paperId) {
+            $paper = Paper::find($paperId);
+            if ($paper) {
+                // Tandai LUNAS — researcher masih perlu klik "Publikasikan"
+                $paper->update(['payment_status' => 'PAID']);
+                Log::info("[DOKU Webhook] Paper #{$paperId} berhasil ditandai PAID.");
+            } else {
+                Log::warning("[DOKU Webhook] Paper #{$paperId} tidak ditemukan di database.");
+            }
+        } else {
+            Log::warning('[DOKU Webhook] Tidak bisa ekstrak paperId dari invoice: ' . $invoiceNumber);
+        }
+    } else {
+        Log::info('[DOKU Webhook] Status bukan SUCCESS, tidak ada perubahan.', [
+            'status'  => $transactionStatus,
+            'invoice' => $invoiceNumber,
+        ]);
+    }
+
+    // Wajib balas HTTP 200 agar DOKU tidak retry
+    return response()->json(['message' => 'OK'], 200);
+
+})->withoutMiddleware([
+    \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+    \Illuminate\Auth\Middleware\Authenticate::class,
+]);

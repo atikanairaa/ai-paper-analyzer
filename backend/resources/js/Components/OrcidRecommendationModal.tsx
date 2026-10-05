@@ -11,6 +11,8 @@ interface ReviewerRecommendation {
     email?: string;
     match_score?: number;
     match_percentage?: number;
+    keywords_searched?: string[];
+    expertise?: string[];
 }
 
 interface OrcidRecommendationModalProps {
@@ -29,6 +31,7 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
     const [recommendations, setRecommendations] = useState<ReviewerRecommendation[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [sentInvitations, setSentInvitations] = useState<number[]>([]);
+    const [sendingInvitations, setSendingInvitations] = useState<number[]>([]);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     useEffect(() => {
@@ -55,6 +58,7 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
     };
 
     const handleSendInvitation = async (rec: ReviewerRecommendation, index: number) => {
+        setSendingInvitations(prev => [...prev, index]);
         try {
             await axios.post('/api/admin/reviewers/assign', {
                 paper_id: paperId,
@@ -68,6 +72,8 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
         } catch (error: any) {
             setToastMessage(error.response?.data?.message || 'Gagal mengirim undangan. Silakan coba kembali.');
             setTimeout(() => setToastMessage(null), 4000);
+        } finally {
+            setSendingInvitations(prev => prev.filter(i => i !== index));
         }
     };
 
@@ -117,8 +123,18 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                             )}
                             {recommendations.map((rec, index) => {
                                 const isSent = sentInvitations.includes(index);
+                                const isSending = sendingInvitations.includes(index);
                                 const matchVal = rec.match_score || rec.match_percentage || 0;
                                 const orcidVal = rec.orcid_id || rec.orcid || 'N/A';
+                                const keywords = rec.keywords_searched || rec.expertise || [];
+                                
+                                const badgeColors = [
+                                    'bg-sky-50 text-sky-700 border-sky-200',
+                                    'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                    'bg-violet-50 text-violet-700 border-violet-200',
+                                    'bg-amber-50 text-amber-700 border-amber-200',
+                                    'bg-rose-50 text-rose-700 border-rose-200'
+                                ];
                                 
                                 const matchColorClass = matchVal >= 90 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
                                 
@@ -148,14 +164,25 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                                                     </a>
                                                 </div>
                                             </div>
+                                            {keywords.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mt-3">
+                                                    {keywords.map((kw, i) => (
+                                                        <span key={i} className={`text-xs font-semibold px-2.5 py-1 border rounded-full ${badgeColors[i % badgeColors.length]}`}>
+                                                            {kw}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex-shrink-0">
                                             <button
                                                 onClick={() => handleSendInvitation(rec, index)}
-                                                disabled={isSent}
+                                                disabled={isSent || isSending}
                                                 className={`w-full md:w-auto px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
                                                     isSent 
                                                         ? 'bg-stone-100 text-stone-500 border border-stone-200 cursor-not-allowed'
+                                                        : isSending
+                                                        ? 'bg-stone-800 text-stone-300 border border-stone-700 cursor-wait'
                                                         : 'bg-stone-900 hover:bg-stone-800 text-white shadow-sm border border-transparent'
                                                 }`}
                                             >
@@ -163,6 +190,11 @@ export const OrcidRecommendationModal: React.FC<OrcidRecommendationModalProps> =
                                                     <>
                                                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                                         <span>Terkirim ✓</span>
+                                                    </>
+                                                ) : isSending ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        <span>Mengirim...</span>
                                                     </>
                                                 ) : (
                                                     <>

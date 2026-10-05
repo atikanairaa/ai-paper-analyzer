@@ -7,7 +7,7 @@ import uuid
 import urllib.request
 from datetime import datetime, timezone
 from fastapi import HTTPException
-from app.core_config import DOKU_CLIENT_ID, DOKU_SECRET_KEY, DOKU_API_URL
+from app.core_config import DOKU_CLIENT_ID, DOKU_SECRET_KEY, DOKU_API_URL, APP_URL
 from app.schemas.paper_schemas import CreateInvoiceRequest, PaymentInvoiceResponse
 
 class DokuService:
@@ -60,7 +60,8 @@ class DokuService:
                 "invoice_number": invoice_number,
                 "amount": req_data.amount,
                 "currency": "IDR",
-                "callback_url": f"http://127.0.0.1:8000/detail/{req_data.paper_id}",
+                "callback_url": f"{APP_URL}/detail/{req_data.paper_id}",
+                "notify_url": f"{APP_URL}/api/payment/doku-webhook",
                 "auto_redirect": True
             },
             "payment": {

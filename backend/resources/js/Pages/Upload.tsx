@@ -8,6 +8,7 @@ export default function Upload() {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadPurpose, setUploadPurpose] = useState<'study' | 'journal'>('study');
+  const [accessType, setAccessType] = useState<'OPEN_ACCESS' | 'CLOSED_ACCESS'>('OPEN_ACCESS');
   const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'analyzed'>('idle');
   const [paperId, setPaperId] = useState<number | null>(null);
   const [analyzedPaper, setAnalyzedPaper] = useState<any>(null);
@@ -82,6 +83,7 @@ export default function Upload() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('is_submission', uploadPurpose === 'journal' ? '1' : '0');
+        formData.append('access_type', accessType);
       const response = await axios.post('/api/papers', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       const newPaperId = response.data?.paper_id || response.data?.paper?.id;
       setStatus('processing');
@@ -128,7 +130,7 @@ export default function Upload() {
                     <UploadCloud className="w-12 h-12 text-stone-300 mb-3" />
                     <p className="text-lg font-medium text-stone-700">Seret dan lepas file PDF di sini</p>
                     <p className="text-sm text-stone-400 mt-1">atau klik untuk menelusuri</p>
-                    <p className="text-xs text-stone-400 mt-4">Maksimal ukuran file: 20MB · Hanya format .pdf</p>
+                    <p className="text-xs text-stone-400 mt-4">Maksimal ukuran file: 20MB Ã‚Â· Hanya format .pdf</p>
                   </div>
                 )}
               </div>
@@ -157,9 +159,11 @@ export default function Upload() {
                     </label>
                   ))}
                 </div>
-              </div>
+                </div>
 
-              <div className="mt-8 flex justify-end border-t border-stone-100 pt-6">
+                
+
+                <div className="mt-8 flex justify-end border-t border-stone-100 pt-6">
                 <button
                   onClick={handleSubmit}
                   disabled={!file}
@@ -233,3 +237,6 @@ export default function Upload() {
     </AppLayout>
   );
 }
+
+
+
