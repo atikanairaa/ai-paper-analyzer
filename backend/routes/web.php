@@ -1,16 +1,16 @@
-<?php
+﻿<?php
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// ─── Halaman Publik ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Halaman Publik â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// ─── Halaman Terproteksi (Butuh Login) ───────────────────────────────────────
+// â”€â”€â”€ Halaman Terproteksi (Butuh Login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Route::middleware(['auth'])->group(function () {
 
     // Dashboard utama: arahkan ke halaman sesuai role
@@ -29,7 +29,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('upload');
     })->name('dashboard');
 
-    // ── Rute halaman Peneliti ──
+    // â”€â”€ Rute halaman Peneliti â”€â”€
     Route::get('/upload',  fn () => Inertia::render('Upload'))->name('upload');
     Route::get('/upload/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('upload.detail');
     Route::get('/detail',  fn () => Inertia::render('MyPapers'))->name('paper.detail');
@@ -41,17 +41,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
     Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
 
-    // ── [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok ──
+    // â”€â”€ [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok â”€â”€
     Route::get('/simulasi-lunas/{id}', function ($id) {
         $paper = \App\Models\Paper::findOrFail($id);
         $paper->update(['payment_status' => 'PAID']);
         return redirect("/detail/{$id}")->with('success', 'Simulasi: Pembayaran DOKU berhasil dikonfirmasi!');
     })->name('payment.simulasi');
 
-    // ── Rute halaman Reviewer ──
+    // â”€â”€ Rute halaman Reviewer â”€â”€
     Route::get('/reviewer', [\App\Http\Controllers\ReviewerDashboardController::class, 'index'])->name('reviewer');
 
-    // ── Rute halaman Admin ──
+    // â”€â”€ Rute halaman Admin â”€â”€
     Route::prefix('admin')->middleware(['role:admin'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('admin.dashboard');
         Route::get('/papers', [\App\Http\Controllers\Admin\PaperManagementController::class, 'index'])->name('admin.papers');
@@ -63,14 +63,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/expertises', [\App\Http\Controllers\Admin\ExpertiseManagementController::class, 'index'])->name('admin.expertises');
         Route::get('/published-papers', [\App\Http\Controllers\Admin\PublishedPapersController::class, 'index'])->name('admin.published-papers');
+        Route::get('/journal-template', function () {
+            return Inertia::render('Admin/JournalTemplate');
+        })->name('admin.journal-template');
     });
 
-    // ── Profile (bawaan Breeze) ──
+    // â”€â”€ Profile (bawaan Breeze) â”€â”€
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // ── Notifikasi ──
+    // â”€â”€ Notifikasi â”€â”€
     Route::post('/notifications/mark-read', function (Illuminate\Http\Request $request) {
         $request->user()->unreadNotifications->markAsRead();
         return response()->json(['success' => true]);
@@ -91,3 +94,8 @@ Route::get('/admin/reviewers/recommend-orcid/{paperId}', [\App\Http\Controllers\
 Route::post('/papers/{id}/revision', [\App\Http\Controllers\PaperController::class, 'submitRevision'])->name('paper.revision')->middleware(['auth']);
 
 
+
+
+// Katalog Publik
+Route::get('/katalog', [\App\Http\Controllers\GuestPaperController::class, 'index'])->name('guest.catalog');
+Route::get('/katalog/{id}', [\App\Http\Controllers\GuestPaperController::class, 'show'])->name('guest.catalog.show');
