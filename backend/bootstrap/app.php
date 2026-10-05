@@ -13,8 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Percayai semua proxy (termasuk Ngrok saat development)
+        $middleware->trustProxies(at: '*');
+
+        // CSRF exception untuk webhook DOKU (api routes bebas CSRF by default, ini untuk web routes jika ada)
         $middleware->validateCsrfTokens(except: [
-            '/payment/doku/webhook',
+            'api/payment/doku-webhook',
+            'payment/doku-webhook',
         ]);
         
         $middleware->web(append: [
@@ -22,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        // Sanctum stateful hanya untuk non-webhook routes
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);

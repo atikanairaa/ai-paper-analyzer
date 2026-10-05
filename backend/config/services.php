@@ -36,13 +36,18 @@ return [
     ],
 
     'fastapi' => [
-        'url' => env('FASTAPI_SERVICE_URL', 'http://127.0.0.1:8001'),
-        'token' => env('FASTAPI_INTERNAL_TOKEN'),
+        'url'   => env('FASTAPI_SERVICE_URL', 'http://127.0.0.1:8001'),
+        'token' => env('INTERNAL_SERVICE_TOKEN', 'token_rahasia_internal_tim_9921'),
     ],
 
-    'fastapi' => [
-        'url'   => env('FASTAPI_SERVICE_URL', 'http://127.0.0.1:8001'),
-        'token' => env('FASTAPI_INTERNAL_TOKEN', 'token_rahasia_internal_tim_9921'),
+    'python' => [
+        'url'   => env('PYTHON_API_URL', 'http://127.0.0.1:8001'),
+        'token' => env('INTERNAL_SERVICE_TOKEN', 'token_rahasia_internal_tim_9921'),
+    ],
+
+    'doku' => [
+        'secret_key' => env('DOKU_SECRET_KEY', ''),
+        'client_id'  => env('DOKU_CLIENT_ID', ''),
     ],
 ];
 

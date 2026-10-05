@@ -14,6 +14,9 @@ DOKU_CLIENT_ID = os.getenv("DOKU_CLIENT_ID")
 DOKU_SECRET_KEY = os.getenv("DOKU_SECRET_KEY")
 DOKU_API_URL = os.getenv("DOKU_API_URL", "https://api-sandbox.doku.com")
 
+# URL publik aplikasi (ganti ke Ngrok URL saat development)
+APP_URL = os.getenv("APP_URL", "http://localhost:8000")
+
 if not DOKU_CLIENT_ID or not DOKU_SECRET_KEY:
     # Peringatkan jika developer lupa isi .env
-    pass
+    pass

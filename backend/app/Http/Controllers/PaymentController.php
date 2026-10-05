@@ -25,8 +25,8 @@ class PaymentController extends Controller
         }
 
         // Tembak API Python
-        $pythonUrl = env('PYTHON_API_URL', 'http://127.0.0.1:8001') . '/api/payment/invoice';
-        $token = env('INTERNAL_SERVICE_TOKEN');
+        $pythonUrl = config('services.python.url', 'http://127.0.0.1:8001') . '/api/payment/invoice';
+        $token = config('services.python.token');
 
         try {
             $user = auth()->user();
@@ -95,7 +95,7 @@ class PaymentController extends Controller
             "Digest:{$digest}",
         ]);
 
-        $secretKey         = env('DOKU_SECRET_KEY', '');
+        $secretKey         = config('services.doku.secret_key', '');
         $expectedHmac      = base64_encode(hash_hmac('sha256', $componentSignature, $secretKey, true));
         $expectedSignature = "HMACSHA256={$expectedHmac}";
 
