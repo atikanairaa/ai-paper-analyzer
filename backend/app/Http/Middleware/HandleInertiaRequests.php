@@ -36,6 +36,10 @@ class HandleInertiaRequests extends Middleware
                 'peran' => $request->user() ? optional($request->user()->roles->first())->name ?? 'researcher' : 'researcher',
                 'notifications' => $request->user() ? $request->user()->unreadNotifications()->take(10)->get() : [],
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
         ];
     }
 }

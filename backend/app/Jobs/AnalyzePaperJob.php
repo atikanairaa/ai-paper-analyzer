@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Paper;
+
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -57,7 +58,9 @@ class AnalyzePaperJob implements ShouldQueue
                 $expertises = "Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other";
             }
 
-            // PANGGIL FASTAPI KAMU MENGGUNAKAN HTTP CLIENT + INTERNAL TOKEN
+            // PANGGIL FASTAPI MENGGUNAKAN HTTP CLIENT + INTERNAL TOKEN
+            // System Instruction sudah di-hardcode di dalam kodingan Python (AnalyzeService)
+            // Laravel hanya perlu mengirimkan file PDF dan metadata saja
             $response = Http::timeout(180)
                 ->withToken($token)
                 ->attach('file', file_get_contents($filePath), basename($filePath))
@@ -129,23 +132,42 @@ class AnalyzePaperJob implements ShouldQueue
                     ]);
                 }
 
-                // 5. Simpan Rapor Nilai & Alasan
+                // 5. Simpan Rapor Nilai & Alasan (Pemetaan Cerdas dari Kriteria Dinamis)
                 $scores = $data['paper_scores'];
+                $criteriaScores = $scores['criteria_scores'] ?? [];
+                
+                // Fungsi pencari nilai berdasar kata kunci
+                $findScore = function($keyword) use ($criteriaScores) {
+                    foreach ($criteriaScores as $c) {
+                        if (stripos($c['criterion_name'], $keyword) !== false) {
+                            return ['score' => $c['score'], 'reason' => $c['reason']];
+                        }
+                    }
+                    return ['score' => 0, 'reason' => 'Kriteria dinonaktifkan atau tidak dievaluasi.'];
+                };
+
                 DB::table('paper_scores')->insert([
                     'paper_id'               => $paper->id,
-                    'overall_score'          => $scores['overall_score'],
-                    'methodology_score'      => $scores['methodology_score'],
-                    'methodology_reason'     => $scores['methodology_reason'],
-                    'novelty_score'          => $scores['novelty_score'],
-                    'novelty_reason'         => $scores['novelty_reason'],
-                    'clarity_score'          => $scores['clarity_score'],
-                    'clarity_reason'         => $scores['clarity_reason'],
-                    'evidence_score'         => $scores['evidence_score'],
-                    'evidence_reason'        => $scores['evidence_reason'],
-                    'reproducibility_score'  => $scores['reproducibility_score'],
-                    'reproducibility_reason' => $scores['reproducibility_reason'],
-                    'writing_score'          => $scores['writing_score'],
-                    'writing_reason'         => $scores['writing_reason'],
+                    'overall_score'          => $scores['overall_score'] ?? 0,
+                    
+                    'methodology_score'      => $findScore('Methodology')['score'],
+                    'methodology_reason'     => $findScore('Methodology')['reason'],
+                    
+                    'novelty_score'          => $findScore('Novelty')['score'],
+                    'novelty_reason'         => $findScore('Novelty')['reason'],
+                    
+                    'clarity_score'          => $findScore('Clarity')['score'],
+                    'clarity_reason'         => $findScore('Clarity')['reason'],
+                    
+                    'evidence_score'         => $findScore('Evidence')['score'],
+                    'evidence_reason'        => $findScore('Evidence')['reason'],
+                    
+                    'reproducibility_score'  => $findScore('Reproducibility')['score'] ?? 0,
+                    'reproducibility_reason' => $findScore('Reproducibility')['reason'] ?? '-',
+                    
+                    'writing_score'          => $findScore('Writing')['score'] ?? 0,
+                    'writing_reason'         => $findScore('Writing')['reason'] ?? '-',
+                    
                     'created_at'             => now(),
                     'updated_at'             => now(),
                 ]);

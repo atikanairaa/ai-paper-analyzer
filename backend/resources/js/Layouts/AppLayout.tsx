@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   FileText, UploadCloud, GitCompare, LogOut, User as UserIcon,
   LayoutDashboard, Users, ClipboardList, BookOpen, Database, Bell,
-  Clock, History, Globe
+  Clock, History, Globe, Settings
 } from 'lucide-react';
 import { ConfirmModal } from '@/Components/ConfirmModal';
 
@@ -39,7 +39,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
     // RBAC Frontend Check
     if (activeHref.startsWith('/admin') && currentRole !== 'admin') {
-        router.visit('/dashboard');
+      router.visit('/dashboard');
     }
   }, [activeHref, currentRole]);
 
@@ -47,13 +47,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     switch (role) {
       case 'admin':
         return [
-          { id: 'dashboard',         label: 'Dashboard Statistik',    href: '/admin',                    icon: <LayoutDashboard className="w-5 h-5" /> },
-          { id: 'master-paper',       label: 'Master Paper',           href: '/admin/papers',             icon: <FileText className="w-5 h-5" /> },
-          { id: 'published-papers',   label: 'Paper Dipublikasikan',   href: '/admin/published-papers',   icon: <Globe className="w-5 h-5" /> },
-          { id: 'assign-paper',       label: 'Assign Paper',           href: '/admin/assign-paper',       icon: <ClipboardList className="w-5 h-5" /> },
-          { id: 'manage-users',       label: 'Kelola Pengguna',        href: '/admin/users',              icon: <Users className="w-5 h-5" /> },
-          { id: 'manage-expertises',  label: 'Kelola Bidang Keahlian', href: '/admin/expertises',         icon: <BookOpen className="w-5 h-5" /> },
-          { id: 'audit-logs',         label: 'Riwayat Audit Log',      href: '/admin/audit',              icon: <Database className="w-5 h-5" /> },
+          { id: 'dashboard', label: 'Dashboard Statistik', href: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
+          { id: 'master-paper', label: 'Master Paper', href: '/admin/papers', icon: <FileText className="w-5 h-5" /> },
+          { id: 'published-papers', label: 'Paper Dipublikasikan', href: '/admin/published-papers', icon: <Globe className="w-5 h-5" /> },
+          { id: 'assign-paper', label: 'Assign Paper', href: '/admin/assign-paper', icon: <ClipboardList className="w-5 h-5" /> },
+          { id: 'manage-users', label: 'Kelola Pengguna', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
+          { id: 'manage-expertises', label: 'Kelola Bidang Keahlian', href: '/admin/expertises', icon: <BookOpen className="w-5 h-5" /> },
+          { id: 'manage-prompts', label: 'Kelola AI Prompts', href: '/admin/prompts', icon: <Settings className="w-5 h-5" /> },
+          { id: 'audit-logs', label: 'Riwayat Audit Log', href: '/admin/audit', icon: <Database className="w-5 h-5" /> },
         ];
       case 'reviewer':
         return [
@@ -73,9 +74,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       case 'researcher':
       default:
         return [
-          { id: 'upload',    label: 'Unggah Paper',     href: '/upload',  icon: <UploadCloud className="w-5 h-5" /> },
-          { id: 'my-papers', label: 'Paper Saya',       href: '/detail',  icon: <FileText className="w-5 h-5" /> },
-          { id: 'compare',   label: 'Bandingkan Paper', href: '/compare', icon: <GitCompare className="w-5 h-5" /> },
+          { id: 'upload', label: 'Unggah Paper', href: '/upload', icon: <UploadCloud className="w-5 h-5" /> },
+          { id: 'my-papers', label: 'Paper Saya', href: '/detail', icon: <FileText className="w-5 h-5" /> },
+          { id: 'compare', label: 'Bandingkan Paper', href: '/compare', icon: <GitCompare className="w-5 h-5" /> },
         ];
     }
   };
@@ -146,11 +147,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 <li key={menu.id}>
                   <Link
                     href={menu.href}
-                    className={`flex items-center space-x-3 px-3 py-2.5 text-sm transition-all duration-150 border-l-4 ${
-                      isActive
-                        ? 'bg-rose-50 text-rose-800 font-semibold border-rose-500 rounded-r-lg'
-                        : 'border-transparent font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 rounded-lg'
-                    }`}
+                    className={`flex items-center space-x-3 px-3 py-2.5 text-sm transition-all duration-150 border-l-4 ${isActive
+                      ? 'bg-rose-50 text-rose-800 font-semibold border-rose-500 rounded-r-lg'
+                      : 'border-transparent font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 rounded-lg'
+                      }`}
                   >
                     <span className={isActive ? 'text-rose-600' : 'text-stone-400'}>{menu.icon}</span>
                     <span>{menu.label}</span>

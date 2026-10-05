@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             ExpertiseSeeder::class,
             UserSeeder::class,
+            EvaluationCriteriaSeeder::class,
         ]);
     }
 }

@@ -43,3 +43,28 @@ Route::middleware('auth:sanctum')->group(function () {
 // server DOKU. Validasi keamanan via Signature di controller.
 // ====================================================
 Route::post('/payment/doku/webhook', [\App\Http\Controllers\PaymentController::class, 'handleWebhook']);
+
+// ====================================================
+// INTERNAL ROUTE: Untuk Python AI Service (Tanpa Sanctum)
+// Dipanggil oleh Python untuk "GET kriteria yang switch/checklist-nya true"
+// ====================================================
+Route::get('/internal/criteria', function (Request $request) {
+    $endpoint = $request->query('endpoint', 'analyze');
+    
+    // Pastikan input aman
+    $validEndpoints = ['analyze', 'review', 'qa'];
+    if (!in_array($endpoint, $validEndpoints)) {
+        return response()->json(['error' => 'Endpoint tidak valid'], 400);
+    }
+
+    // Hanya ambil kriteria yang 'is_active' = true, DAN endpoint terkait = true
+    $columnName = 'is_' . $endpoint;
+    $criteria = \App\Models\EvaluationCriterion::where('is_active', true)
+        ->where($columnName, true)
+        ->get(['name', 'instruction', 'weight']);
+
+    return response()->json([
+        'success' => true,
+        'data' => $criteria
+    ]);
+});

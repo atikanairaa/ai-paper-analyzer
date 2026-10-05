@@ -39,20 +39,14 @@ class SectionItem(BaseModel):
     is_found: bool
     summary: Optional[str] = None
 
+class ScoreItem(BaseModel):
+    criterion_name: str
+    score: int = Field(ge=0, le=100)
+    reason: str
+
 class PaperScores(BaseModel):
     overall_score: int = Field(ge=0, le=100)
-    methodology_score: int = Field(ge=0, le=100)
-    methodology_reason: str
-    novelty_score: int = Field(ge=0, le=100)
-    novelty_reason: str
-    clarity_score: int = Field(ge=0, le=100)
-    clarity_reason: str
-    evidence_score: int = Field(ge=0, le=100)
-    evidence_reason: str
-    reproducibility_score: int = Field(ge=0, le=100)
-    reproducibility_reason: str
-    writing_score: int = Field(ge=0, le=100)
-    writing_reason: str
+    criteria_scores: List[ScoreItem]
 
 class FindingItem(BaseModel):
     severity: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
