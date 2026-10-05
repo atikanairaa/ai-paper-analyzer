@@ -20,7 +20,9 @@ class Paper extends Model
         'submission_status',
         'payment_status',
         'invoice_id',
-        'payment_url'
+        'payment_url',
+        'access_type',
+        'price'
     ];
     public function authors()
     {

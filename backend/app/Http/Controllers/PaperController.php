@@ -29,6 +29,7 @@ class PaperController extends Controller
         $request->validate([
             'file' => 'required|mimes:pdf|max:20480', // Maks 20MB
             'is_submission' => 'nullable|boolean',
+            'access_type' => 'nullable|in:OPEN_ACCESS,CLOSED_ACCESS',
         ]);
 
         // 1. Simpan file PDF fisik ke storage
@@ -420,7 +421,7 @@ class PaperController extends Controller
         return response("
           <html><body style='margin:0;display:flex;height:100vh;align-items:center;justify-content:center;font-family:sans-serif;background:#faf8f5;color:#78716c;text-align:center;padding:24px;'>
             <div style='max-width:420px;background:white;padding:32px;border-radius:16px;border:1px solid #e8e4dc;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);'>
-              <div style='font-size:36px;margin-bottom:12px;'>📄</div>
+              <div style='font-size:36px;margin-bottom:12px;'>ðŸ“„</div>
               <h3 style='color:#1c1917;margin:0 0 8px 0;font-size:18px;font-weight:700;'>Pratinjau PDF Belum Tersedia</h3>
               <p style='font-size:13px;line-height:1.6;margin:0;color:#57534e;'>Paper ini merupakan data contoh dari seeder sehingga file dokumen .pdf aslinya belum tersimpan di disk lokal Anda.<br><br>Untuk melihat dokumen PDF asli di penampil ini, silakan unggah file paper baru melalui menu <b>Unggah Paper</b>.</p>
             </div>
@@ -432,17 +433,21 @@ class PaperController extends Controller
      * Publish paper setelah pembayaran selesai.
      * Hanya bisa dilakukan jika payment_status = PAID dan submission_status = ACCEPTED.
      */
-    public function publishPaper(Paper $paper)
+    public function publishPaper(Request $request, Paper $paper)
     {
         if ($paper->uploaded_by !== auth()->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        if ($paper->submission_status !== 'ACCEPTED') {
+        if ($request->has('access_type')) {
+            $paper->update(['access_type' => $request->access_type]);
+        }
+
+        if ($paper->submission_status !== 'ACCEPTED' && $paper->submission_status !== 'ACCEPT') {
             return response()->json(['error' => 'Paper belum diterima (ACCEPTED) oleh reviewer.'], 422);
         }
 
-        if (($paper->payment_status ?? 'UNPAID') !== 'PAID') {
+        if ($paper->access_type !== 'CLOSED_ACCESS' && ($paper->payment_status ?? 'UNPAID') !== 'PAID') {
             return response()->json(['error' => 'Pembayaran belum selesai. Silakan selesaikan pembayaran terlebih dahulu.'], 422);
         }
 
@@ -453,3 +458,4 @@ class PaperController extends Controller
         return response()->json(['message' => 'Paper berhasil dipublikasikan!', 'paper' => $paper]);
     }
 }
+
