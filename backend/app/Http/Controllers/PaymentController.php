@@ -9,11 +9,15 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    public function generateInvoice(Paper $paper)
+    public function generateInvoice(Request $request, Paper $paper)
     {
         // Pastikan hanya author yang bisa generate invoice
         if ($paper->uploaded_by !== auth()->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        if ($request->has('access_type')) {
+            $paper->update(['access_type' => $request->access_type]);
         }
 
         // Jika sudah ada payment_url, kembalikan yang lama

@@ -32,7 +32,7 @@ class JournalSubmittedNotification extends Notification
             'paper_id' => $this->paperId,
             'title' => 'Pengajuan Jurnal Baru',
             'message' => 'Peneliti ' . $this->researcherName . ' telah mensubmit paper baru: "' . substr($this->paperTitle, 0, 50) . '..."',
-            'url' => '/admin/papers'
+            'url' => '/admin/assign-paper'
         ];
     }
 }
