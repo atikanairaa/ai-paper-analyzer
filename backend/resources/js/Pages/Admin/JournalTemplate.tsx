@@ -1,145 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import { CheckCircle2, Save, Download } from 'lucide-react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 
-export default function JournalTemplate() {
-    const [editorData, setEditorData] = useState<string>(
-        `<!-- Header Running Head -->
-<div style="display:flex; justify-content:space-between; border-bottom:1.5px solid #a8a29e; padding-bottom:4px; font-size:11px; color:#78716c; margin-bottom:20px;">
-    <span><strong>Transactions on AI & Software Engineering</strong> | e-ISSN: 2985-XXXX</span>
-    <span>Vol. 1, No. 1 (2026) | pp. 1–10</span>
-</div>
-
-<!-- Kop Logo Jurnal -->
-<div style="text-align:center; margin-bottom:20px;">
-    <h4 style="margin:0; color:#881337; font-size:18px; font-weight:800; letter-spacing:2px;">✦ AI RESEARCH PAPER PUBLISHING ✦</h4>
-    <p style="margin:2px 0 0 0; font-size:10px; color:#78716c; letter-spacing:1px;">INTERNATIONAL JOURNAL OF COMPUTATIONAL INTELLIGENCE & SOFTWARE</p>
-</div>
-
-<!-- Judul Naskah Marun -->
-<h1>Tuliskan Judul Naskah Artikel Anda di Sini: Maksimal 15 Kata, Jelas, Padat, dan Deskriptif</h1>
-
-<!-- Penulis & Afiliasi -->
-<p style="text-align:center; font-size:13px; font-weight:bold; margin-bottom:4px;">
-    Penulis Pertama¹, Penulis Kedua², Penulis Ketiga³
-</p>
-<p style="text-align:center; font-size:11px; color:#57534e; margin-bottom:4px;">
-    ¹ Department of Computer Science, Faculty of Engineering, University Name, City, Country<br>
-    ² Department of Information Technology, University Name, City, Country
-</p>
-<p style="text-align:center; font-size:11px; color:#881337; font-style:italic; margin-bottom:20px;">
-    * Penulis Korespondensi: <u>corresponding.author@institution.ac.id</u>
-</p>
-
-<!-- Tabel Metadata Editorial -->
-<figure class="table">
-  <table style="width:100%; border:1px solid #d6d3d1;">
-    <tbody>
-      <tr style="background-color:#f5f5f4;">
-        <td style="width:15%; font-weight:bold;">Received:</td>
-        <td style="width:35%; color:#78716c;">[Diisi oleh Editor]</td>
-        <td style="width:15%; font-weight:bold;">Revised:</td>
-        <td style="width:35%; color:#78716c;">[Diisi oleh Editor]</td>
-      </tr>
-      <tr style="background-color:#f5f5f4;">
-        <td style="font-weight:bold;">Accepted:</td>
-        <td style="color:#78716c;">[Diisi oleh Editor]</td>
-        <td style="font-weight:bold;">Published:</td>
-        <td style="color:#78716c;">[Diisi oleh Editor]</td>
-      </tr>
-      <tr>
-        <td style="font-weight:bold;">How to cite:</td>
-        <td colspan="3" style="font-style:italic; color:#78716c;">
-          [Diisi oleh Editor] Penulis Pertama, Penulis Kedua. (2026). Judul Artikel Naskah. Transactions on AI & Software Engineering, 1(1), 1–10.
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</figure>
-
-<!-- Kotak Abstrak Berbingkai Marun -->
-<div style="border:1.5px solid #881337; border-radius:6px; padding:16px 20px; background-color:#fffafb; margin:24px 0;">
-    <p style="font-weight:bold; font-size:13px; color:#881337; margin:0 0 8px 0;">Abstract</p>
-    <p style="font-size:12px; font-style:italic; text-align:justify; line-height:1.6; margin:0 0 10px 0; color:#292524;">
-        Tuliskan abstrak naskah Anda di sini (150–250 kata). Abstrak harus memberikan gambaran yang jelas mengenai latar belakang masalah, tujuan penelitian, metode eksperimental yang digunakan, hasil utama yang diperoleh, dan kontribusi orisinal penelitian. Hindari penggunaan singkatan yang tidak umum dan kutipan sitasi di dalam abstrak.
-    </p>
-    <p style="font-size:12px; margin:0;">
-        <strong style="color:#881337;">Keywords:</strong> <em>Artificial Intelligence, Machine Learning, Deep Learning, Software Engineering, Model Forecasting. (3–5 kata kunci dipisahkan koma)</em>
-    </p>
-</div>
-
-<!-- 1. Introduction -->
-<h2>1. Introduction</h2>
-<p style="font-size:12px; text-align:justify; line-height:1.7;">
-    Pendahuluan menguraikan latar belakang penelitian, urgensi permasalahan di bidang terkait, serta tinjauan literatur dari penelitian terdahulu [1]. Jelaskan celah riset (research gap) yang menjadi motivasi utama penelitian ini. Di akhir bagian pendahuluan, sebutkan tujuan penelitian dan kontribusi kebaruan (novelty) yang diajukan secara eksplisit.
-</p>
-
-<!-- 2. Methods -->
-<h2>2. Methods</h2>
-<p style="font-size:12px; text-align:justify; line-height:1.7;">
-    Jelaskan metode penelitian, arsitektur sistem, dataset, serta parameter eksperimen secara rinci agar riset ini dapat direproduksi (reproducible) oleh peneliti lain.
-</p>
-
-<!-- Tabel Berwarna Marun Sesuai PDF Contoh -->
-<p style="font-size:12px; font-weight:bold; margin-top:16px; margin-bottom:4px;">Table 1. Experimental Environment Configuration</p>
-<figure class="table">
-  <table style="width:100%;">
-    <thead>
-      <tr>
-        <th>Component</th>
-        <th>Specification</th>
-        <th>Version / Detail</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Operating System</td>
-        <td>Ubuntu / Windows Server</td>
-        <td>22.04 LTS / 2022</td>
-      </tr>
-      <tr>
-        <td>Programming Language</td>
-        <td>Python / PHP</td>
-        <td>3.11 / 8.3 LTS</td>
-      </tr>
-      <tr>
-        <td>AI Framework / Library</td>
-        <td>FastAPI & PyTorch</td>
-        <td>0.110.0</td>
-      </tr>
-      <tr>
-        <td>Hardware Configuration</td>
-        <td>CPU, RAM, GPU</td>
-        <td>NVIDIA RTX 4090 24GB</td>
-      </tr>
-    </tbody>
-  </table>
-</figure>
-
-<!-- 3. Results and Discussion -->
-<h2>3. Results and Discussion</h2>
-<p style="font-size:12px; text-align:justify; line-height:1.7;">
-    Sajikan hasil pengujian dan analisis performa model secara komprehensif. Bandingkan hasil evaluasi yang diperoleh dengan metode baseline atau penelitian sebelumnya [2].
-</p>
-
-<!-- 4. Conclusion -->
-<h2>4. Conclusion</h2>
-<p style="font-size:12px; text-align:justify; line-height:1.7;">
-    Kesimpulan merangkum kontribusi utama dan jawaban atas tujuan penelitian. Sebutkan pula batasan penelitian serta rekomendasi untuk pengembangan riset selanjutnya.
-</p>
-
-<!-- Kotak Submission Checklist Sesuai Halaman 4 PDF -->
-<div style="border:1.5px solid #d97706; border-radius:6px; padding:16px 20px; background-color:#fffbeb; margin:28px 0;">
-    <p style="font-weight:bold; font-size:13px; color:#b45309; margin:0 0 8px 0;">Submission Checklist</p>
-    <p style="font-size:11px; line-height:1.6; color:#78350f; margin:0;">
-        Sebelum mengirimkan naskah, pastikan kondisi berikut terpenuhi: Naskah terdiri dari 6–15 halaman termasuk gambar dan tabel. Judul artikel tidak melebihi 15 kata. Seluruh nama penulis dicantumkan tanpa gelar akademik. Abstrak berupa satu paragraf (150–250 kata) disertai 3–5 kata kunci. Tabel dan persamaan telah diberi nomor urut. Referensi mengacu pada format standar IEEE dengan minimal 20 sumber rujukan primer.
-    </p>
-</div>`
-    );
+export default function JournalTemplate({ initialTemplate = "" }: { initialTemplate?: string }) {
+    const [editorData, setEditorData] = useState<string>(initialTemplate);
     const [isLoading, setIsLoading] = useState(false);
+
+    const editorContainerRef = useRef<HTMLDivElement>(null);
+    const editorInstanceRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && (window as any).CKEDITOR && editorContainerRef.current && !editorInstanceRef.current) {
+            (window as any).CKEDITOR.ClassicEditor.create(editorContainerRef.current, {
+                plugins: [
+                    'Alignment', 'Autoformat', 'BlockQuote', 'Bold', 'Italic',
+                    'Heading', 'Indent', 'Link', 'List', 'Paragraph', 'Table',
+                    'TableToolbar', 'TableProperties', 'TableCellProperties',
+                    'FontColor', 'FontBackgroundColor', 'FontSize', 'FontFamily',
+                    'GeneralHtmlSupport', 'SourceEditing', 'RemoveFormat'
+                ],
+                toolbar: {
+                    items: [
+                        'sourceEditing', '|',
+                        'heading', '|',
+                        'fontFamily', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+                        'bold', 'italic', 'removeFormat', '|',
+                        'alignment', 'bulletedList', 'numberedList', 'outdent', 'indent', '|',
+                        'insertTable', 'blockQuote', '|',
+                        'undo', 'redo'
+                    ],
+                    shouldNotGroupWhenFull: true
+                },
+                htmlSupport: {
+                    allow: [{ name: /.*/, attributes: true, classes: true, styles: true }]
+                }
+            }).then((editor: any) => {
+                editorInstanceRef.current = editor;
+                editor.setData(initialTemplate);
+                editor.model.document.on('change:data', () => {
+                    setEditorData(editor.getData());
+                });
+            }).catch((error: any) => {
+                console.error("CKEditor initialization error:", error);
+            });
+        }
+        
+        return () => {
+            if (editorInstanceRef.current) {
+                editorInstanceRef.current.destroy();
+                editorInstanceRef.current = null;
+            }
+        };
+    }, [initialTemplate]);
+
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     const handleDownloadWord = () => {
@@ -216,12 +130,19 @@ export default function JournalTemplate() {
 
     const handleSave = () => {
         setIsLoading(true);
-        // Simulasi POST request karena DILARANG menyentuh file Controller PHP
-        setTimeout(() => {
-            setIsLoading(false);
-            setToastMessage('✓ Template jurnal berhasil diperbarui!');
-            setTimeout(() => setToastMessage(null), 3000);
-        }, 1000);
+        router.post('/admin/journal-template', { template: editorData }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsLoading(false);
+                setToastMessage('? Template jurnal berhasil diperbarui!');
+                setTimeout(() => setToastMessage(null), 3000);
+            },
+            onError: () => {
+                setIsLoading(false);
+                setToastMessage('? Gagal menyimpan template.');
+                setTimeout(() => setToastMessage(null), 3000);
+            }
+        });
     };
 
     return (
@@ -237,14 +158,7 @@ export default function JournalTemplate() {
 
                 <div className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-sm mb-6">
                     <div className="ck-editor-container min-h-[400px]">
-                        <CKEditor
-                            editor={ClassicEditor}
-                            data={editorData}
-                            onChange={(event, editor) => {
-                                const data = editor.getData();
-                                setEditorData(data);
-                            }}
-                        />
+                        <div ref={editorContainerRef}></div>
                     </div>
                 </div>
 

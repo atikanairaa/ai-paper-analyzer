@@ -58,7 +58,8 @@ STANDAR TINGKAT KEPARAHAN KELEMAHAN (SEVERITY):
 ATURAN KECEPATAN & STRICT GROUNDING:
 1. Seluruh kalimat "reason", "summary", dan "explanation" WAJIB MAKSIMAL 2 KALIMAT PADAT, TAJAM & ILMIAH dalam Bahasa Indonesia.
 2. DILARANG MENGARANG (STRICT GROUNDING): Jika suatu informasi/bagian tidak ada di dokumen, wajib kembalikan null atau {"is_found": false, "summary": null}.
-3. PURE JSON ONLY: Kembalikan respon murni JSON valid tanpa teks pembuka/penutup."""
+3. PURE JSON ONLY: Kembalikan respon murni JSON valid tanpa teks pembuka/penutup.
+4. EKSTRAKSI KATA KUNCI (KEYWORDS): Untuk field `keywords`, Anda WAJIB mengambil persis kata kunci (keywords) yang ditulis oleh penulis di dalam dokumen asli. Dilarang keras merangkum, menerjemahkan, atau mengarang kata kunci sendiri."""
 
     @classmethod
     def run_full_analysis(cls, paper_text: str, expertises: str = None) -> FullAnalyzeDataResponse:

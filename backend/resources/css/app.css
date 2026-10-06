@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* CKEditor Content Styles */
+.ck-content .text-align-center { text-align: center; }
+.ck-content .text-align-right { text-align: right; }
+.ck-content .text-align-justify { text-align: justify; }
+.ck-content figure.table { display: table; clear: both; margin: 12pt auto; width: 100%; }
+.ck-content figure.table table { border-collapse: collapse; width: 100%; }
+.ck-content figure.table td, .ck-content figure.table th { border: 1px solid #78716c; padding: 6pt 10pt; }
+.ck-content blockquote { border-left: 5px solid #881337; font-style: italic; background-color: #fff1f2; padding: 10px 20px; margin: 10px 0; }
+
+
+/* CKEditor Font Sizes */
+.ck-content .text-tiny { font-size: 0.7em; }
+.ck-content .text-small { font-size: 0.85em; }
+.ck-content .text-big { font-size: 1.4em; }
+.ck-content .text-huge { font-size: 1.8em; }

@@ -49,7 +49,7 @@ class AnalyzePaperJob implements ShouldQueue
             'updated_at'  => now(),
         ]);
 
-        $filePath = Storage::path($paper->file_path);
+        $filePath = \Illuminate\Support\Facades\Storage::disk('public')->path($paper->file_path);
 
         try {
             $expertises = \App\Models\Expertise::pluck('name')->implode(' | ');

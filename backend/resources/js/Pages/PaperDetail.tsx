@@ -24,6 +24,7 @@ import {
     Library,
     UploadCloud,
     CreditCard,
+    FileText,
 } from "lucide-react";
 import { RevisionUploadModal } from "@/Components/RevisionUploadModal";
 
@@ -48,11 +49,56 @@ const RESEARCH_ELEMENTS = [
     { key: "limitation", label: "Limitation", icon: "❿", synonyms: ["limitations", "future work"] },
 ];
 
-type ActiveTab = "dashboard" | "read";
+type ActiveTab = "dashboard" | "read" | "template";
 
 export default function PaperDetail() {
-    const { props } = usePage<PageProps<{ paper?: Paper }>>();
+    const { props } = usePage<PageProps<{ paper?: Paper, renderedTemplate?: string }>>();
     const paper = props.paper;
+
+    const handleDownloadWord = () => {
+        if (!props.renderedTemplate) return;
+        
+        let processedHtml = props.renderedTemplate;
+
+        // 1. Hapus tag figure
+        processedHtml = processedHtml.replace(/<\/?figure[^>]*>/gi, '');
+        // 2. HAPUS tag <thead> dan <tbody>
+        processedHtml = processedHtml.replace(/<\/?(thead|tbody)[^>]*>/gi, '');
+        // 3. Ubah semua <th> menjadi <td>
+        processedHtml = processedHtml.replace(/<th[^>]*>/gi, '<td bgcolor="#881337" style="background-color: #881337; color: #ffffff; font-weight: bold; border: 1px solid #78716c; padding: 6pt 10pt; font-size: 10pt; text-align: left;">');
+        processedHtml = processedHtml.replace(/<\/th>/gi, '</td>');
+        // 4. Pastikan semua <td> yang bukan header memiliki border
+        processedHtml = processedHtml.replace(/<td(?![^>]*bgcolor)([^>]*)>/gi, '<td style="border: 1px solid #78716c; padding: 6pt 10pt; font-size: 10pt; vertical-align: top;"$1>');
+        // 5. Pastikan tag <table>
+        processedHtml = processedHtml.replace(/<table[^>]*>/gi, '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; width: 100%; border: 1px solid #78716c; margin: 12pt 0;">');
+
+        const wordStyles = `
+            <style>
+                @page { size: A4; margin: 2.5cm 2.5cm 2.5cm 2.5cm; }
+                body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; color: #1c1917; }
+                table { border-collapse: collapse !important; width: 100% !important; margin: 12pt 0 !important; border: 1px solid #78716c !important; }
+                td { border: 1px solid #78716c !important; padding: 6pt 10pt !important; }
+            </style>
+        `;
+
+        const header = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>Draft Template Naskah</title>${wordStyles}</head>
+            <body>
+        `;
+        const footer = "</body></html>";
+        const fullContent = header + processedHtml + footer;
+
+        const blob = new Blob(['\ufeff' + fullContent], { type: 'application/msword;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Draft_Jurnal.doc`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
     const [isActionLoading, setIsActionLoading] = useState(false);
@@ -424,6 +470,17 @@ export default function PaperDetail() {
                                     ? "Baca Paper & Review Paper"
                                     : "Baca Paper & Chat AI"}
                             </span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("template")}
+                            className={`flex-1 flex items-center justify-center gap-2.5 py-4 px-6 text-sm font-semibold transition-all border-b-2 ${
+                                activeTab === "template"
+                                    ? "bg-rose-50 text-rose-800 border-rose-600"
+                                    : "text-stone-500 border-transparent hover:text-stone-800 hover:bg-stone-50"
+                            }`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            <span>Preview Template</span>
                         </button>
                     </div>
                 </div>
@@ -1243,6 +1300,29 @@ export default function PaperDetail() {
                 {/* ════════════════════════════════════════
                     TAB 2: BACA PAPER & CHAT AI
                 ════════════════════════════════════════ */}
+                {activeTab === "template" && (
+                    <div className="bg-white border border-[#e8e4dc] rounded-2xl shadow-sm p-8">
+                        <div className="mb-6 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold text-stone-900">Preview Template Jurnal</h2>
+                                <p className="text-sm text-stone-500">Pratinjau bagaimana paper ini akan ditampilkan pada saat Publikasi (Guest View).</p>
+                            </div>
+                            <button
+                                onClick={handleDownloadWord}
+                                className="bg-stone-800 hover:bg-stone-900 text-white font-medium rounded-xl px-5 py-2.5 shadow-sm flex items-center gap-2 transition-colors"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Download Format Word</span>
+                            </button>
+                        </div>
+                        {props.renderedTemplate ? (
+                            <div className="ck-content bg-stone-50 p-8 rounded-xl border border-stone-200" dangerouslySetInnerHTML={{ __html: props.renderedTemplate }} />
+                        ) : (
+                            <div className="text-center p-8 text-stone-500">Template tidak tersedia.</div>
+                        )}
+                    </div>
+                )}
+
                 {activeTab === "read" && (
                     <div
                         className="flex flex-col lg:flex-row gap-5"
@@ -1262,7 +1342,7 @@ export default function PaperDetail() {
                             <div className="flex-1 min-h-0">
                                 {pdfUrl ? (
                                     <iframe
-                                        src={(props.auth?.peran === 'admin' || props.auth?.peran === 'reviewer') ? `/papers/${paper.id}/watermark-pdf#navpanes=0&pagemode=none&view=FitH` : `/papers/${paper.id}/pdf-view#navpanes=0&pagemode=none&view=FitH`}
+                                        src={(props.auth?.peran === 'admin' || props.auth?.peran === 'reviewer') ? `/papers/${paper.id}/watermark-pdf#navpanes=0&pagemode=none&view=FitH` : `${pdfUrl}#navpanes=0&pagemode=none&view=FitH`}
                                         className="w-full h-full border-none"
                                         title="PDF Viewer"
                                     />
@@ -1445,3 +1525,4 @@ export default function PaperDetail() {
         </AppLayout>
     );
 }
+

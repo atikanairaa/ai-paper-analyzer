@@ -19,4 +19,4 @@ APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 
 if not DOKU_CLIENT_ID or not DOKU_SECRET_KEY:
     # Peringatkan jika developer lupa isi .env
-    pass
+    pass

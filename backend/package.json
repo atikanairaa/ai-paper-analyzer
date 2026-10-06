@@ -21,6 +21,8 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
+        "@ckeditor/ckeditor5-build-classic": "^41.4.2",
+        "@ckeditor/ckeditor5-react": "^11.2.0",
         "@headlessui/react": "^2.2.10",
         "recharts": "^3.10.1"
     }
