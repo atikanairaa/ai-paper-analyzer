@@ -985,54 +985,38 @@ export default function PaperDetail() {
                                                 />
                                             </div>
                                             <div className="grid grid-cols-1 gap-3">
-                                                <ScoreCard
-                                                    title="Metodologi"
-                                                    score={
-                                                        scores.methodology_score
-                                                    }
-                                                    reason={
-                                                        scores.methodology_reason
-                                                    }
-                                                />
-                                                <ScoreCard
-                                                    title="Kebaruan (Novelty)"
-                                                    score={scores.novelty_score}
-                                                    reason={
-                                                        scores.novelty_reason
-                                                    }
-                                                />
-                                                <ScoreCard
-                                                    title="Kejelasan (Clarity)"
-                                                    score={scores.clarity_score}
-                                                    reason={
-                                                        scores.clarity_reason
-                                                    }
-                                                />
-                                                <ScoreCard
-                                                    title="Bukti (Evidence)"
-                                                    score={
-                                                        scores.evidence_score
-                                                    }
-                                                    reason={
-                                                        scores.evidence_reason
-                                                    }
-                                                />
-                                                <ScoreCard
-                                                    title="Reproduksibilitas"
-                                                    score={
-                                                        scores.reproducibility_score
-                                                    }
-                                                    reason={
-                                                        scores.reproducibility_reason
-                                                    }
-                                                />
-                                                <ScoreCard
-                                                    title="Kualitas Penulisan"
-                                                    score={scores.writing_score}
-                                                    reason={
-                                                        scores.writing_reason
-                                                    }
-                                                />
+                                                {(() => {
+                                                    // Peta label untuk setiap score field
+                                                    const scoreFields = [
+                                                        { key: 'methodology', label: 'Metodologi' },
+                                                        { key: 'novelty', label: 'Kebaruan (Novelty)' },
+                                                        { key: 'evidence', label: 'Bukti (Evidence)' },
+                                                        { key: 'clarity', label: 'Kejelasan (Clarity)' },
+                                                        { key: 'references', label: 'Referensi & Sitasi' },
+                                                        { key: 'reproducibility', label: 'Reproduksibilitas' },
+                                                        { key: 'writing', label: 'Kualitas Penulisan' },
+                                                    ];
+
+                                                    // Filter: hanya tampilkan yang ada datanya dan skornya > 0
+                                                    return scoreFields
+                                                        .filter((f) => {
+                                                            const scoreKey = `${f.key}_score` as keyof typeof scores;
+                                                            const val = scores[scoreKey];
+                                                            return val !== undefined && val !== null && Number(val) > 0;
+                                                        })
+                                                        .map((f) => {
+                                                            const scoreKey = `${f.key}_score` as keyof typeof scores;
+                                                            const reasonKey = `${f.key}_reason` as keyof typeof scores;
+                                                            return (
+                                                                <ScoreCard
+                                                                    key={f.key}
+                                                                    title={f.label}
+                                                                    score={Number(scores[scoreKey])}
+                                                                    reason={String(scores[reasonKey] || '-')}
+                                                                />
+                                                            );
+                                                        });
+                                                })()}
                                             </div>
                                         </div>
                                     </div>

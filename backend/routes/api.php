@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Paper;
+use Illuminate\Support\Facades\Log;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -37,12 +39,36 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
+
+
+// ====================================================
+// INTERNAL ROUTE: Untuk Python AI Service (Tanpa Sanctum)
+// Dipanggil oleh Python untuk "GET kriteria yang switch/checklist-nya true"
+// ====================================================
+Route::get('/internal/criteria', function (Request $request) {
+    $endpoint = $request->query('endpoint', 'analyze');
+    
+    // Pastikan input aman
+    $validEndpoints = ['analyze', 'review', 'qa'];
+    if (!in_array($endpoint, $validEndpoints)) {
+        return response()->json(['error' => 'Endpoint tidak valid'], 400);
+    }
+
+    // Hanya ambil kriteria yang 'is_active' = true, DAN endpoint terkait = true
+    $columnName = 'is_' . $endpoint;
+    $criteria = \App\Models\EvaluationCriterion::where('is_active', true)
+        ->where($columnName, true)
+        ->get(['name', 'instruction', 'weight']);
+
+    return response()->json([
+        'success' => true,
+        'data' => $criteria
+    ]);
+});
+
 // ====================================================
 // WEBHOOK LISTENER DOKU — Bebas auth/CSRF, dipanggil oleh server DOKU
 // ====================================================
-use App\Models\Paper;
-use Illuminate\Support\Facades\Log;
-
 Route::post('/payment/doku-webhook', function (Request $request) {
     // Log setiap request masuk untuk debugging
     Log::info('[DOKU Webhook] Request diterima', [
