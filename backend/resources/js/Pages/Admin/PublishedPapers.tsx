@@ -3,7 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { 
     BookOpen, Search, ChevronLeft, ChevronRight, 
-    ExternalLink, Calendar, User, Tag, Library 
+    ExternalLink, Calendar, User, Tag, Library, Printer 
 } from 'lucide-react';
 
 interface Author { id: number; name: string; }
@@ -239,6 +239,12 @@ function PaperRow({ paper, isLast }: { paper: Paper; isLast: boolean }) {
         day: '2-digit', month: 'long', year: 'numeric'
     });
 
+    const handleGeneratePdf = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        // Open katalog detail page — it has the template-based PDF generation
+        window.open(`/katalog/${paper.id}?generatePdf=1`, '_blank');
+    };
+
     return (
         <div
             className={`flex flex-col sm:flex-row sm:items-center gap-3 px-6 py-4 hover:bg-stone-50 transition-colors cursor-pointer group ${!isLast ? 'border-b border-[#e8e4dc]' : ''}`}
@@ -272,13 +278,21 @@ function PaperRow({ paper, isLast }: { paper: Paper; isLast: boolean }) {
                 </div>
             </div>
 
-            {/* Domain badge + link */}
+            {/* Actions + Domain badge + link */}
             <div className="flex items-center gap-2 flex-shrink-0">
                 {domain && (
                     <span className="px-2.5 py-1 bg-rose-50 text-rose-700 text-[11px] font-bold rounded-lg border border-rose-100">
                         {domain}
                     </span>
                 )}
+                <button
+                    onClick={handleGeneratePdf}
+                    title="Generate PDF dari Template Jurnal"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold hover:bg-indigo-100 transition-colors"
+                >
+                    <Printer className="w-3.5 h-3.5" />
+                    PDF Template
+                </button>
                 <ExternalLink className="w-4 h-4 text-stone-300 group-hover:text-rose-500 transition-colors" />
             </div>
         </div>

@@ -25,6 +25,9 @@ import {
     UploadCloud,
     CreditCard,
     FileText,
+    ChevronLeft,
+    ChevronRight,
+    Printer,
 } from "lucide-react";
 import { RevisionUploadModal } from "@/Components/RevisionUploadModal";
 
@@ -100,7 +103,26 @@ export default function PaperDetail() {
         URL.revokeObjectURL(url);
     };
 
+
+
     const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const contentRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (activeTab === "template" && contentRef.current) {
+            setTimeout(() => {
+                if (contentRef.current) {
+                    const scrollW = contentRef.current.scrollWidth;
+                    const clientW = contentRef.current.clientWidth;
+                    const calculatedPages = Math.ceil(scrollW / clientW);
+                    setTotalPages(calculatedPages > 0 ? calculatedPages : 1);
+                }
+            }, 300);
+        }
+    }, [props.renderedTemplate, activeTab]);
+    
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
     const [selectedAccessType, setSelectedAccessType] = useState<"OPEN_ACCESS" | "CLOSED_ACCESS">("OPEN_ACCESS");
@@ -1285,24 +1307,121 @@ export default function PaperDetail() {
                     TAB 2: BACA PAPER & CHAT AI
                 ════════════════════════════════════════ */}
                 {activeTab === "template" && (
-                    <div className="bg-white border border-[#e8e4dc] rounded-2xl shadow-sm p-8">
-                        <div className="mb-6 flex items-center justify-between">
+                    <div className="bg-[#e0e0e0] border border-[#e8e4dc] rounded-2xl shadow-sm p-8 min-h-[600px]">
+                        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <h2 className="text-xl font-bold text-stone-900">Preview Template Jurnal</h2>
-                                <p className="text-sm text-stone-500">Pratinjau bagaimana paper ini akan ditampilkan pada saat Publikasi (Guest View).</p>
+                                <p className="text-sm text-stone-600">Pratinjau naskah dalam format jurnal A4 (CKEditor 4.22).</p>
                             </div>
-                            <button
-                                onClick={handleDownloadWord}
-                                className="bg-stone-800 hover:bg-stone-900 text-white font-medium rounded-xl px-5 py-2.5 shadow-sm flex items-center gap-2 transition-colors"
-                            >
-                                <Download className="w-4 h-4" />
-                                <span>Download Format Word</span>
-                            </button>
+                            <div className="flex items-center gap-3">
+                                
+                                <button
+                                    onClick={handleDownloadWord}
+                                    className="bg-stone-800 hover:bg-stone-900 text-white font-medium rounded-xl px-5 py-2.5 shadow-sm flex items-center gap-2 transition-colors"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span>Unduh Word (.doc)</span>
+                                </button>
+                            </div>
                         </div>
+
                         {props.renderedTemplate ? (
-                            <div className="ck-content bg-stone-50 p-8 rounded-xl border border-stone-200" dangerouslySetInnerHTML={{ __html: props.renderedTemplate }} />
+                            <>
+                                {/* Pagination Header */}
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-between mb-4 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-white">
+                                        <span className="text-sm font-semibold text-stone-700">
+                                            Halaman {currentPage} dari {totalPages}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                                disabled={currentPage <= 1}
+                                                className="p-2 rounded-lg bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-40 transition"
+                                            >
+                                                <ChevronLeft className="w-4 h-4" />
+                                            </button>
+                                            {Array.from({ length: totalPages }, (_, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setCurrentPage(i + 1)}
+                                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition ${currentPage === i + 1 ? "bg-rose-700 text-white" : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"}`}
+                                                >
+                                                    {i + 1}
+                                                </button>
+                                            ))}
+                                            <button
+                                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage >= totalPages}
+                                                className="p-2 rounded-lg bg-white border border-stone-200 hover:bg-stone-50 disabled:opacity-40 transition"
+                                            >
+                                                <ChevronRight className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* A4 Page View (CSS Column Pagination) */}
+                                <div 
+                                    className="bg-white shadow-xl rounded-sm overflow-hidden relative mb-6 mx-auto"
+                                    style={{
+                                        width: "794px",
+                                        height: "1123px",
+                                        boxSizing: "border-box",
+                                    }}
+                                >
+                                    <div 
+                                        ref={contentRef}
+                                        className="ck-content h-full"
+                                        style={{
+                                            columnWidth: "794px",
+                                            columnGap: "0",
+                                            columnFill: "auto",
+                                            height: "1123px",
+                                            padding: "96px", // 2.54cm margins
+                                            boxSizing: "border-box",
+                                            fontFamily: "'Times New Roman', Times, serif",
+                                            fontSize: "11pt",
+                                            lineHeight: "1.6",
+                                            color: "#1c1917",
+                                            transform: `translateX(-${(currentPage - 1) * 794}px)`,
+                                            transition: "transform 0.4s ease-in-out",
+                                            width: "794px"
+                                        }}
+                                        dangerouslySetInnerHTML={{ __html: props.renderedTemplate || "" }}
+                                    />
+                                    {/* Page Footer overlay */}
+                                    <div 
+                                        style={{
+                                            position: "absolute",
+                                            bottom: "24px",
+                                            left: "96px",
+                                            right: "96px",
+                                            textAlign: "center",
+                                            fontSize: "9pt",
+                                            color: "#78716c",
+                                            borderTop: "1px solid #e7e5e4",
+                                            paddingTop: "6px",
+                                            backgroundColor: "white",
+                                            zIndex: 10
+                                        }}
+                                    >
+                                        {paper?.title || "Naskah Jurnal"} &mdash; Halaman {currentPage}
+                                    </div>
+                                </div>
+                                <style>{`
+                                    .ck-content h1 { color: #881337; font-size: 22px; font-weight: 900; text-align: center; margin: 18px 0; line-height: 1.3; }
+                                    .ck-content h2 { color: #881337; font-size: 15px; font-weight: 700; margin-top: 24px; margin-bottom: 8px; border-bottom: 1px solid #fecdd3; padding-bottom: 4px; break-after: avoid; }
+                                    .ck-content h3 { color: #881337; font-size: 14px; font-weight: bold; border-bottom: 1px solid #fecdd3; padding-bottom: 4px; break-after: avoid; }
+                                    .ck-content table { border-collapse: collapse; width: 100%; margin: 12pt 0; break-inside: avoid; }
+                                    .ck-content th { background-color: #881337; color: #ffffff; font-weight: 700; text-align: left; padding: 8px 12px; border: 1px solid #9f1239; }
+                                    .ck-content td { padding: 8px 12px; border: 1px solid #e7e5e4; font-size: 12px; }
+                                    .ck-content p { break-inside: avoid-page; }
+                                    .ck-content img { max-width: 100%; height: auto; break-inside: avoid; }
+                                `}</style>
+                            </>
                         ) : (
-                            <div className="text-center p-8 text-stone-500">Template tidak tersedia.</div>
+                            <div className="text-center p-8 bg-white rounded-xl text-stone-500">Template tidak tersedia.</div>
                         )}
                     </div>
                 )}
@@ -1509,4 +1628,7 @@ export default function PaperDetail() {
         </AppLayout>
     );
 }
+
+
+
 
