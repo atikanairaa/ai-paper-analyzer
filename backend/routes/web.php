@@ -7,7 +7,7 @@ use Inertia\Inertia;
 
 // â”€â”€â”€ Halaman Publik â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Route::get('/', function () {
-    return redirect()->route('login');
+    return redirect()->route('guest.catalog');
 });
 
 // â”€â”€â”€ Halaman Terproteksi (Butuh Login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -25,21 +25,30 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('reviewer');
         }
 
+        if ($user->hasRole('reader')) {
+            return redirect()->route('guest.catalog');
+        }
+
         // Default: peneliti
         return redirect()->route('upload');
     })->name('dashboard');
 
     // â”€â”€ Rute halaman Peneliti â”€â”€
-    Route::get('/upload',  fn () => Inertia::render('Upload'))->name('upload');
-    Route::get('/upload/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('upload.detail');
-    Route::get('/detail',  fn () => Inertia::render('MyPapers'))->name('paper.detail');
-    Route::get('/detail/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('paper.detail.show');
-    Route::get('/papers/{id}/export-review', [\App\Http\Controllers\PaperController::class, 'exportReview'])->name('paper.export-review');
-    Route::get('/papers/{id}/pdf-view', [\App\Http\Controllers\PaperController::class, 'viewPdf'])->name('papers.pdf.view');
-    Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
-    Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
-    Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
-    Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
+    Route::middleware(['auth', \App\Http\Middleware\PreventReaderAccess::class])->group(function () {
+        Route::get('/upload',  fn () => Inertia::render('Upload'))->name('upload');
+        Route::get('/upload/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('upload.detail');
+        Route::get('/detail',  fn () => Inertia::render('MyPapers'))->name('paper.detail');
+        Route::get('/detail/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('paper.detail.show');
+        Route::get('/papers/{id}/export-review', [\App\Http\Controllers\PaperController::class, 'exportReview'])->name('paper.export-review');
+        Route::get('/papers/{id}/pdf-view', [\App\Http\Controllers\PaperController::class, 'viewPdf'])->name('papers.pdf.view');
+        Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
+        Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
+        
+        // Payment routes untuk Author/Researcher
+        Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
+        
+        Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
+    });
 
     // â”€â”€ [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok â”€â”€
     Route::get('/simulasi-lunas/{id}', function ($id) {
@@ -125,3 +134,8 @@ Route::get('/storage/papers/{filename}', function ($filename) {
 
 Route::get('/katalog', [\App\Http\Controllers\GuestPaperController::class, 'index'])->name('guest.catalog');
 Route::get('/katalog/{id}', [\App\Http\Controllers\GuestPaperController::class, 'show'])->name('guest.catalog.show');
+Route::get('/paper/{id}/read', [\App\Http\Controllers\GuestPaperController::class, 'read'])->name('guest.paper.read');
+
+// Payment routes untuk Reader/Guest (Bisa diakses tanpa login)
+Route::post('/papers/{paper}/buy', [\App\Http\Controllers\PaymentController::class, 'generateReaderInvoice'])->name('payment.buy');
+Route::get('/payment/finish', [\App\Http\Controllers\PaymentController::class, 'finishCallback'])->name('payment.finish');

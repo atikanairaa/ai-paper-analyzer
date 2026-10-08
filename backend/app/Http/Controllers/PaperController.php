@@ -71,6 +71,24 @@ class PaperController extends Controller
 
     public function showWeb($id)
     {
+        // Intercept simulated Python DOKU redirect for Readers
+        if (str_ends_with($id, '-READ')) {
+            $realId = str_replace('-READ', '', $id);
+            $latestPurchase = \App\Models\Purchase::where('paper_id', $realId)->latest()->first();
+            
+            if ($latestPurchase) {
+                // Tandai lunas khusus untuk mode simulasi ini
+                $latestPurchase->update(['payment_status' => 'PAID']);
+                
+                $redirectUrl = route('guest.paper.read', ['id' => $realId]);
+                if ($latestPurchase->access_token && !$latestPurchase->user_id) {
+                    $redirectUrl .= '?token=' . $latestPurchase->access_token;
+                }
+                return redirect($redirectUrl)->with('success', 'Pembayaran berhasil! Selamat membaca naskah.');
+            }
+            return redirect('/katalog')->with('success', 'Pembayaran selesai.');
+        }
+
         $paper = Paper::with(['authors', 'analyses', 'scores', 'findings', 'sections', 'references', 'latestJob', 'reviews.reviewer'])->findOrFail($id);
         
         // --- Template Rendering Logic ---

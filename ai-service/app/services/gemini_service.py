@@ -10,7 +10,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 T = TypeVar("T", bound=BaseModel)
 
 class GeminiService:
-    MODEL_NAME = "gemini-3.6-flash"
+    MODEL_NAME = "models/gemini-3-flash-preview"
 
     @classmethod
     def call_gemini_with_repair(

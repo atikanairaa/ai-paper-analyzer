@@ -1,10 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Download, Head, Link } from '@inertiajs/react';
-import { Lock, FileText, ArrowLeft } from 'lucide-react';
+import { Lock, FileText, ArrowLeft, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 export default function PaperDetail({
- paper, isLocked, price, renderedTemplate }: { paper: any, isLocked: boolean, price: number, renderedTemplate?: string }) {
+ paper, isLocked, price, renderedTemplate, auth }: { paper: any, isLocked: boolean, price: number, renderedTemplate?: string, auth?: any }) {
     
+    const [isBuying, setIsBuying] = useState(false);
+    const [showGuestForm, setShowGuestForm] = useState(false);
+    const [guestName, setGuestName] = useState('');
+    const [guestEmail, setGuestEmail] = useState('');
+
+    const handleBuy = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        
+        if (!auth?.user && (!guestName || !guestEmail)) {
+            alert('Silakan isi Nama dan Email untuk melanjutkan pembayaran.');
+            return;
+        }
+
+        setIsBuying(true);
+        try {
+            const res = await axios.post(`/papers/${paper.id}/buy`, {
+                guest_name: guestName,
+                guest_email: guestEmail
+            });
+            if (res.data.already_paid && res.data.redirect_url) {
+                window.location.href = res.data.redirect_url;
+                return;
+            }
+            if (res.data.payment_url) {
+                window.location.href = res.data.payment_url;
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.error || 'Gagal membuat tagihan pembayaran. Silakan coba lagi.');
+        } finally {
+            setIsBuying(false);
+        }
+    };
+
     const handleDownloadWord = () => {
         if (!renderedTemplate) return;
         
@@ -76,37 +110,81 @@ export default function PaperDetail({
                             </div>
                             <h3 className="text-xl font-bold text-stone-900 mb-2">Konten Terkunci (Paywall)</h3>
                             <p className="text-stone-600 mb-6 max-w-md">Paper ini adalah publikasi Closed Access. Anda harus membayar untuk membaca dokumen selengkapnya.</p>
-                            <button className="bg-rose-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-rose-700 transition">
-                                Beli Akses - Rp {price.toLocaleString('id-ID')}
-                            </button>
+                            
+                            {!auth?.user && showGuestForm ? (
+                                <form onSubmit={handleBuy} className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex flex-col gap-4 text-left">
+                                    <h4 className="font-bold text-stone-800 text-center mb-2">Guest Checkout</h4>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-600 mb-1">Nama Lengkap</label>
+                                        <input type="text" required value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full rounded-xl border-stone-300 focus:border-rose-500 focus:ring focus:ring-rose-200 shadow-sm px-4 py-2" placeholder="Masukkan nama..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-600 mb-1">Email Aktif</label>
+                                        <input type="email" required value={guestEmail} onChange={e => setGuestEmail(e.target.value)} className="w-full rounded-xl border-stone-300 focus:border-rose-500 focus:ring focus:ring-rose-200 shadow-sm px-4 py-2" placeholder="Tautan akses akan dikirim ke sini..." />
+                                    </div>
+                                    <button 
+                                        type="submit"
+                                        disabled={isBuying}
+                                        className="bg-rose-600 text-white w-full py-3 mt-2 rounded-xl font-bold shadow-md hover:bg-rose-700 transition flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {isBuying ? (
+                                            <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Memproses...</>
+                                        ) : (
+                                            `Bayar Rp ${price.toLocaleString('id-ID')}`
+                                        )}
+                                    </button>
+                                </form>
+                            ) : (
+                                <button 
+                                    onClick={() => auth?.user ? handleBuy() : setShowGuestForm(true)}
+                                    disabled={isBuying}
+                                    className="bg-rose-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-rose-700 transition flex items-center justify-center min-w-[200px] disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {isBuying ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                            Memproses...
+                                        </>
+                                    ) : (
+                                        `Beli Akses - Rp ${price.toLocaleString('id-ID')}`
+                                    )}
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="mt-12">
                             <div className="w-full border border-stone-200 rounded-2xl overflow-hidden shadow-sm flex flex-col bg-white">
-                                {/* Custom PDF Toolbar */}
-                                <div className="bg-stone-50/80 border-b border-stone-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                {/* Action Buttons */}
+                                <div className="bg-stone-50/80 px-6 py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-200/50">
                                             <FileText className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-widest mb-0.5">Naskah Lengkap</h3>
+                                            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-widest mb-0.5">Akses Naskah Lengkap</h3>
                                             <div className="flex items-center gap-1.5">
                                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                <p className="text-xs text-stone-500 font-medium">Akses Terbuka (Open Access)</p>
+                                                <p className="text-xs text-stone-500 font-medium">Tersedia (Open Access)</p>
                                             </div>
                                         </div>
                                     </div>
-                                    <a 
-                                        href={`/storage/${paper.file_path}`} 
-                                        target="_blank" 
-                                        rel="noreferrer" 
-                                        className="flex items-center justify-center gap-2 text-sm text-stone-700 font-bold hover:text-emerald-700 bg-white border border-stone-300 hover:border-emerald-500 px-5 py-2.5 rounded-xl transition-all shadow-sm"
-                                    >
-                                        Unduh Naskah Asli (PDF)
-                                    </a>
+                                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                                        <Link
+                                            href={`/paper/${paper.id}/read`}
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm text-white font-bold bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl transition-all shadow-md"
+                                        >
+                                            Baca Naskah (Full Reader)
+                                        </Link>
+                                        <a 
+                                            href={`/storage/${paper.file_path}`} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm text-stone-700 font-bold hover:text-emerald-700 bg-white border border-stone-300 hover:border-emerald-500 px-6 py-3 rounded-xl transition-all shadow-sm"
+                                        >
+                                            Unduh Naskah Asli (PDF)
+                                        </a>
+                                    </div>
                                 </div>
-                                
                             </div>
                         </div>
                     )}

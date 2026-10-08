@@ -44,9 +44,6 @@ export default function Catalog({ papers }: { papers: any[] }) {
                     
                     <div className="hidden lg:flex items-center gap-6 text-sm font-semibold text-stone-600">
                         <Link href="/katalog" className="text-rose-700 border-b-2 border-rose-700 py-5">Katalog</Link>
-                        <Link href="/login" className="hover:text-rose-700 transition-colors py-5">Login</Link>
-                        <Link href="/register" className="hover:text-rose-700 transition-colors py-5">Registrasi</Link>
-
                     </div>
                 </div>
             </nav>

@@ -61,7 +61,7 @@ class DokuService:
                 "amount": req_data.amount,
                 "currency": "IDR",
                 "callback_url": f"{APP_URL}/detail/{req_data.paper_id}",
-                "notify_url": f"{APP_URL}/api/payment/doku-webhook",
+                "notify_url": "https://smee.io/YMRTqoxoTgbCpK0N",
                 "auto_redirect": True
             },
             "payment": {

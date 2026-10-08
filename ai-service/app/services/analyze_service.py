@@ -39,8 +39,9 @@ RUBRIK KRITERIA PENILAIAN & PEMBOBOTAN (DARI DATABASE):
 ATURAN PENILAIAN:
 1. Berikan skor 0-100 untuk setiap kriteria di atas.
 2. Hitung 'overall_score' berdasarkan persentase bobot masing-masing kriteria.
-3. Seluruh kalimat alasan, ringkasan, dan penjelasan WAJIB MAKSIMAL 2 KALIMAT PADAT, TAJAM & ILMIAH dalam Bahasa Indonesia.
-4. PURE JSON ONLY: Kembalikan respon murni JSON valid tanpa teks pembuka/penutup."""
+3. JANGAN MERINGKAS TEKS! Khusus untuk bagian 'paper_sections' (Introduction, Methods, Results, Conclusion), Anda WAJIB MENYALIN 100% SELURUH TEKS ASLI dari dokumen ke dalam bagian yang sesuai tanpa ada kata yang dipotong atau disingkat sama sekali.
+4. EKSTRAKSI KEYWORDS KETAT: DILARANG mengarang/halusinasi keyword. Ekstrak HANYA kata kunci persis seperti yang tertulis di teks dokumen (tepat setelah label "Kata Kunci", "Kata kunci:", atau "Keywords:"). Jika berbahasa Indonesia, salin sesuai aslinya. JANGAN mengarang bidang ilmu seperti Artificial Intelligence jika tidak tertulis.
+5. PURE JSON ONLY: Kembalikan respon murni JSON valid tanpa teks pembuka/penutup."""
 
         # 3. SUSUN USER PROMPT DAN SKEMA JSON
         fallback_expertises = "Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other"

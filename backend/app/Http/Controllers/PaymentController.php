@@ -135,7 +135,19 @@ class PaymentController extends Controller
                 $paper->update(['payment_status' => 'PAID']);
                 Log::info("Paper #{$paper->id} berhasil ditandai PAID via DOKU Webhook.");
             } else {
-                Log::warning("DOKU Webhook: Invoice '{$invoiceNumber}' tidak ditemukan di database.");
+                $purchase = \App\Models\Purchase::where('invoice_number', $invoiceNumber)->first();
+                if ($purchase) {
+                    $purchase->update(['payment_status' => 'PAID']);
+                    Log::info("Purchase #{$purchase->id} (Invoice: {$invoiceNumber}) berhasil ditandai PAID via DOKU Webhook.");
+                    
+                    if ($purchase->access_token && $purchase->guest_email) {
+                        $accessUrl = route('guest.paper.read', $purchase->paper_id) . '?token=' . $purchase->access_token;
+                        // Simulasi kirim email
+                        Log::info("MENGIRIM EMAIL KE GUEST: {$purchase->guest_email}. Tautan akses: {$accessUrl}");
+                    }
+                } else {
+                    Log::warning("DOKU Webhook: Invoice '{$invoiceNumber}' tidak ditemukan di database Paper maupun Purchase.");
+                }
             }
         }
 
@@ -144,5 +156,136 @@ class PaymentController extends Controller
         // agar DOKU tidak melakukan retry berulang.
         // -------------------------------------------------------
         return response()->json(['message' => 'OK'], 200);
+    }
+
+    public function finishCallback(Request $request)
+    {
+        $invoiceNumber = $request->query('invoiceNumber') ?? $request->query('invoice');
+        
+        if (!$invoiceNumber) {
+            return redirect('/katalog')->with('success', 'Pembayaran berhasil dikonfirmasi.');
+        }
+
+        // Cek apakah ini pembayaran Reader (Purchase)
+        $purchase = \App\Models\Purchase::where('invoice_number', $invoiceNumber)->first();
+        if ($purchase) {
+            $redirectUrl = route('guest.paper.read', ['id' => $purchase->paper_id]);
+            if ($purchase->access_token && !$purchase->user_id) {
+                $redirectUrl .= '?token=' . $purchase->access_token;
+            }
+            return redirect($redirectUrl)->with('success', 'Pembayaran berhasil! Selamat membaca naskah.');
+        }
+
+        // Cek apakah ini pembayaran Author (Paper)
+        $paper = \App\Models\Paper::where('invoice_id', $invoiceNumber)->first();
+        if ($paper) {
+            return redirect()->route('paper.detail.show', ['id' => $paper->id])->with('success', 'Pembayaran APC berhasil!');
+        }
+
+        return redirect('/katalog')->with('success', 'Pembayaran berhasil dikonfirmasi.');
+    }
+
+    public function generateReaderInvoice(Request $request, Paper $paper)
+    {
+        // 1. Tangkap input dari user/guest
+        $guestName = $request->input('guest_name');
+        $guestEmail = $request->input('guest_email');
+        
+        $userId = null;
+        $userName = $guestName;
+        $userEmail = $guestEmail;
+
+        if (auth()->check()) {
+            $user = auth()->user();
+            $userId = $user->id;
+            $userName = $user->name;
+            $userEmail = $user->email;
+        }
+
+        // Jika tidak login, pastikan nama dan email diisi
+        if (!$userId && (!$userName || !$userEmail)) {
+            return response()->json(['error' => 'Nama dan Email wajib diisi untuk Guest Checkout.'], 400);
+        }
+
+        // Cek apakah sudah pernah beli dan LUNAS (berdasarkan ID user atau Email guest)
+        $query = \App\Models\Purchase::where('paper_id', $paper->id);
+        if ($userId) {
+            $query->where('user_id', $userId);
+        } else {
+            $query->where('guest_email', $userEmail);
+        }
+        $existingPurchase = $query->first();
+
+        if ($existingPurchase && $existingPurchase->payment_status === 'PAID') {
+            $redirectUrl = route('guest.paper.read', $paper->id);
+            if (!$userId && $existingPurchase->access_token) {
+                $redirectUrl .= '?token=' . $existingPurchase->access_token;
+            }
+            return response()->json([
+                'message' => 'Anda sudah membeli naskah ini.',
+                'already_paid' => true,
+                'redirect_url' => $redirectUrl
+            ]);
+        }
+
+        // Jika ada transaksi menggantung, berikan ulang
+        if ($existingPurchase && $existingPurchase->payment_status === 'UNPAID' && $existingPurchase->payment_url) {
+            return response()->json([
+                'invoice_number' => $existingPurchase->invoice_number,
+                'payment_url' => $existingPurchase->payment_url
+            ]);
+        }
+
+        // Jika belum ada record sama sekali, buat baru
+        $amount = $paper->price && $paper->price > 0 ? (float)$paper->price : 50000;
+        
+        $identifier = $userId ? "U{$userId}" : "G" . substr(md5($userEmail), 0, 6);
+        $invoiceNumber = 'READ-' . date('YmdHis') . '-' . $identifier . '-' . $paper->id;
+        $accessToken = $userId ? null : bin2hex(random_bytes(16)); // Token untuk guest
+
+        $purchase = \App\Models\Purchase::create([
+            'user_id' => $userId,
+            'paper_id' => $paper->id,
+            'guest_name' => $userId ? null : $userName,
+            'guest_email' => $userId ? null : $userEmail,
+            'amount' => $amount,
+            'invoice_number' => $invoiceNumber,
+            'payment_status' => 'UNPAID',
+            'access_token' => $accessToken
+        ]);
+
+        // Tembak API Python DOKU
+        $pythonUrl = config('services.python.url', 'http://127.0.0.1:8001') . '/api/payment/invoice';
+        $token = config('services.python.token');
+
+        try {
+            $response = Http::withToken($token)->post($pythonUrl, [
+                'paper_id' => (string) $paper->id . '-READ', // pembeda
+                'amount' => $amount,
+                'customer_name' => $userName,
+                'customer_email' => $userEmail,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json('data');
+                
+                $purchase->update([
+                    'invoice_number' => $data['invoice_number'],
+                    'payment_url' => $data['payment_url']
+                ]);
+
+                return response()->json([
+                    'invoice_number' => $data['invoice_number'],
+                    'payment_url' => $data['payment_url']
+                ]);
+            }
+
+            Log::error('Gagal generate invoice pembelian dari Python', ['response' => $response->body()]);
+            return response()->json(['error' => 'Gagal terhubung ke layanan pembayaran.'], 500);
+
+        } catch (\Exception $e) {
+            Log::error('Error generating reader invoice: ' . $e->getMessage());
+            return response()->json(['error' => 'Terjadi kesalahan sistem.'], 500);
+        }
     }
 }

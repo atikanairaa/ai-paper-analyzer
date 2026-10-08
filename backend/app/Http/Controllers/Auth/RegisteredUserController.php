@@ -19,8 +19,12 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        if ($request->has('redirect')) {
+            session(['url.intended' => $request->query('redirect')]);
+        }
+
         return Inertia::render('Auth/Register');
     }
 
@@ -43,8 +47,13 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Default role for public registration is 'reader'
+        $user->assignRole('reader');
+
         event(new Registered($user));
 
-        return redirect(route('login', absolute: false))->with('status', 'Pendaftaran berhasil! Silakan login dengan akun baru Anda.');
+        Auth::login($user);
+
+        return redirect()->intended(route('guest.catalog'));
     }
 }
