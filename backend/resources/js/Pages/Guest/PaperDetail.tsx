@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Download, Head, Link } from "@inertiajs/react";
-import { Lock, FileText, ArrowLeft, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Head, Link } from "@inertiajs/react";
+import { Lock, FileText, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import axios from "axios";
 
 function splitHtmlIntoPages(html: string, charsPerPage = 3500): string[] {
@@ -251,14 +251,21 @@ export default function PaperDetail({
                                             </div>
                                         </div>
                                         <div className="flex flex-col sm:flex-row items-center gap-3">
-                                            
                                             <Link
                                                 href={`/paper/${paper.id}/read`}
                                                 className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm text-white font-bold bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl transition-all shadow-md"
                                             >
                                                 Baca Naskah (Full Reader)
                                             </Link>
-                                            
+                                            <a
+                                                href={`/paper/${paper.id}/pdf`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm text-stone-700 font-bold hover:text-rose-700 bg-white border border-stone-300 hover:border-rose-400 px-6 py-3 rounded-xl transition-all shadow-sm"
+                                            >
+                                                <Download className="w-4 h-4 mr-1" />
+                                                Unduh PDF Jurnal
+                                            </a>
                                         </div>
                                     </div>
                                 </div>

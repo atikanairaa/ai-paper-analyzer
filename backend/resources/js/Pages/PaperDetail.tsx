@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { usePage, Link } from "@inertiajs/react";
+import { usePage, Link, router } from "@inertiajs/react";
 import { AppLayout } from "@/Layouts/AppLayout";
 import { Badge } from "@/Components/Badge";
 import { ScoreCard } from "@/Components/ScoreCard";
@@ -23,6 +23,8 @@ import {
     AlertTriangle,
     Library,
     UploadCloud,
+    RefreshCw,
+    Sparkles,
     CreditCard,
     FileText,
     ChevronLeft,
@@ -122,6 +124,19 @@ export default function PaperDetail() {
             }, 300);
         }
     }, [props.renderedTemplate, activeTab]);
+
+    // Polling halus via Inertia setiap 4 detik tanpa kedip layar penuh jika paper sedang dianalisis (PROCESSING)
+    React.useEffect(() => {
+        if (paper?.status === "PROCESSING") {
+            const interval = setInterval(() => {
+                router.reload({
+                    only: ["paper"],
+                    preserveScroll: true,
+                });
+            }, 4000);
+            return () => clearInterval(interval);
+        }
+    }, [paper?.status]);
     
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
@@ -281,6 +296,36 @@ export default function PaperDetail() {
                     });
                 }
             }
+        });
+    };
+
+    const handleReanalyze = () => {
+        if (!paper || isActionLoading) return;
+        setConfirmModal({
+            isOpen: true,
+            title: "Analisis Ulang dengan AI?",
+            message: "Sistem akan menjalankan ulang analisis AI menggunakan kriteria penilaian dan prompt terbaru yang telah diatur oleh Admin. Nilai dan ringkasan akan diperbarui.",
+            confirmLabel: "Ya, Analisis Ulang",
+            variant: "info",
+            onConfirm: async () => {
+                closeModal();
+                setIsActionLoading(true);
+                try {
+                    await axios.post(`/papers/${paper.id}/reanalyze`);
+                    window.location.reload();
+                } catch (error: any) {
+                    setConfirmModal({
+                        isOpen: true,
+                        title: "Kesalahan",
+                        message: error.response?.data?.message || "Gagal memulai analisis ulang.",
+                        confirmLabel: "Tutup",
+                        variant: "danger",
+                        onConfirm: closeModal,
+                    });
+                } finally {
+                    setIsActionLoading(false);
+                }
+            },
         });
     };
 
@@ -453,8 +498,8 @@ export default function PaperDetail() {
             />
 
             <div className="max-w-[1440px] mx-auto p-4 md:p-6 lg:p-8 pb-8">
-                {/* ── Back Button ── */}
-                <div className="mb-5 flex items-center justify-between">
+                {/* ── Back Button & Actions ── */}
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                     <Link
                         href={backInfo.href}
                         className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-[#e8e4dc] bg-white text-stone-700 hover:bg-stone-900 hover:text-white hover:border-stone-900 font-semibold text-sm transition-all shadow-sm group"
@@ -462,6 +507,19 @@ export default function PaperDetail() {
                         <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                         <span>{backInfo.label}</span>
                     </Link>
+
+                    {/* Reanalyze Button (for uploader/researcher) */}
+                    {props.auth?.user?.id === paper.uploaded_by && (
+                        <button
+                            onClick={handleReanalyze}
+                            disabled={isActionLoading || paper.status === "PROCESSING"}
+                            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-rose-700 text-white hover:bg-rose-800 disabled:opacity-50 font-semibold text-sm transition-all shadow-sm focus:ring-2 focus:ring-rose-200"
+                            title="Analisis ulang naskah menggunakan kriteria dan prompt AI terbaru dari Admin"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${isActionLoading || paper.status === "PROCESSING" ? "animate-spin" : ""}`} />
+                            <span>{paper.status === "PROCESSING" ? "Sedang Dianalisis..." : "Analisis Ulang AI (Re-analyze)"}</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* ── 2-Tab Switcher ── */}
@@ -834,6 +892,18 @@ export default function PaperDetail() {
                                         return "Terjadi kesalahan sistem yang tidak diketahui.";
                                     })()}
                                 </div>
+                                {props.auth?.user?.id === paper.uploaded_by && (
+                                    <div className="mt-5">
+                                        <button
+                                            onClick={handleReanalyze}
+                                            disabled={isActionLoading}
+                                            className="inline-flex items-center space-x-2 px-5 py-2.5 bg-rose-700 text-white rounded-xl hover:bg-rose-800 font-semibold text-sm transition shadow-sm"
+                                        >
+                                            <RefreshCw className="w-4 h-4" />
+                                            <span>Coba Analisis Ulang Sekarang</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 

@@ -116,10 +116,71 @@ class PaperController extends Controller
         }
 
         // Sections Extraction
+        $cleanSectionContent = function(?string $text): string {
+            if (empty($text)) {
+                return '<i>Bagian ini belum diekstrak oleh AI.</i>';
+            }
+            $patterns = [
+                '/^(\s*(?:(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+|[A-Za-z])[\.\:\)]\s*)?(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan|conclusion|diskusi|discussion)\s*[\.\:\-]*\s*)/iu',
+                '/^(\s*(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+)[\.\:\)]\s*)/iu',
+            ];
+            $cleaned = $text;
+            foreach ($patterns as $pattern) {
+                $cleaned = preg_replace($pattern, '', $cleaned, 1);
+            }
+            return trim($cleaned);
+        };
+
+        $formatSectionParagraphs = function(?string $text) use ($cleanSectionContent): string {
+            $cleaned = $cleanSectionContent($text);
+            if (empty($cleaned) || $cleaned === '<i>Bagian ini belum diekstrak oleh AI.</i>') {
+                return '<p style="text-align: justify; margin-bottom: 12px;"><i>Bagian ini belum diekstrak oleh AI.</i></p>';
+            }
+            if (strpos($cleaned, '<p>') !== false || strpos($cleaned, '<p ') !== false) {
+                return $cleaned;
+            }
+            $rawBlocks = preg_split('/(\r?\n){2,}/', trim($cleaned));
+            $paragraphs = [];
+            foreach ($rawBlocks as $block) {
+                $block = trim($block);
+                if (empty($block)) continue;
+                if (mb_strlen($block) <= 1000) {
+                    $paragraphs[] = $block;
+                    continue;
+                }
+                $sentences = preg_split('/(?<=[.?!])\s+(?=[A-Z0-9"“\(])/u', $block);
+                $currentPara = '';
+                foreach ($sentences as $sentence) {
+                    $sentence = trim($sentence);
+                    if (empty($sentence)) continue;
+                    $currentPara = empty($currentPara) ? $sentence : $currentPara . ' ' . $sentence;
+                    if (mb_strlen($currentPara) >= 850) {
+                        $paragraphs[] = $currentPara;
+                        $currentPara = '';
+                    }
+                }
+                if (!empty($currentPara)) {
+                    if (mb_strlen($currentPara) < 250 && count($paragraphs) > 0) {
+                        $paragraphs[count($paragraphs) - 1] .= ' ' . $currentPara;
+                    } else {
+                        $paragraphs[] = $currentPara;
+                    }
+                }
+            }
+            $output = '';
+            foreach ($paragraphs as $para) {
+                $para = trim($para);
+                if (!empty($para)) {
+                    $output .= "<p style=\"text-align: justify; text-indent: 28px; margin-bottom: 12px; line-height: 1.6;\">" . $para . "</p>";
+                }
+            }
+            return $output ?: "<p style=\"text-align: justify; margin-bottom: 12px;\">{$cleaned}</p>";
+        };
+
         $sections = $paper->sections ?? collect();
-        $getSection = function($name) use ($sections) {
+        $getSection = function($name) use ($sections, $formatSectionParagraphs) {
             $sec = $sections->where('section_name', $name)->first();
-            return $sec ? $sec->summary : '<i>Bagian ini belum diekstrak oleh AI.</i>';
+            return $sec ? $formatSectionParagraphs($sec->summary) : '<p style="text-align: justify; margin-bottom: 12px;"><i>Bagian ini belum diekstrak oleh AI.</i></p>';
         };
 
         $intro = $getSection('Research Problem');
@@ -541,6 +602,44 @@ class PaperController extends Controller
         \App\Helpers\AuditLogger::log('Paper dipublikasikan', $paper->id);
 
         return response()->json(['message' => 'Paper berhasil dipublikasikan!', 'paper' => $paper]);
+    }
+
+    /**
+     * Re-analyze paper dengan kriteria prompt AI terbaru.
+     */
+    public function reanalyze($id)
+    {
+        $paper = Paper::where('uploaded_by', auth()->id())->findOrFail($id);
+
+        if ($paper->status === 'PROCESSING') {
+            return response()->json(['message' => 'Paper sedang dalam proses analisis.'], 422);
+        }
+
+        // Update status paper menjadi PROCESSING
+        $paper->update(['status' => 'PROCESSING']);
+
+        // Catat Audit Log
+        DB::table('audit_logs')->insert([
+            'user_id'    => auth()->id(),
+            'action'     => 'REANALYZE_PAPER',
+            'paper_id'   => $paper->id,
+            'created_at' => now(),
+        ]);
+
+        // Hapus cache PDF yang pernah di-generate sebelumnya agar diperbarui
+        $cacheFile = storage_path('app/generated_papers/paper_' . $paper->id . '.pdf');
+        if (file_exists($cacheFile)) {
+            @unlink($cacheFile);
+        }
+
+        // Dispatch background job AI
+        \App\Jobs\AnalyzePaperJob::dispatch($paper->id);
+
+        return response()->json([
+            'status'   => 'processing',
+            'paper_id' => $paper->id,
+            'message'  => 'Analisis ulang berhasil dimulai dengan kriteria AI terbaru.',
+        ]);
     }
 }
 
