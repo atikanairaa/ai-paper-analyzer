@@ -74,6 +74,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/published-papers', [\App\Http\Controllers\Admin\PublishedPapersController::class, 'index'])->name('admin.published-papers');
         Route::get('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'index'])->name('admin.prompts.index');
         Route::post('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'store'])->name('admin.prompts.store');
+        Route::put('/prompts-category/rename', [\App\Http\Controllers\Admin\PromptController::class, 'renameCategory'])->name('admin.prompts.category.rename');
+        Route::delete('/prompts-category/destroy', [\App\Http\Controllers\Admin\PromptController::class, 'destroyCategory'])->name('admin.prompts.category.destroy');
         Route::put('/prompts/{criterion}', [\App\Http\Controllers\Admin\PromptController::class, 'update'])->name('admin.prompts.update');
         Route::delete('/prompts/{criterion}', [\App\Http\Controllers\Admin\PromptController::class, 'destroy'])->name('admin.prompts.destroy');
         

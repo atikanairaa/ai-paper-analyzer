@@ -28,6 +28,7 @@ class PromptController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'category'    => 'required|string|max:255',
             'name'        => 'required|string|max:255',
             'instruction' => 'nullable|string',
             'weight'      => 'required|integer|min:1|max:100',
@@ -58,6 +59,7 @@ class PromptController extends Controller
     public function update(Request $request, EvaluationCriterion $criterion)
     {
         $validated = $request->validate([
+            'category'    => 'required|string|max:255',
             'name'        => 'required|string|max:255',
             'instruction' => 'nullable|string',
             'weight'      => 'required|integer|min:1|max:100',
@@ -102,5 +104,58 @@ class PromptController extends Controller
         ]);
 
         return redirect()->back()->with('success', "Kriteria \"{$criterionName}\" berhasil dihapus!");
+    }
+
+    /**
+     * Mengubah nama kategori beserta seluruh kriteria di dalamnya
+     */
+    public function renameCategory(Request $request)
+    {
+        $request->validate([
+            'old_category' => 'required|string',
+            'new_category' => 'required|string|max:255',
+        ]);
+
+        $old = $request->old_category;
+        $new = trim($request->new_category);
+
+        $count = EvaluationCriterion::where('category', $old)->count();
+        EvaluationCriterion::where('category', $old)->update(['category' => $new]);
+
+        DB::table('audit_logs')->insert([
+            'user_id'    => auth()->id() ?? 1,
+            'action'     => 'RENAME_PROMPT_CATEGORY',
+            'paper_id'   => null,
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', "Kategori \"{$old}\" berhasil diubah menjadi \"{$new}\" ({$count} kriteria diperbarui)!");
+    }
+
+    /**
+     * Menghapus seluruh kriteria dalam satu kategori
+     */
+    public function destroyCategory(Request $request)
+    {
+        $request->validate([
+            'category' => 'required|string',
+        ]);
+
+        $category = $request->category;
+        $count = EvaluationCriterion::where('category', $category)->count();
+        EvaluationCriterion::where('category', $category)->delete();
+
+        DB::table('audit_logs')->insert([
+            'user_id'    => auth()->id() ?? 1,
+            'action'     => 'DELETE_PROMPT_CATEGORY',
+            'paper_id'   => null,
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', "Kategori \"{$category}\" beserta {$count} kriterianya berhasil dihapus!");
     }
 }
