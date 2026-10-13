@@ -11,8 +11,8 @@
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.tsx"])
         @inertiaHead
-        <!-- CKEditor 4.22 - Full Package with all plugins including pagebreak, print, etc. -->
-        <script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script>
+        <!-- CKEditor 5 Super-build -->
+        <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/super-build/ckeditor.js"></script>
     </head>
     <body class="font-sans antialiased bg-[#faf8f5]">
         @inertia

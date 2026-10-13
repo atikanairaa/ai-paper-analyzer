@@ -85,6 +85,14 @@ class AnalyzePaperJob implements ShouldQueue
 
             // SIMPAN SEMUA DATA DARI FASTAPI KE TABEL-TABEL DATABASE
             DB::transaction(function () use ($paper, $data, $jobLog, $response, $startTime) {
+                // 0. Bersihkan data analisis lama jika ini adalah proses re-analyze / retry
+                DB::table('paper_authors')->where('paper_id', $paper->id)->delete();
+                DB::table('paper_analyses')->where('paper_id', $paper->id)->delete();
+                DB::table('paper_sections')->where('paper_id', $paper->id)->delete();
+                DB::table('paper_scores')->where('paper_id', $paper->id)->delete();
+                DB::table('paper_findings')->where('paper_id', $paper->id)->delete();
+                DB::table('paper_references')->where('paper_id', $paper->id)->delete();
+
                 // 1. Update Metadata Paper
                 $paper->update([
                     'title'            => $data['paper']['title'] ?? $paper->title,

@@ -92,16 +92,34 @@ Route::post('/payment/doku-webhook', function (Request $request) {
         $paperId = $matches[1] ?? null;
 
         if ($paperId) {
-            $paper = Paper::find($paperId);
+            $paper = Paper::with('uploader')->find($paperId);
             if ($paper) {
-                // Tandai LUNAS — researcher masih perlu klik "Publikasikan"
+                // Tandai LUNAS
                 $paper->update(['payment_status' => 'PAID']);
                 Log::info("[DOKU Webhook] Paper #{$paperId} berhasil ditandai PAID.");
+
+                // Kirim notifikasi ke Admin bahwa Open Access sudah lunas dan siap diterbitkan
+                $admins = \App\Models\User::role('admin')->get();
+                if ($admins->isEmpty()) {
+                    $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+                }
+                $researcherName = $paper->uploader->name ?? 'Peneliti';
+                \Illuminate\Support\Facades\Notification::send(
+                    $admins,
+                    new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
+                );
             } else {
                 Log::warning("[DOKU Webhook] Paper #{$paperId} tidak ditemukan di database.");
             }
         } else {
-            Log::warning('[DOKU Webhook] Tidak bisa ekstrak paperId dari invoice: ' . $invoiceNumber);
+            // Cek apakah invoice adalah pembelian reader (Purchase)
+            $purchase = \App\Models\Purchase::where('invoice_number', $invoiceNumber)->first();
+            if ($purchase) {
+                $purchase->update(['payment_status' => 'PAID']);
+                Log::info("[DOKU Webhook] Purchase #{$purchase->id} berhasil ditandai PAID.");
+            } else {
+                Log::warning('[DOKU Webhook] Tidak bisa ekstrak paperId dari invoice: ' . $invoiceNumber);
+            }
         }
     } else {
         Log::info('[DOKU Webhook] Status bukan SUCCESS, tidak ada perubahan.', [

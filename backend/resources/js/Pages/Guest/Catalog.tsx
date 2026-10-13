@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
-import { BookOpen, Search, Lock, FileText, User, Calendar, Book, Filter, ChevronDown, BarChart2, Users, LayoutDashboard } from 'lucide-react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { BookOpen, Search, Lock, FileText, User, Calendar, Book, Filter, ChevronDown, BarChart2, Users, LayoutDashboard, LogIn } from 'lucide-react';
 
 export default function Catalog({ papers }: { papers: any[] }) {
+    const { auth } = usePage<any>().props;
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState("terbaru");
 
@@ -42,8 +43,27 @@ export default function Catalog({ papers }: { papers: any[] }) {
                         <span className="font-black text-xl text-stone-900 tracking-tight">AI RESEARCH INDEX</span>
                     </div>
                     
-                    <div className="hidden lg:flex items-center gap-6 text-sm font-semibold text-stone-600">
-                        <Link href="/katalog" className="text-rose-700 border-b-2 border-rose-700 py-5">Katalog</Link>
+                    <div className="flex items-center gap-4 text-sm font-semibold text-stone-600">
+                        <Link href="/katalog" className="text-rose-700 hover:text-rose-800 transition">
+                            Katalog
+                        </Link>
+                        {auth?.user ? (
+                            <Link
+                                href="/dashboard"
+                                className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-700 text-white rounded-lg text-xs font-bold hover:bg-rose-800 transition shadow-sm"
+                            >
+                                <LayoutDashboard className="w-3.5 h-3.5" />
+                                <span>Dashboard ({auth.user.name})</span>
+                            </Link>
+                        ) : (
+                            <Link
+                                href="/login"
+                                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-stone-900 text-white rounded-lg text-xs font-bold hover:bg-stone-800 transition shadow-sm"
+                            >
+                                <LogIn className="w-3.5 h-3.5" />
+                                <span>Masuk / Login</span>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </nav>

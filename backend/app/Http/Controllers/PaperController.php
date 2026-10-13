@@ -116,10 +116,88 @@ class PaperController extends Controller
         }
 
         // Sections Extraction
+        $cleanSectionContent = function(?string $text): string {
+            if (empty($text)) {
+                return '<i>Bagian ini belum diekstrak oleh AI.</i>';
+            }
+
+            $cleaned = trim($text);
+
+            // 1. Pola nomor bab bertingkat/romawi/huruf + kata kunci judul (misal: "5.1. Kesimpulan", "Bab V Kesimpulan", "1. Pendahuluan")
+            $numberedHeadingRegex = '/^\s*(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+|[A-Za-z])(?:\.[0-9]+)*[\.\:\)]*\s+(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan(?:\s+dan\s+saran)?|conclusion(?:\s+and\s+recommendations?)?|ringkasan|summary|diskusi|discussion)\s*[\.\:\-]*\s*/iu';
+
+            // 2. Pola kata kunci judul mandiri tanpa nomor (harus diikuti tanda baca . : - atau baris baru)
+            $standaloneHeadingRegex = '/^\s*(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan(?:\s+dan\s+saran)?|conclusion(?:\s+and\s+recommendations?)?|ringkasan|summary|diskusi|discussion)\s*(?:[\.\:\-]\s*|[\r\n]+\s*)/iu';
+
+            for ($i = 0; $i < 3; $i++) {
+                $before = $cleaned;
+                $cleaned = preg_replace($numberedHeadingRegex, '', $cleaned, 1);
+                $cleaned = preg_replace($standaloneHeadingRegex, '', $cleaned, 1);
+                $cleaned = trim($cleaned);
+                if ($cleaned === $before) {
+                    break;
+                }
+            }
+
+            // 3. Bersihkan sisa nomor urut poin tunggal di paling awal jika ada (misal: "1. Terdapat..." -> "Terdapat...")
+            $cleaned = preg_replace('/^\s*[0-9]+[\.\)]\s*/u', '', $cleaned);
+
+            // 4. Pisahkan sub-bagian "Saran" (misal "5.2. Saran Saran pengembangan...") menjadi paragraf baru yang bersih
+            $cleaned = preg_replace('/(?:\s*(?:[0-9]+(?:\.[0-9]+)*[\.\:\)]*\s*)?saran\s*[\.\:\-]*\s*)(saran\s+)?/iu', "\n\nSaran ", $cleaned);
+
+            return trim($cleaned);
+        };
+
+        $formatSectionParagraphs = function(?string $text) use ($cleanSectionContent): string {
+            $cleaned = $cleanSectionContent($text);
+            if (empty($cleaned) || $cleaned === '<i>Bagian ini belum diekstrak oleh AI.</i>') {
+                return '<p style="text-align: justify; margin-bottom: 12px;"><i>Bagian ini belum diekstrak oleh AI.</i></p>';
+            }
+            if (strpos($cleaned, '<p>') !== false || strpos($cleaned, '<p ') !== false) {
+                return $cleaned;
+            }
+            $rawBlocks = preg_split('/(\r?\n){2,}/', trim($cleaned));
+            $paragraphs = [];
+            foreach ($rawBlocks as $block) {
+                $block = trim($block);
+                if (empty($block)) continue;
+                if (mb_strlen($block) <= 1000) {
+                    $paragraphs[] = $block;
+                    continue;
+                }
+                $sentences = preg_split('/(?<=[.?!])\s+(?=[A-Z0-9"“\(])/u', $block);
+                $currentPara = '';
+                foreach ($sentences as $sentence) {
+                    $sentence = trim($sentence);
+                    if (empty($sentence)) continue;
+                    $currentPara = empty($currentPara) ? $sentence : $currentPara . ' ' . $sentence;
+                    if (mb_strlen($currentPara) >= 850) {
+                        $paragraphs[] = $currentPara;
+                        $currentPara = '';
+                    }
+                }
+                if (!empty($currentPara)) {
+                    if (mb_strlen($currentPara) < 250 && count($paragraphs) > 0) {
+                        $paragraphs[count($paragraphs) - 1] .= ' ' . $currentPara;
+                    } else {
+                        $paragraphs[] = $currentPara;
+                    }
+                }
+            }
+            $output = '';
+            foreach ($paragraphs as $para) {
+                $para = trim($para);
+                if (!empty($para)) {
+                    $output .= "<p style=\"text-align: justify; text-indent: 28px; margin-bottom: 12px; line-height: 1.6;\">" . $para . "</p>";
+                }
+            }
+            return $output ?: "<p style=\"text-align: justify; margin-bottom: 12px;\">{$cleaned}</p>";
+        };
+
         $sections = $paper->sections ?? collect();
-        $getSection = function($name) use ($sections) {
+        $getSection = function($name) use ($sections, $formatSectionParagraphs) {
             $sec = $sections->where('section_name', $name)->first();
-            return $sec ? $sec->summary : '<i>Bagian ini belum diekstrak oleh AI.</i>';
+            return $sec ? $formatSectionParagraphs($sec->summary) : '<p style="text-align: justify; margin-bottom: 12px;"><i>Bagian ini belum diekstrak oleh AI.</i></p>';
         };
 
         $intro = $getSection('Research Problem');
@@ -515,32 +593,122 @@ class PaperController extends Controller
     }
 
     /**
-     * Publish paper setelah pembayaran selesai.
-     * Hanya bisa dilakukan jika payment_status = PAID dan submission_status = ACCEPTED.
+     * Peneliti menentukan jenis akses publikasi (OPEN_ACCESS atau CLOSED_ACCESS).
      */
-    public function publishPaper(Request $request, Paper $paper)
+    public function chooseAccess(Request $request, Paper $paper)
     {
         if ($paper->uploaded_by !== auth()->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        if ($request->has('access_type')) {
-            $paper->update(['access_type' => $request->access_type]);
+        $request->validate([
+            'access_type' => 'required|in:OPEN_ACCESS,CLOSED_ACCESS',
+        ]);
+
+        $paper->update([
+            'access_type' => $request->access_type,
+        ]);
+
+        // Jika Peneliti memilih CLOSED_ACCESS:
+        // Kirim notifikasi ke Admin bahwa paper sudah siap diterbitkan!
+        if ($request->access_type === 'CLOSED_ACCESS') {
+            $admins = \App\Models\User::role('admin')->get();
+            if ($admins->isEmpty()) {
+                $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+            }
+            $researcherName = auth()->user()->name ?? 'Peneliti';
+            \Illuminate\Support\Facades\Notification::send(
+                $admins,
+                new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'CLOSED_ACCESS')
+            );
+
+            \App\Helpers\AuditLogger::log('Peneliti mengonfirmasi Closed Access (Menunggu penerbitan Admin)', $paper->id);
+
+            return response()->json([
+                'message' => 'Pilihan Closed Access berhasil dikonfirmasi. Notifikasi telah dikirim ke Admin untuk proses penerbitan.',
+                'paper'   => $paper,
+            ]);
         }
 
+        \App\Helpers\AuditLogger::log('Peneliti memilih Open Access', $paper->id);
+
+        return response()->json([
+            'message' => 'Pilihan Open Access berhasil disimpan. Silakan lanjutkan pembayaran publikasi.',
+            'paper'   => $paper,
+        ]);
+    }
+
+    /**
+     * Terbitkan paper ke katalog jurnal.
+     * HANYA BISA DILAKUKAN OLEH ADMIN!
+     * Syarat: submission_status = ACCEPTED dan (access_type = CLOSED_ACCESS atau payment_status = PAID).
+     */
+    public function publishPaper(Request $request, Paper $paper)
+    {
+        // 1. Otorisasi ketat: Hanya Admin yang berwenang menerbitkan paper
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['error' => 'Akses ditolak. Hanya Admin yang memiliki wewenang untuk menerbitkan naskah jurnal.'], 403);
+        }
+
+        // 2. Validasi status paper
         if ($paper->submission_status !== 'ACCEPTED' && $paper->submission_status !== 'ACCEPT') {
             return response()->json(['error' => 'Paper belum diterima (ACCEPTED) oleh reviewer.'], 422);
         }
 
-        if ($paper->access_type !== 'CLOSED_ACCESS' && ($paper->payment_status ?? 'UNPAID') !== 'PAID') {
-            return response()->json(['error' => 'Pembayaran belum selesai. Silakan selesaikan pembayaran terlebih dahulu.'], 422);
+        // 3. Validasi administrasi pembayaran jika Open Access
+        if ($paper->access_type === 'OPEN_ACCESS' && ($paper->payment_status ?? 'UNPAID') !== 'PAID') {
+            return response()->json(['error' => 'Paper berstatus Open Access belum diselesaikan pembayarannya oleh peneliti.'], 422);
         }
 
+        // 4. Terbitkan paper
         $paper->update(['submission_status' => 'PUBLISHED']);
 
-        \App\Helpers\AuditLogger::log('Paper dipublikasikan', $paper->id);
+        \App\Helpers\AuditLogger::log('Paper diterbitkan ke katalog oleh Admin', $paper->id);
 
-        return response()->json(['message' => 'Paper berhasil dipublikasikan!', 'paper' => $paper]);
+        // 5. Kirim notifikasi ke Peneliti
+        if ($paper->uploader) {
+            $paper->uploader->notify(new \App\Notifications\PaperPublishedNotification($paper->id, $paper->title));
+        }
+
+        return response()->json(['message' => 'Paper berhasil dipublikasikan ke katalog jurnal!', 'paper' => $paper]);
+    }
+
+    /**
+     * Re-analyze paper dengan kriteria prompt AI terbaru.
+     */
+    public function reanalyze($id)
+    {
+        $paper = Paper::where('uploaded_by', auth()->id())->findOrFail($id);
+
+        if ($paper->status === 'PROCESSING') {
+            return response()->json(['message' => 'Paper sedang dalam proses analisis.'], 422);
+        }
+
+        // Update status paper menjadi PROCESSING
+        $paper->update(['status' => 'PROCESSING']);
+
+        // Catat Audit Log
+        DB::table('audit_logs')->insert([
+            'user_id'    => auth()->id(),
+            'action'     => 'REANALYZE_PAPER',
+            'paper_id'   => $paper->id,
+            'created_at' => now(),
+        ]);
+
+        // Hapus cache PDF yang pernah di-generate sebelumnya agar diperbarui
+        $cacheFile = storage_path('app/generated_papers/paper_' . $paper->id . '.pdf');
+        if (file_exists($cacheFile)) {
+            @unlink($cacheFile);
+        }
+
+        // Dispatch background job AI
+        \App\Jobs\AnalyzePaperJob::dispatch($paper->id);
+
+        return response()->json([
+            'status'   => 'processing',
+            'paper_id' => $paper->id,
+            'message'  => 'Analisis ulang berhasil dimulai dengan kriteria AI terbaru.',
+        ]);
     }
 }
 

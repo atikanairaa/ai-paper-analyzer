@@ -3,19 +3,24 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-// â”€â”€â”€ Halaman Publik â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Halaman Publik ---
 Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
     return redirect()->route('guest.catalog');
 });
 
-// â”€â”€â”€ Halaman Terproteksi (Butuh Login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Halaman Terproteksi (Butuh Login) ---
 Route::middleware(['auth'])->group(function () {
 
     // Dashboard utama: arahkan ke halaman sesuai role
     Route::get('/dashboard', function () {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         if ($user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
@@ -44,17 +49,33 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
         Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
         
-        // Payment routes untuk Author/Researcher
+        // Payment & Access routes untuk Author/Researcher
         Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
+        Route::post('/papers/{paper}/choose-access', [\App\Http\Controllers\PaperController::class, 'chooseAccess'])->name('paper.choose-access');
+        Route::post('/papers/{paper}/check-payment', [\App\Http\Controllers\PaymentController::class, 'checkPaymentStatus'])->name('payment.check');
         
+        // Penerbitan Paper (Hanya untuk Admin)
         Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
+        Route::post('/papers/{id}/reanalyze', [\App\Http\Controllers\PaperController::class, 'reanalyze'])->name('papers.reanalyze');
     });
 
-    // â”€â”€ [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok â”€â”€
+    // ── [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok ──
     Route::get('/simulasi-lunas/{id}', function ($id) {
-        $paper = \App\Models\Paper::findOrFail($id);
+        $paper = \App\Models\Paper::with('uploader')->findOrFail($id);
         $paper->update(['payment_status' => 'PAID']);
-        return redirect("/detail/{$id}")->with('success', 'Simulasi: Pembayaran DOKU berhasil dikonfirmasi!');
+
+        // Kirim notifikasi ke Admin bahwa Open Access sudah lunas dan siap diterbitkan
+        $admins = \App\Models\User::role('admin')->get();
+        if ($admins->isEmpty()) {
+            $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+        }
+        $researcherName = $paper->uploader->name ?? 'Peneliti';
+        \Illuminate\Support\Facades\Notification::send(
+            $admins,
+            new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
+        );
+
+        return redirect("/detail/{$id}")->with('success', 'Simulasi: Pembayaran DOKU berhasil dikonfirmasi! Notifikasi telah dikirim ke Admin.');
     })->name('payment.simulasi');
 
     // â”€â”€ Rute halaman Reviewer â”€â”€
@@ -72,6 +93,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/expertises', [\App\Http\Controllers\Admin\ExpertiseManagementController::class, 'index'])->name('admin.expertises');
         Route::get('/published-papers', [\App\Http\Controllers\Admin\PublishedPapersController::class, 'index'])->name('admin.published-papers');
+        Route::get('/paper-publications', [\App\Http\Controllers\Admin\PaperPublicationController::class, 'index'])->name('admin.paper-publications');
+        Route::post('/paper-publications/{paper}/publish', [\App\Http\Controllers\Admin\PaperPublicationController::class, 'publish'])->name('admin.paper-publications.publish');
         Route::get('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'index'])->name('admin.prompts.index');
         Route::post('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'store'])->name('admin.prompts.store');
         Route::put('/prompts-category/rename', [\App\Http\Controllers\Admin\PromptController::class, 'renameCategory'])->name('admin.prompts.category.rename');
@@ -124,6 +147,35 @@ Route::post('/papers/{id}/revision', [\App\Http\Controllers\PaperController::cla
 
 // Katalog Publik
 Route::get('/storage/papers/{filename}', function ($filename) {
+    // 1. Cari paper di database untuk mencocokkan file
+    $paper = \App\Models\Paper::with(['uploader', 'analyses', 'sections'])
+        ->where('file_path', 'papers/' . $filename)
+        ->orWhere('file_path', $filename)
+        ->orWhere('file_path', 'like', '%' . $filename)
+        ->first();
+
+    // 2. Jika paper berstatus PUBLISHED, sajikan PDF yang sudah di-generate dari template jurnal
+    if ($paper && $paper->submission_status === 'PUBLISHED') {
+        $generatedDir = storage_path('app/generated_papers');
+        if (!file_exists($generatedDir)) {
+            mkdir($generatedDir, 0755, true);
+        }
+        $cacheFile = $generatedDir . '/paper_' . $paper->id . '.pdf';
+
+        if (!file_exists($cacheFile) || request()->has('regenerate')) {
+            $controller = app(\App\Http\Controllers\GuestPaperController::class);
+            $pdfContent = $controller->generatePdf($paper);
+            file_put_contents($cacheFile, $pdfContent);
+        }
+
+        $cleanFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', substr($paper->title ?? 'paper', 0, 40));
+        return response()->file($cacheFile, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="Jurnal_' . $cleanFilename . '.pdf"'
+        ]);
+    }
+
+    // Fallback: Jika belum dipublish / draft, gunakan file asli
     $path = storage_path('app/papers/' . $filename);
     if (!file_exists($path)) {
         $path = storage_path('app/private/papers/' . $filename);
@@ -137,6 +189,7 @@ Route::get('/storage/papers/{filename}', function ($filename) {
 Route::get('/katalog', [\App\Http\Controllers\GuestPaperController::class, 'index'])->name('guest.catalog');
 Route::get('/katalog/{id}', [\App\Http\Controllers\GuestPaperController::class, 'show'])->name('guest.catalog.show');
 Route::get('/paper/{id}/read', [\App\Http\Controllers\GuestPaperController::class, 'read'])->name('guest.paper.read');
+Route::get('/paper/{id}/pdf', [\App\Http\Controllers\GuestPaperController::class, 'downloadPdf'])->name('guest.paper.pdf');
 
 // Payment routes untuk Reader/Guest (Bisa diakses tanpa login)
 Route::post('/papers/{paper}/buy', [\App\Http\Controllers\PaymentController::class, 'generateReaderInvoice'])->name('payment.buy');
