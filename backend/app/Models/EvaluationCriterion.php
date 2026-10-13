@@ -12,6 +12,7 @@ class EvaluationCriterion extends Model
     protected $table = 'evaluation_criteria';
 
     protected $fillable = [
+        'category',
         'name',
         'instruction',
         'weight',
