@@ -60,17 +60,29 @@ class GuestPaperController extends Controller
             return 'Data belum tersedia.';
         }
 
-        $patterns = [
-            // Format nomor/romawi + kata kunci bab: "1. Pendahuluan", "3. Kesimpulan", "IV. METODOLOGI"
-            '/^(\s*(?:(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+|[A-Za-z])[\.\:\)]\s*)?(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan|conclusion|diskusi|discussion)\s*[\.\:\-]*\s*)/iu',
-            // Format nomor urut bab saja di awal: "1. ", "3. "
-            '/^(\s*(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+)[\.\:\)]\s*)/iu',
-        ];
+        $cleaned = trim($text);
 
-        $cleaned = $text;
-        foreach ($patterns as $pattern) {
-            $cleaned = preg_replace($pattern, '', $cleaned, 1);
+        // 1. Pola nomor bab bertingkat/romawi/huruf + kata kunci judul (misal: "5.1. Kesimpulan", "Bab V Kesimpulan", "1. Pendahuluan")
+        $numberedHeadingRegex = '/^\s*(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+|[A-Za-z])(?:\.[0-9]+)*[\.\:\)]*\s+(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan(?:\s+dan\s+saran)?|conclusion(?:\s+and\s+recommendations?)?|ringkasan|summary|diskusi|discussion)\s*[\.\:\-]*\s*/iu';
+
+        // 2. Pola kata kunci judul mandiri tanpa nomor (harus diikuti tanda baca . : - atau baris baru)
+        $standaloneHeadingRegex = '/^\s*(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan(?:\s+dan\s+saran)?|conclusion(?:\s+and\s+recommendations?)?|ringkasan|summary|diskusi|discussion)\s*(?:[\.\:\-]\s*|[\r\n]+\s*)/iu';
+
+        for ($i = 0; $i < 3; $i++) {
+            $before = $cleaned;
+            $cleaned = preg_replace($numberedHeadingRegex, '', $cleaned, 1);
+            $cleaned = preg_replace($standaloneHeadingRegex, '', $cleaned, 1);
+            $cleaned = trim($cleaned);
+            if ($cleaned === $before) {
+                break;
+            }
         }
+
+        // 3. Bersihkan sisa nomor urut poin tunggal di paling awal jika ada (misal: "1. Terdapat..." -> "Terdapat...")
+        $cleaned = preg_replace('/^\s*[0-9]+[\.\)]\s*/u', '', $cleaned);
+
+        // 4. Pisahkan sub-bagian "Saran" (misal "5.2. Saran Saran pengembangan...") menjadi paragraf baru yang bersih
+        $cleaned = preg_replace('/(?:\s*(?:[0-9]+(?:\.[0-9]+)*[\.\:\)]*\s*)?saran\s*[\.\:\-]*\s*)(saran\s+)?/iu', "\n\nSaran ", $cleaned);
 
         return trim($cleaned);
     }
@@ -211,7 +223,16 @@ class GuestPaperController extends Controller
             ->where('submission_status', 'PUBLISHED')
             ->findOrFail($id);
 
-        $isLocked    = $paper->access_type === 'CLOSED_ACCESS';
+        $hasPurchased = false;
+        if (Auth::check()) {
+            $hasPurchased = Purchase::where('user_id', Auth::id())
+                ->where('paper_id', $paper->id)
+                ->where('payment_status', 'PAID')
+                ->exists();
+        }
+
+        // Paper terkunci HANYA jika tipenya CLOSED_ACCESS dan user belum membeli
+        $isLocked = ($paper->access_type === 'CLOSED_ACCESS') && !$hasPurchased;
         $template    = $this->loadTemplate();
         $replacements = $this->buildReplacements($paper);
 
@@ -232,11 +253,13 @@ class GuestPaperController extends Controller
         </div>";
 
         $abstractHtml = $this->renderTemplate($abstractOnlyTemplate, $replacements);
+        $price = ($paper->price && $paper->price > 0) ? (int)$paper->price : 25000;
 
         return Inertia::render('Guest/PaperDetail', [
             'paper'            => $paper,
             'isLocked'         => $isLocked,
-            'price'            => $paper->price ?? 0,
+            'hasPurchased'     => $hasPurchased,
+            'price'            => $price,
             'renderedTemplate' => $isLocked ? null : $renderedTemplate,
             'abstractHtml'     => $abstractHtml,
         ]);

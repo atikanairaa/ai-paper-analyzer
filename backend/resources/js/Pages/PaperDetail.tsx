@@ -8,6 +8,7 @@ import { ChatWidget } from "@/Components/ChatWidget";
 import { ConfirmModal } from "@/Components/ConfirmModal";
 import { Paper } from "@/types/paper";
 import { PageProps } from "@/types";
+import { downloadWordDocument } from "@/utils/wordExport";
 import axios from "axios";
 import {
     ArrowLeft,
@@ -30,6 +31,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Printer,
+    Clock,
 } from "lucide-react";
 import { RevisionUploadModal } from "@/Components/RevisionUploadModal";
 
@@ -54,6 +56,62 @@ const RESEARCH_ELEMENTS = [
     { key: "limitation", label: "Limitation", icon: "❿", synonyms: ["limitations", "future work"] },
 ];
 
+function splitHtmlIntoPages(html: string, charsPerPage = 4200): string[] {
+    if (!html) return [""];
+    const pages: string[] = [];
+    let remaining = html;
+    while (remaining.length > 0) {
+        if (remaining.length <= charsPerPage) {
+            pages.push(remaining);
+            break;
+        }
+
+        // 1. Cek batas paragraf alami </p> mendekati batas halaman
+        let splitAt = remaining.lastIndexOf("</p>", charsPerPage);
+
+        // 2. Jika </p> terjadi terlalu awal (< 75% dari kapasitas halaman),
+        // potong di batas kalimat (titik) agar halaman tidak kosong melompong
+        if (splitAt < charsPerPage * 0.72) {
+            const searchWindow = remaining.substring(0, charsPerPage);
+            const sentenceMatch = searchWindow.lastIndexOf(". ");
+
+            if (sentenceMatch > charsPerPage * 0.68) {
+                // Potong bersih di akhir kalimat dan tutup tag </p>
+                const firstPart = remaining.substring(0, sentenceMatch + 1) + "</p>";
+                
+                // Cari format tag <p ...> pembuka untuk melanjutkan ke halaman berikutnya
+                const pTagMatch = remaining.substring(0, sentenceMatch).lastIndexOf("<p");
+                let pOpenTag = '<p style="text-align: justify; text-indent: 28px; margin-bottom: 12px; line-height: 1.6;">';
+                if (pTagMatch >= 0) {
+                    const tagEnd = remaining.indexOf(">", pTagMatch);
+                    if (tagEnd > pTagMatch && tagEnd < sentenceMatch) {
+                        pOpenTag = remaining.substring(pTagMatch, tagEnd + 1);
+                    }
+                }
+                const secondPart = pOpenTag + remaining.substring(sentenceMatch + 2);
+                pages.push(firstPart);
+                remaining = secondPart;
+                continue;
+            }
+
+            if (splitAt < charsPerPage * 0.4) {
+                splitAt = remaining.lastIndexOf("</div>", charsPerPage);
+                if (splitAt < charsPerPage * 0.4) splitAt = remaining.lastIndexOf("<br", charsPerPage);
+            }
+        }
+
+        if (splitAt < 0 || splitAt < charsPerPage * 0.3) {
+            splitAt = charsPerPage;
+        } else {
+            splitAt += 4;
+        }
+
+        pages.push(remaining.substring(0, splitAt));
+        remaining = remaining.substring(splitAt);
+    }
+    return pages.length > 0 ? pages : [""];
+}
+
 type ActiveTab = "dashboard" | "read" | "template";
 
 export default function PaperDetail() {
@@ -62,68 +120,22 @@ export default function PaperDetail() {
 
     const handleDownloadWord = () => {
         if (!props.renderedTemplate) return;
-        
-        let processedHtml = props.renderedTemplate;
-
-        // 1. Hapus tag figure
-        processedHtml = processedHtml.replace(/<\/?figure[^>]*>/gi, '');
-        // 2. HAPUS tag <thead> dan <tbody>
-        processedHtml = processedHtml.replace(/<\/?(thead|tbody)[^>]*>/gi, '');
-        // 3. Ubah semua <th> menjadi <td>
-        processedHtml = processedHtml.replace(/<th[^>]*>/gi, '<td bgcolor="#881337" style="background-color: #881337; color: #ffffff; font-weight: bold; border: 1px solid #78716c; padding: 6pt 10pt; font-size: 10pt; text-align: left;">');
-        processedHtml = processedHtml.replace(/<\/th>/gi, '</td>');
-        // 4. Pastikan semua <td> yang bukan header memiliki border
-        processedHtml = processedHtml.replace(/<td(?![^>]*bgcolor)([^>]*)>/gi, '<td style="border: 1px solid #78716c; padding: 6pt 10pt; font-size: 10pt; vertical-align: top;"$1>');
-        // 5. Pastikan tag <table>
-        processedHtml = processedHtml.replace(/<table[^>]*>/gi, '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse: collapse; width: 100%; border: 1px solid #78716c; margin: 12pt 0;">');
-
-        const wordStyles = `
-            <style>
-                @page { size: A4; margin: 2.5cm 2.5cm 2.5cm 2.5cm; }
-                body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; color: #1c1917; }
-                table { border-collapse: collapse !important; width: 100% !important; margin: 12pt 0 !important; border: 1px solid #78716c !important; }
-                td { border: 1px solid #78716c !important; padding: 6pt 10pt !important; }
-            </style>
-        `;
-
-        const header = `
-            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>Draft Template Naskah</title>${wordStyles}</head>
-            <body>
-        `;
-        const footer = "</body></html>";
-        const fullContent = header + processedHtml + footer;
-
-        const blob = new Blob(['\ufeff' + fullContent], { type: 'application/msword;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Draft_Jurnal.doc`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const cleanTitle = (paper?.title || "Draft_Jurnal").replace(/[^a-zA-Z0-9_\-\s]/g, "").substring(0, 60).trim();
+        downloadWordDocument(`${cleanTitle || "Draft_Jurnal"}.doc`, props.renderedTemplate, paper?.title || "Draft Template Naskah");
     };
 
 
 
     const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const contentRef = React.useRef<HTMLDivElement>(null);
+    const pages = React.useMemo(() => splitHtmlIntoPages(props.renderedTemplate || "", 4200), [props.renderedTemplate]);
+    const totalPages = pages.length;
 
     React.useEffect(() => {
-        if (activeTab === "template" && contentRef.current) {
-            setTimeout(() => {
-                if (contentRef.current) {
-                    const scrollW = contentRef.current.scrollWidth;
-                    const clientW = contentRef.current.clientWidth;
-                    const calculatedPages = Math.ceil(scrollW / clientW);
-                    setTotalPages(calculatedPages > 0 ? calculatedPages : 1);
-                }
-            }, 300);
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(1);
         }
-    }, [props.renderedTemplate, activeTab]);
+    }, [totalPages]);
 
     // Polling halus via Inertia setiap 4 detik tanpa kedip layar penuh jika paper sedang dianalisis (PROCESSING)
     React.useEffect(() => {
@@ -246,7 +258,9 @@ export default function PaperDetail() {
         if (!paper || isGeneratingPayment) return;
         setIsGeneratingPayment(true);
         try {
-            const response = await axios.post(`/papers/${paper.id}/generate-payment`);
+            const response = await axios.post(`/papers/${paper.id}/generate-payment`, {
+                access_type: "OPEN_ACCESS"
+            });
             // Reload the page to get the updated paper object with payment_url
             window.location.reload();
         } catch (error: any) {
@@ -262,22 +276,57 @@ export default function PaperDetail() {
         }
     };
 
-    const handlePublishPaper = async () => {
-        if (!paper) return;
+    const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
+    const handleCheckPayment = async () => {
+        if (!paper || isCheckingPayment) return;
+        setIsCheckingPayment(true);
+        try {
+            const res = await axios.post(`/papers/${paper.id}/check-payment`);
+            setConfirmModal({
+                isOpen: true,
+                title: "Status Pembayaran",
+                message: res.data?.message || "Status pembayaran berhasil dikonfirmasi.",
+                confirmLabel: "OK",
+                variant: res.data?.status === "PAID" ? "success" : "info",
+                onConfirm: () => {
+                    closeModal();
+                    window.location.reload();
+                }
+            });
+        } catch (error: any) {
+            setConfirmModal({
+                isOpen: true,
+                title: "Kesalahan",
+                message: error.response?.data?.error || error.response?.data?.message || "Gagal memeriksa status pembayaran.",
+                confirmLabel: "Tutup",
+                variant: "danger",
+                onConfirm: closeModal
+            });
+        } finally {
+            setIsCheckingPayment(false);
+        }
+    };
+
+    const handleConfirmClosedAccess = () => {
+        if (!paper || isActionLoading) return;
         setConfirmModal({
             isOpen: true,
-            title: "Publikasi Paper",
-            message: "Konfirmasi: Paper Anda akan dipublikasikan ke jurnal. Lanjutkan?",
-            confirmLabel: "Ya, Publikasikan",
+            title: "Konfirmasi Pilihan Closed Access?",
+            message: "Anda memilih opsi Closed Access (publikasi gratis bagi penulis). Pilihan ini akan disimpan dan notifikasi akan dikirimkan kepada Admin untuk menerbitkan naskah ke katalog. Lanjutkan?",
+            confirmLabel: "Ya, Konfirmasi & Ajukan ke Admin",
             variant: "info",
             onConfirm: async () => {
                 closeModal();
+                setIsActionLoading(true);
                 try {
-                    await axios.post(`/papers/${paper.id}/publish`, { access_type: selectedAccessType });
+                    const res = await axios.post(`/papers/${paper.id}/choose-access`, {
+                        access_type: "CLOSED_ACCESS"
+                    });
                     setConfirmModal({
                         isOpen: true,
-                        title: "Publikasi Berhasil",
-                        message: "Paper Anda telah resmi dipublikasikan ke jurnal.",
+                        title: "Pilihan Berhasil Dikonfirmasi",
+                        message: res.data?.message || "Pilihan Closed Access berhasil disimpan dan notifikasi telah dikirim ke Admin.",
                         confirmLabel: "Tutup",
                         variant: "success",
                         onConfirm: () => {
@@ -289,11 +338,53 @@ export default function PaperDetail() {
                     setConfirmModal({
                         isOpen: true,
                         title: "Kesalahan",
+                        message: error.response?.data?.error || error.response?.data?.message || "Gagal mengonfirmasi pilihan Closed Access.",
+                        confirmLabel: "Tutup",
+                        variant: "danger",
+                        onConfirm: closeModal
+                    });
+                } finally {
+                    setIsActionLoading(false);
+                }
+            }
+        });
+    };
+
+    const handlePublishPaper = async () => {
+        if (!paper || isActionLoading) return;
+        setConfirmModal({
+            isOpen: true,
+            title: "Terbitkan Paper ke Jurnal Publik?",
+            message: "Sebagai Admin, Anda akan menerbitkan naskah jurnal ini secara resmi ke katalog publik. Peneliti akan menerima notifikasi penerbitan. Lanjutkan?",
+            confirmLabel: "Ya, Terbitkan Paper",
+            variant: "info",
+            onConfirm: async () => {
+                closeModal();
+                setIsActionLoading(true);
+                try {
+                    await axios.post(`/papers/${paper.id}/publish`);
+                    setConfirmModal({
+                        isOpen: true,
+                        title: "Publikasi Berhasil!",
+                        message: "Paper telah resmi diterbitkan ke katalog jurnal publik dan notifikasi telah dikirimkan ke Peneliti.",
+                        confirmLabel: "Tutup",
+                        variant: "success",
+                        onConfirm: () => {
+                            closeModal();
+                            window.location.reload();
+                        }
+                    });
+                } catch (error: any) {
+                    setConfirmModal({
+                        isOpen: true,
+                        title: "Gagal Menerbitkan",
                         message: error.response?.data?.error || "Gagal mempublikasikan paper.",
                         confirmLabel: "Tutup",
                         variant: "danger",
                         onConfirm: closeModal
                     });
+                } finally {
+                    setIsActionLoading(false);
                 }
             }
         });
@@ -600,18 +691,19 @@ export default function PaperDetail() {
                             )}
 
                         {/* ── Banner PUBLISHED ── */}
-                        {paper.submission_status === "PUBLISHED" &&
-                            props.auth?.user?.id === paper.uploaded_by && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-200">
-                                        <CheckCircle2 className="h-6 w-6 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-blue-900">Paper Berhasil Dipublikasikan!</h3>
-                                        <p className="text-sm text-blue-700 mt-1">Paper Anda telah resmi dipublikasikan ke jurnal. Terima kasih telah berkontribusi pada pengembangan ilmu pengetahuan.</p>
-                                    </div>
+                        {paper.submission_status === "PUBLISHED" && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
+                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-200">
+                                    <CheckCircle2 className="h-6 w-6 text-blue-600" />
                                 </div>
-                            )}
+                                <div>
+                                    <h3 className="text-lg font-bold text-blue-900">Paper Resmi Dipublikasikan ke Katalog!</h3>
+                                    <p className="text-sm text-blue-700 mt-1">
+                                        Naskah ini telah resmi dipublikasikan ke katalog jurnal publik ({paper.access_type === 'CLOSED_ACCESS' ? 'Closed Access' : 'Open Access'}). Terima kasih telah berkontribusi pada publikasi ilmiah.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* ── Banner REJECTED ── */}
                         {paper.submission_status === "REJECTED" &&
@@ -627,76 +719,250 @@ export default function PaperDetail() {
                                 </div>
                             )}
 
-                        {/* ── Banner ACCEPTED ── */}
+                        {/* ── Banner ACCEPTED (Khusus Admin & Peneliti) ── */}
                         {(paper.submission_status === "ACCEPTED" ||
-                            paper.submission_status === "ACCEPT") &&
-                            props.auth?.user?.id === paper.uploaded_by && (() => {
-                                const isPaid = (paper as any).payment_status === "PAID";
-                                const isFreeForAuthor = (paper as any).access_type === "CLOSED_ACCESS";
-                                const isReadyToPublish = isPaid || isFreeForAuthor;
-                                return (
-                                    <div className={`${isReadyToPublish ? 'bg-indigo-50 border-indigo-200' : 'bg-emerald-50 border-emerald-200'} border rounded-2xl p-6 flex flex-col items-start gap-4 shadow-sm`}>
-                                        <div className="flex items-start gap-4 w-full">
-                                            <div className={`w-12 h-12 ${isReadyToPublish ? 'bg-indigo-100 border-indigo-200' : 'bg-emerald-100 border-emerald-200'} rounded-full flex items-center justify-center flex-shrink-0 border`}>
-                                                <CheckCircle2 className={`w-6 h-6 ${isReadyToPublish ? 'text-indigo-600' : 'text-emerald-600'}`} />
+                            paper.submission_status === "ACCEPT") && (() => {
+                                const isAdmin = props.auth?.peran === "admin" || (props.auth?.user as any)?.roles?.some((r: any) => r.name === 'admin');
+                                const isAuthor = props.auth?.user?.id === paper.uploaded_by;
+                                const isPaidOpenAccess = (paper as any).access_type === "OPEN_ACCESS" && (paper as any).payment_status === "PAID";
+                                const isClosedAccess = (paper as any).access_type === "CLOSED_ACCESS";
+                                const isReadyToPublish = isPaidOpenAccess || isClosedAccess;
+
+                                // JIKA USER ADALAH ADMIN:
+                                if (isAdmin) {
+                                    if (isReadyToPublish) {
+                                        return (
+                                            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <Send className="w-6 h-6 text-indigo-600" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h3 className="text-lg font-bold text-indigo-900">
+                                                                Naskah Siap Diterbitkan ke Katalog (Wewenang Admin)
+                                                            </h3>
+                                                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                                                {isPaidOpenAccess ? "Open Access (Lunas)" : "Closed Access"}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-indigo-700 mt-1 max-w-2xl">
+                                                            {isPaidOpenAccess
+                                                                ? "Peneliti telah melunasi biaya publikasi Open Access. Anda sebagai Admin berwenang untuk menerbitkan naskah ini ke katalog publik agar dapat diakses dan diunduh oleh pembaca."
+                                                                : "Peneliti telah mengonfirmasi opsi Closed Access (publikasi gratis bagi penulis). Anda sebagai Admin berwenang untuk menerbitkan naskah ini ke katalog jurnal publik."}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-shrink-0 self-end md:self-center">
+                                                    <button
+                                                        onClick={handlePublishPaper}
+                                                        disabled={isActionLoading}
+                                                        className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-indigo-200 disabled:opacity-50"
+                                                    >
+                                                        <Send className="w-5 h-5" />
+                                                        <span>{isActionLoading ? "Menerbitkan..." : "Terbitkan Paper ke Jurnal (Publish)"}</span>
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="flex-1">
-                                                <h3 className={`text-lg font-bold ${isReadyToPublish ? 'text-indigo-900' : 'text-emerald-900'}`}>
-                                                    {isReadyToPublish ? "Siap Dipublikasikan!" : "Selamat! Paper Anda Diterima untuk Dipublikasikan"}
-                                                </h3>
-                                                <p className={`text-sm ${isReadyToPublish ? 'text-indigo-700' : 'text-emerald-700'} mt-1 mb-4`}>
-                                                    {isReadyToPublish ? (isFreeForAuthor ? "Paper Anda berstatus Closed Access (gratis publikasi). Klik tombol di bawah untuk mempublikasikan paper." : "Pembayaran Anda telah dikonfirmasi. Klik tombol di bawah untuk mempublikasikan paper.") : "Pilih jenis akses untuk melanjutkan administrasi jurnal."}
-                                                </p>
-                                                
-                                                {!isReadyToPublish && !(paper as any).payment_url && (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mt-4">
-                                                        <label className={`flex items-start space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedAccessType === 'OPEN_ACCESS' ? 'border-emerald-400 bg-emerald-50' : 'border-emerald-200 hover:border-emerald-300 bg-white'}`}>
-                                                            <input type="radio" name="access_type" value="OPEN_ACCESS" checked={selectedAccessType === 'OPEN_ACCESS'} onChange={() => setSelectedAccessType('OPEN_ACCESS')} className="mt-0.5 accent-emerald-600" />
-                                                            <div>
-                                                                <p className="text-sm font-semibold text-emerald-900">Open Access</p>
-                                                                <p className="text-xs text-emerald-700 mt-0.5">Saya bersedia bayar biaya publikasi</p>
-                                                            </div>
-                                                        </label>
-                                                        <label className={`flex items-start space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedAccessType === 'CLOSED_ACCESS' ? 'border-emerald-400 bg-emerald-50' : 'border-emerald-200 hover:border-emerald-300 bg-white'}`}>
-                                                            <input type="radio" name="access_type" value="CLOSED_ACCESS" checked={selectedAccessType === 'CLOSED_ACCESS'} onChange={() => setSelectedAccessType('CLOSED_ACCESS')} className="mt-0.5 accent-emerald-600" />
-                                                            <div>
-                                                                <p className="text-sm font-semibold text-emerald-900">Closed Access</p>
-                                                                <p className="text-xs text-emerald-700 mt-0.5">Gratis publikasi, pembaca yang bayar</p>
-                                                            </div>
-                                                        </label>
+                                        );
+                                    } else {
+                                        // Admin view saat belum siap terbit (peneliti belum bayar atau belum pilih akses)
+                                        return (
+                                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-12 h-12 bg-amber-100 border border-amber-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <Clock className="w-6 h-6 text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h3 className="text-lg font-bold text-amber-900">
+                                                                Menunggu Administrasi dari Peneliti
+                                                            </h3>
+                                                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                                                {(paper as any).access_type ? (paper as any).access_type : "Belum Memilih Akses"}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-amber-700 mt-1 max-w-2xl">
+                                                            {(paper as any).access_type === "OPEN_ACCESS"
+                                                                ? "Peneliti telah memilih Open Access namun tagihan biaya publikasi belum diselesaikan (UNPAID). Tombol penerbitan akan aktif setelah pembayaran lunas."
+                                                                : "Paper telah diterima (ACCEPTED) oleh reviewer. Menunggu peneliti menentukan model akses naskah (Open Access atau Closed Access)."}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {(paper as any).payment_url && (
+                                                    <div className="flex-shrink-0 self-end md:self-center">
+                                                        <a
+                                                            href={`/simulasi-lunas/${paper.id}`}
+                                                            className="inline-flex items-center space-x-2 px-4 py-2 bg-amber-100 text-amber-900 border border-amber-300 rounded-xl hover:bg-amber-200 font-semibold text-xs transition shadow-sm"
+                                                            title="Simulasi pelunasan pembayaran (Khusus testing)"
+                                                        >
+                                                            <CheckCircle2 className="w-4 h-4 text-amber-700" />
+                                                            <span>[Dev] Simulasikan Lunas</span>
+                                                        </a>
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
-                                        
-                                        <div className="flex-shrink-0 self-end mt-4">
-                                            {isReadyToPublish ? (
-                                                <button onClick={handlePublishPaper} className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-indigo-200">
-                                                    <Send className="w-5 h-5" /><span>Publikasikan Paper</span>
-                                                </button>
-                                            ) : (paper as any).payment_url ? (
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <a href={(paper as any).payment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-emerald-200">
-                                                        <CreditCard className="w-5 h-5" /><span>Bayar Biaya Publikasi (DOKU)</span>
-                                                    </a>
-                                                    <a href={`/simulasi-lunas/${paper.id}`} className="inline-flex items-center space-x-2 px-4 py-2 bg-amber-100 text-amber-800 border border-amber-300 rounded-xl hover:bg-amber-200 font-semibold text-xs transition" title="Simulasi pembayaran berhasil (DEV only)">
-                                                        <CheckCircle2 className="w-4 h-4" /><span>Simulasi Pembayaran Berhasil</span>
-                                                    </a>
+                                        );
+                                    }
+                                }
+
+                                // JIKA USER BUKAN ADMIN TAPI PENELITI / PEMILIK PAPER:
+                                if (isAuthor) {
+                                    // 1. Jika sudah lunas Open Access:
+                                    if (isPaidOpenAccess) {
+                                        return (
+                                            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
+                                                <div className="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <Clock className="w-6 h-6 text-indigo-600" />
                                                 </div>
-                                            ) : (
-                                                selectedAccessType === 'CLOSED_ACCESS' ? (
-                                                    <button onClick={handlePublishPaper} className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-indigo-200">
-                                                        <Send className="w-5 h-5" /><span>Publikasikan Gratis</span>
+                                                <div className="flex-1">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h3 className="text-lg font-bold text-indigo-900">
+                                                            Pembayaran Terkonfirmasi — Menunggu Penerbitan oleh Admin
+                                                        </h3>
+                                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                            PAID (OPEN ACCESS)
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-indigo-700 mt-2">
+                                                        Terima kasih! Pembayaran biaya publikasi Open Access Anda telah berhasil diverifikasi. Notifikasi telah otomatis dikirimkan ke <strong>Admin Jurnal</strong> untuk proses penerbitan naskah ke katalog publik. Anda akan mendapatkan notifikasi pemberitahuan segera setelah naskah resmi diterbitkan.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    // 2. Jika sudah konfirmasi Closed Access:
+                                    if (isClosedAccess) {
+                                        return (
+                                            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
+                                                <div className="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <Clock className="w-6 h-6 text-indigo-600" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h3 className="text-lg font-bold text-indigo-900">
+                                                            Pilihan Closed Access Disimpan — Menunggu Penerbitan oleh Admin
+                                                        </h3>
+                                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                                                            CLOSED ACCESS
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-indigo-700 mt-2">
+                                                        Anda telah memilih opsi <strong>Closed Access</strong> (publikasi gratis bagi penulis). Notifikasi telah dikirimkan kepada <strong>Admin Jurnal</strong> untuk memproses penerbitan paper Anda ke katalog. Anda akan menerima notifikasi segera setelah naskah resmi dipublikasikan.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    // 3. Jika belum memilih akses atau belum lunas bayar Open Access:
+                                    return (
+                                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex flex-col items-start gap-4 shadow-sm">
+                                            <div className="flex items-start gap-4 w-full">
+                                                <div className="w-12 h-12 bg-emerald-100 border border-emerald-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-lg font-bold text-emerald-900">
+                                                        {(paper as any).payment_url ? "Selesaikan Pembayaran Publikasi Open Access" : "Selamat! Paper Anda Diterima untuk Dipublikasikan"}
+                                                    </h3>
+                                                    <p className="text-sm text-emerald-700 mt-1 mb-4">
+                                                        {(paper as any).payment_url
+                                                            ? "Tagihan pembayaran publikasi telah dibuat. Silakan selesaikan pembayaran agar kami dapat memberi tahu Admin untuk menerbitkan naskah Anda."
+                                                            : "Naskah Anda telah disetujui oleh reviewer (ACCEPTED). Silakan tentukan opsi akses naskah Anda:"}
+                                                    </p>
+
+                                                    {!(paper as any).payment_url && (
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mt-4">
+                                                            <label className={`flex items-start space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedAccessType === 'OPEN_ACCESS' ? 'border-emerald-500 bg-white shadow-sm ring-1 ring-emerald-500' : 'border-emerald-200 hover:border-emerald-300 bg-emerald-50/50'}`}>
+                                                                <input
+                                                                    type="radio"
+                                                                    name="access_type"
+                                                                    value="OPEN_ACCESS"
+                                                                    checked={selectedAccessType === 'OPEN_ACCESS'}
+                                                                    onChange={() => setSelectedAccessType('OPEN_ACCESS')}
+                                                                    className="mt-0.5 accent-emerald-600"
+                                                                />
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-emerald-950">Open Access</p>
+                                                                    <p className="text-xs text-emerald-700 mt-0.5">Penulis membayar biaya publikasi (APC). Artikel dapat dibaca & diunduh gratis oleh semua orang.</p>
+                                                                </div>
+                                                            </label>
+                                                            <label className={`flex items-start space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedAccessType === 'CLOSED_ACCESS' ? 'border-emerald-500 bg-white shadow-sm ring-1 ring-emerald-500' : 'border-emerald-200 hover:border-emerald-300 bg-emerald-50/50'}`}>
+                                                                <input
+                                                                    type="radio"
+                                                                    name="access_type"
+                                                                    value="CLOSED_ACCESS"
+                                                                    checked={selectedAccessType === 'CLOSED_ACCESS'}
+                                                                    onChange={() => setSelectedAccessType('CLOSED_ACCESS')}
+                                                                    className="mt-0.5 accent-emerald-600"
+                                                                />
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-emerald-950">Closed Access</p>
+                                                                    <p className="text-xs text-emerald-700 mt-0.5">Publikasi gratis bagi penulis. Pembaca/institusi luar yang akan membayar biaya akses naskah.</p>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-shrink-0 self-end mt-2">
+                                                {(paper as any).payment_url ? (
+                                                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                                                        <a
+                                                            href={(paper as any).payment_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-emerald-200"
+                                                        >
+                                                            <CreditCard className="w-5 h-5" />
+                                                            <span>Bayar Biaya Publikasi (DOKU)</span>
+                                                        </a>
+                                                        <button
+                                                            onClick={handleCheckPayment}
+                                                            disabled={isCheckingPayment}
+                                                            className="inline-flex items-center space-x-2 px-4 py-3 bg-white border border-emerald-300 text-emerald-800 rounded-xl hover:bg-emerald-50 font-bold text-sm transition shadow-sm"
+                                                            title="Verifikasi status pembayaran dari DOKU dan beritahu Admin"
+                                                        >
+                                                            <RefreshCw className={`w-4 h-4 ${isCheckingPayment ? "animate-spin" : ""}`} />
+                                                            <span>{isCheckingPayment ? "Memeriksa..." : "Cek / Konfirmasi Pembayaran"}</span>
+                                                        </button>
+                                                        <a
+                                                            href={`/simulasi-lunas/${paper.id}`}
+                                                            className="inline-flex items-center space-x-2 px-4 py-2.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-xl hover:bg-amber-200 font-semibold text-xs transition"
+                                                            title="Simulasi pembayaran berhasil (DEV only)"
+                                                        >
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                            <span>Simulasi Pembayaran Berhasil</span>
+                                                        </a>
+                                                    </div>
+                                                ) : selectedAccessType === 'CLOSED_ACCESS' ? (
+                                                    <button
+                                                        onClick={handleConfirmClosedAccess}
+                                                        disabled={isActionLoading}
+                                                        className="inline-flex items-center space-x-2 px-6 py-3 bg-stone-800 text-white rounded-xl hover:bg-stone-900 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-stone-200 disabled:opacity-50"
+                                                    >
+                                                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                                        <span>{isActionLoading ? "Menyimpan..." : "Konfirmasi Pilihan Closed Access"}</span>
                                                     </button>
                                                 ) : (
-                                                    <button onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="inline-flex items-center space-x-2 px-6 py-3 bg-stone-800 text-white rounded-xl hover:bg-stone-900 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-stone-200 disabled:opacity-50">
-                                                        <CreditCard className="w-5 h-5" /><span>{isGeneratingPayment ? "Memproses..." : "Generate Tagihan"}</span>
+                                                    <button
+                                                        onClick={handleGeneratePayment}
+                                                        disabled={isGeneratingPayment}
+                                                        className="inline-flex items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-sm transition shadow-md focus:ring-2 focus:ring-emerald-200 disabled:opacity-50"
+                                                    >
+                                                        <CreditCard className="w-5 h-5" />
+                                                        <span>{isGeneratingPayment ? "Memproses..." : "Lanjutkan Pembayaran (Generate Tagihan)"}</span>
                                                     </button>
-                                                )
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
+                                    );
+                                }
+
+                                return null;
                             })()}
 
                         {/* ── 1. Metadata Header ── */}
@@ -1431,34 +1697,23 @@ export default function PaperDetail() {
                                     </div>
                                 )}
 
-                                {/* A4 Page View (CSS Column Pagination) */}
+                                {/* Centered A4 Sheet Simulation */}
                                 <div 
-                                    className="bg-white shadow-xl rounded-sm overflow-hidden relative mb-6 mx-auto"
+                                    className="bg-white shadow-xl rounded-sm border border-stone-200 overflow-hidden relative mb-6 mx-auto transition-all"
                                     style={{
-                                        width: "794px",
-                                        height: "1123px",
+                                        maxWidth: "794px",
+                                        minHeight: "1123px",
+                                        padding: "96px",
                                         boxSizing: "border-box",
+                                        fontFamily: "'Times New Roman', Times, serif",
+                                        fontSize: "11pt",
+                                        lineHeight: "1.6",
+                                        color: "#1c1917",
                                     }}
                                 >
                                     <div 
-                                        ref={contentRef}
-                                        className="ck-content h-full"
-                                        style={{
-                                            columnWidth: "794px",
-                                            columnGap: "0",
-                                            columnFill: "auto",
-                                            height: "1123px",
-                                            padding: "96px", // 2.54cm margins
-                                            boxSizing: "border-box",
-                                            fontFamily: "'Times New Roman', Times, serif",
-                                            fontSize: "11pt",
-                                            lineHeight: "1.6",
-                                            color: "#1c1917",
-                                            transform: `translateX(-${(currentPage - 1) * 794}px)`,
-                                            transition: "transform 0.4s ease-in-out",
-                                            width: "794px"
-                                        }}
-                                        dangerouslySetInnerHTML={{ __html: props.renderedTemplate || "" }}
+                                        className="ck-content"
+                                        dangerouslySetInnerHTML={{ __html: pages[currentPage - 1] || "" }}
                                     />
                                     {/* Page Footer overlay */}
                                     <div 
@@ -1476,7 +1731,7 @@ export default function PaperDetail() {
                                             zIndex: 10
                                         }}
                                     >
-                                        {paper?.title || "Naskah Jurnal"} &mdash; Halaman {currentPage}
+                                        {paper?.title || "Naskah Jurnal"} &mdash; Halaman {currentPage} dari {totalPages}
                                     </div>
                                 </div>
                                 <style>{`

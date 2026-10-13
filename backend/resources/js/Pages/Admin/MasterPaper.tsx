@@ -74,11 +74,24 @@ export default function MasterPaper() {
                           {!p.is_submission ? (
                             <span className="text-xs text-stone-400 italic">Bukan untuk Jurnal</span>
                           ) : (
-                            <Badge 
-                                color={p.submission_status === 'PUBLISHED' || p.submission_status === 'ACCEPTED' ? 'green' : p.submission_status === 'REJECTED' ? 'red' : 'blue'}
-                            >
-                                {p.submission_status}
-                            </Badge>
+                            <div className="flex flex-col gap-1 items-start">
+                              <Badge 
+                                  color={p.submission_status === 'PUBLISHED' ? 'green' : p.submission_status === 'ACCEPTED' ? 'indigo' : p.submission_status === 'REJECTED' ? 'red' : 'blue'}
+                              >
+                                  {p.submission_status}
+                              </Badge>
+                              {p.submission_status === 'ACCEPTED' && (
+                                (p.access_type === 'CLOSED_ACCESS' || (p.access_type === 'OPEN_ACCESS' && p.payment_status === 'PAID')) ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    ★ Siap Terbit
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                    Menunggu Administrasi
+                                  </span>
+                                )
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>

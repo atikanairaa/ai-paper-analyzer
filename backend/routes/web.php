@@ -49,18 +49,33 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
         Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
         
-        // Payment routes untuk Author/Researcher
+        // Payment & Access routes untuk Author/Researcher
         Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
+        Route::post('/papers/{paper}/choose-access', [\App\Http\Controllers\PaperController::class, 'chooseAccess'])->name('paper.choose-access');
+        Route::post('/papers/{paper}/check-payment', [\App\Http\Controllers\PaymentController::class, 'checkPaymentStatus'])->name('payment.check');
         
+        // Penerbitan Paper (Hanya untuk Admin)
         Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
         Route::post('/papers/{id}/reanalyze', [\App\Http\Controllers\PaperController::class, 'reanalyze'])->name('papers.reanalyze');
     });
 
-    // â”€â”€ [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok â”€â”€
+    // ── [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok ──
     Route::get('/simulasi-lunas/{id}', function ($id) {
-        $paper = \App\Models\Paper::findOrFail($id);
+        $paper = \App\Models\Paper::with('uploader')->findOrFail($id);
         $paper->update(['payment_status' => 'PAID']);
-        return redirect("/detail/{$id}")->with('success', 'Simulasi: Pembayaran DOKU berhasil dikonfirmasi!');
+
+        // Kirim notifikasi ke Admin bahwa Open Access sudah lunas dan siap diterbitkan
+        $admins = \App\Models\User::role('admin')->get();
+        if ($admins->isEmpty()) {
+            $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+        }
+        $researcherName = $paper->uploader->name ?? 'Peneliti';
+        \Illuminate\Support\Facades\Notification::send(
+            $admins,
+            new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
+        );
+
+        return redirect("/detail/{$id}")->with('success', 'Simulasi: Pembayaran DOKU berhasil dikonfirmasi! Notifikasi telah dikirim ke Admin.');
     })->name('payment.simulasi');
 
     // â”€â”€ Rute halaman Reviewer â”€â”€
@@ -78,6 +93,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/expertises', [\App\Http\Controllers\Admin\ExpertiseManagementController::class, 'index'])->name('admin.expertises');
         Route::get('/published-papers', [\App\Http\Controllers\Admin\PublishedPapersController::class, 'index'])->name('admin.published-papers');
+        Route::get('/paper-publications', [\App\Http\Controllers\Admin\PaperPublicationController::class, 'index'])->name('admin.paper-publications');
+        Route::post('/paper-publications/{paper}/publish', [\App\Http\Controllers\Admin\PaperPublicationController::class, 'publish'])->name('admin.paper-publications.publish');
         Route::get('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'index'])->name('admin.prompts.index');
         Route::post('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'store'])->name('admin.prompts.store');
         Route::put('/prompts/{criterion}', [\App\Http\Controllers\Admin\PromptController::class, 'update'])->name('admin.prompts.update');

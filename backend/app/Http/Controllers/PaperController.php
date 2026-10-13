@@ -120,14 +120,31 @@ class PaperController extends Controller
             if (empty($text)) {
                 return '<i>Bagian ini belum diekstrak oleh AI.</i>';
             }
-            $patterns = [
-                '/^(\s*(?:(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+|[A-Za-z])[\.\:\)]\s*)?(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan|conclusion|diskusi|discussion)\s*[\.\:\-]*\s*)/iu',
-                '/^(\s*(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+)[\.\:\)]\s*)/iu',
-            ];
-            $cleaned = $text;
-            foreach ($patterns as $pattern) {
-                $cleaned = preg_replace($pattern, '', $cleaned, 1);
+
+            $cleaned = trim($text);
+
+            // 1. Pola nomor bab bertingkat/romawi/huruf + kata kunci judul (misal: "5.1. Kesimpulan", "Bab V Kesimpulan", "1. Pendahuluan")
+            $numberedHeadingRegex = '/^\s*(?:bab\s+)?(?:[0-9]+|[IVXLCDM]+|[A-Za-z])(?:\.[0-9]+)*[\.\:\)]*\s+(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan(?:\s+dan\s+saran)?|conclusion(?:\s+and\s+recommendations?)?|ringkasan|summary|diskusi|discussion)\s*[\.\:\-]*\s*/iu';
+
+            // 2. Pola kata kunci judul mandiri tanpa nomor (harus diikuti tanda baca . : - atau baris baru)
+            $standaloneHeadingRegex = '/^\s*(?:pendahuluan|introduction|latar\s+belakang|metode(?:\s+penelitian)?|methods?(?:\s+and\s+materials)?|methodology|hasil(?:\s+dan\s+pembahasan)?|results?(?:\s+and\s+discussion)?|kesimpulan(?:\s+dan\s+saran)?|conclusion(?:\s+and\s+recommendations?)?|ringkasan|summary|diskusi|discussion)\s*(?:[\.\:\-]\s*|[\r\n]+\s*)/iu';
+
+            for ($i = 0; $i < 3; $i++) {
+                $before = $cleaned;
+                $cleaned = preg_replace($numberedHeadingRegex, '', $cleaned, 1);
+                $cleaned = preg_replace($standaloneHeadingRegex, '', $cleaned, 1);
+                $cleaned = trim($cleaned);
+                if ($cleaned === $before) {
+                    break;
+                }
             }
+
+            // 3. Bersihkan sisa nomor urut poin tunggal di paling awal jika ada (misal: "1. Terdapat..." -> "Terdapat...")
+            $cleaned = preg_replace('/^\s*[0-9]+[\.\)]\s*/u', '', $cleaned);
+
+            // 4. Pisahkan sub-bagian "Saran" (misal "5.2. Saran Saran pengembangan...") menjadi paragraf baru yang bersih
+            $cleaned = preg_replace('/(?:\s*(?:[0-9]+(?:\.[0-9]+)*[\.\:\)]*\s*)?saran\s*[\.\:\-]*\s*)(saran\s+)?/iu', "\n\nSaran ", $cleaned);
+
             return trim($cleaned);
         };
 
@@ -576,32 +593,84 @@ class PaperController extends Controller
     }
 
     /**
-     * Publish paper setelah pembayaran selesai.
-     * Hanya bisa dilakukan jika payment_status = PAID dan submission_status = ACCEPTED.
+     * Peneliti menentukan jenis akses publikasi (OPEN_ACCESS atau CLOSED_ACCESS).
      */
-    public function publishPaper(Request $request, Paper $paper)
+    public function chooseAccess(Request $request, Paper $paper)
     {
         if ($paper->uploaded_by !== auth()->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        if ($request->has('access_type')) {
-            $paper->update(['access_type' => $request->access_type]);
+        $request->validate([
+            'access_type' => 'required|in:OPEN_ACCESS,CLOSED_ACCESS',
+        ]);
+
+        $paper->update([
+            'access_type' => $request->access_type,
+        ]);
+
+        // Jika Peneliti memilih CLOSED_ACCESS:
+        // Kirim notifikasi ke Admin bahwa paper sudah siap diterbitkan!
+        if ($request->access_type === 'CLOSED_ACCESS') {
+            $admins = \App\Models\User::role('admin')->get();
+            if ($admins->isEmpty()) {
+                $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+            }
+            $researcherName = auth()->user()->name ?? 'Peneliti';
+            \Illuminate\Support\Facades\Notification::send(
+                $admins,
+                new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'CLOSED_ACCESS')
+            );
+
+            \App\Helpers\AuditLogger::log('Peneliti mengonfirmasi Closed Access (Menunggu penerbitan Admin)', $paper->id);
+
+            return response()->json([
+                'message' => 'Pilihan Closed Access berhasil dikonfirmasi. Notifikasi telah dikirim ke Admin untuk proses penerbitan.',
+                'paper'   => $paper,
+            ]);
         }
 
+        \App\Helpers\AuditLogger::log('Peneliti memilih Open Access', $paper->id);
+
+        return response()->json([
+            'message' => 'Pilihan Open Access berhasil disimpan. Silakan lanjutkan pembayaran publikasi.',
+            'paper'   => $paper,
+        ]);
+    }
+
+    /**
+     * Terbitkan paper ke katalog jurnal.
+     * HANYA BISA DILAKUKAN OLEH ADMIN!
+     * Syarat: submission_status = ACCEPTED dan (access_type = CLOSED_ACCESS atau payment_status = PAID).
+     */
+    public function publishPaper(Request $request, Paper $paper)
+    {
+        // 1. Otorisasi ketat: Hanya Admin yang berwenang menerbitkan paper
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['error' => 'Akses ditolak. Hanya Admin yang memiliki wewenang untuk menerbitkan naskah jurnal.'], 403);
+        }
+
+        // 2. Validasi status paper
         if ($paper->submission_status !== 'ACCEPTED' && $paper->submission_status !== 'ACCEPT') {
             return response()->json(['error' => 'Paper belum diterima (ACCEPTED) oleh reviewer.'], 422);
         }
 
-        if ($paper->access_type !== 'CLOSED_ACCESS' && ($paper->payment_status ?? 'UNPAID') !== 'PAID') {
-            return response()->json(['error' => 'Pembayaran belum selesai. Silakan selesaikan pembayaran terlebih dahulu.'], 422);
+        // 3. Validasi administrasi pembayaran jika Open Access
+        if ($paper->access_type === 'OPEN_ACCESS' && ($paper->payment_status ?? 'UNPAID') !== 'PAID') {
+            return response()->json(['error' => 'Paper berstatus Open Access belum diselesaikan pembayarannya oleh peneliti.'], 422);
         }
 
+        // 4. Terbitkan paper
         $paper->update(['submission_status' => 'PUBLISHED']);
 
-        \App\Helpers\AuditLogger::log('Paper dipublikasikan', $paper->id);
+        \App\Helpers\AuditLogger::log('Paper diterbitkan ke katalog oleh Admin', $paper->id);
 
-        return response()->json(['message' => 'Paper berhasil dipublikasikan!', 'paper' => $paper]);
+        // 5. Kirim notifikasi ke Peneliti
+        if ($paper->uploader) {
+            $paper->uploader->notify(new \App\Notifications\PaperPublishedNotification($paper->id, $paper->title));
+        }
+
+        return response()->json(['message' => 'Paper berhasil dipublikasikan ke katalog jurnal!', 'paper' => $paper]);
     }
 
     /**

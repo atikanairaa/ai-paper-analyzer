@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   FileText, UploadCloud, GitCompare, LogOut, User as UserIcon,
   LayoutDashboard, Users, ClipboardList, BookOpen, Database, Bell,
-  Clock, History, Globe, Settings
+  Clock, History, Globe, Settings, Send, LayoutTemplate
 } from 'lucide-react';
 import { ConfirmModal } from '@/Components/ConfirmModal';
 
@@ -49,7 +49,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         return [
           { id: 'dashboard', label: 'Dashboard Statistik', href: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
           { id: 'master-paper', label: 'Master Paper', href: '/admin/papers', icon: <FileText className="w-5 h-5" /> },
-          { id: 'journal-template', label: 'Kelola Template Jurnal', href: '/admin/journal-template', icon: <FileText className="w-5 h-5" /> },
+          { id: 'journal-template', label: 'Template Paper', href: '/admin/journal-template', icon: <LayoutTemplate className="w-5 h-5" /> },
+          { id: 'paper-publications', label: 'Publikasi Paper', href: '/admin/paper-publications', icon: <Send className="w-5 h-5" /> },
           { id: 'published-papers', label: 'Paper Dipublikasikan', href: '/admin/published-papers', icon: <Globe className="w-5 h-5" /> },
           { id: 'assign-paper', label: 'Assign Paper', href: '/admin/assign-paper', icon: <ClipboardList className="w-5 h-5" /> },
           { id: 'manage-users', label: 'Kelola Pengguna', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
