@@ -1344,19 +1344,36 @@ export default function PaperDetail() {
                                             </div>
                                             <div className="grid grid-cols-1 gap-3">
                                                 {(() => {
-                                                    // Peta label untuk setiap score field
-                                                    const scoreFields = [
+                                                    // PRIORITAS 1: Baca dari dynamic_scores (data baru, 100% fleksibel)
+                                                    let dynList = scores.dynamic_scores;
+                                                    if (typeof dynList === 'string') {
+                                                        try {
+                                                            dynList = JSON.parse(dynList);
+                                                        } catch (e) {
+                                                            dynList = null;
+                                                        }
+                                                    }
+                                                    if (dynList && Array.isArray(dynList) && dynList.length > 0) {
+                                                        return dynList.map((item: { criterion_name: string; score: number; reason: string }, idx: number) => (
+                                                            <ScoreCard
+                                                                key={idx}
+                                                                title={item.criterion_name}
+                                                                score={item.score}
+                                                                reason={item.reason || '-'}
+                                                            />
+                                                        ));
+                                                    }
+
+                                                    // PRIORITAS 2: Fallback ke kolom lama (untuk data yang sudah ada sebelumnya)
+                                                    const legacyFields = [
                                                         { key: 'methodology', label: 'Metodologi' },
                                                         { key: 'novelty', label: 'Kebaruan (Novelty)' },
                                                         { key: 'evidence', label: 'Bukti (Evidence)' },
                                                         { key: 'clarity', label: 'Kejelasan (Clarity)' },
-                                                        { key: 'references', label: 'Referensi & Sitasi' },
                                                         { key: 'reproducibility', label: 'Reproduksibilitas' },
                                                         { key: 'writing', label: 'Kualitas Penulisan' },
                                                     ];
-
-                                                    // Filter: hanya tampilkan yang ada datanya dan skornya > 0
-                                                    return scoreFields
+                                                    return legacyFields
                                                         .filter((f) => {
                                                             const scoreKey = `${f.key}_score` as keyof typeof scores;
                                                             const val = scores[scoreKey];
