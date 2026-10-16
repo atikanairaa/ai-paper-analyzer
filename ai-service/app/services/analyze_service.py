@@ -39,7 +39,9 @@ RUBRIK KRITERIA PENILAIAN & PEMBOBOTAN (DARI DATABASE):
 ATURAN PENILAIAN:
 1. Berikan skor 0-100 untuk setiap kriteria di atas.
 2. Hitung 'overall_score' berdasarkan persentase bobot masing-masing kriteria.
-3. JANGAN MERINGKAS TEKS! Khusus untuk bagian 'paper_sections' (Introduction, Methods, Results, Conclusion), Anda WAJIB MENYALIN 100% SELURUH TEKS ASLI dari dokumen ke dalam bagian yang sesuai tanpa ada kata yang dipotong atau disingkat sama sekali.
+3. DILARANG KERAS MERINGKAS TEKS! Khusus untuk 4 bagian utama 'paper_sections' ("Introduction", "Methodology", "Results", "Conclusion"):
+   - Anda WAJIB MENYALIN 100% SELURUH TEKS ASLI dari dokumen secara verbatim (kata demi kata) mulai dari awal bab sampai akhir bab.
+   - DILARANG memotong kalimat, DILARANG menyingkat, DILARANG membuat rangkuman sendiri. Salin seluruh paragraf dokumen apa adanya.
 4. EKSTRAKSI KEYWORDS KETAT: DILARANG mengarang/halusinasi keyword. Ekstrak HANYA kata kunci persis seperti yang tertulis di teks dokumen (tepat setelah label "Kata Kunci", "Kata kunci:", atau "Keywords:"). Jika berbahasa Indonesia, salin sesuai aslinya. JANGAN mengarang bidang ilmu seperti Artificial Intelligence jika tidak tertulis.
 5. PURE JSON ONLY: Kembalikan respon murni JSON valid tanpa teks pembuka/penutup."""
 
@@ -77,15 +79,16 @@ TARGET SKEMA JSON (Wajib Patuhi Struktur Ini):
     "keywords": ["keyword 1", "keyword 2"]
   }},
   "paper_sections": [
+    {{"section_name": "Introduction", "is_found": "boolean", "summary": "SALIN 100% SELURUH TEKS ASLI Bab 1 Pendahuluan / Introduction secara verbatim mulai dari paragraf pertama sampai akhir bab tanpa diringkas atau dipotong sama sekali"}},
     {{"section_name": "Research Problem", "is_found": "boolean", "summary": "Ringkasan masalah (maks 2 kalimat) atau null"}},
     {{"section_name": "Research Question", "is_found": "boolean", "summary": "Teks pertanyaan penelitian atau null"}},
     {{"section_name": "Research Objective", "is_found": "boolean", "summary": "Tujuan riset (maks 2 kalimat) atau null"}},
     {{"section_name": "Hypothesis", "is_found": "boolean", "summary": "Penjelasan hipotesis jika ada atau null"}},
-    {{"section_name": "Methodology", "is_found": "boolean", "summary": "Ringkasan metode (maks 2 kalimat) atau null"}},
+    {{"section_name": "Methodology", "is_found": "boolean", "summary": "SALIN 100% SELURUH TEKS ASLI Bab Metode Penelitian / Methods secara verbatim dari awal bab sampai akhir bab tanpa diringkas atau dipotong sama sekali"}},
     {{"section_name": "Dataset", "is_found": "boolean", "summary": "Nama dataset dan jumlah sampel data atau null"}},
     {{"section_name": "Experiment", "is_found": "boolean", "summary": "Ringkasan pengujian / eksperimen (maks 2 kalimat) atau null"}},
-    {{"section_name": "Results", "is_found": "boolean", "summary": "Ringkasan hasil penelitian (maks 2 kalimat) atau null"}},
-    {{"section_name": "Conclusion", "is_found": "boolean", "summary": "Ringkasan kesimpulan (maks 2 kalimat) atau null"}},
+    {{"section_name": "Results", "is_found": "boolean", "summary": "SALIN 100% SELURUH TEKS ASLI Bab Hasil dan Pembahasan / Results and Discussion secara verbatim dari awal bab sampai akhir bab tanpa diringkas atau dipotong sama sekali"}},
+    {{"section_name": "Conclusion", "is_found": "boolean", "summary": "SALIN 100% SELURUH TEKS ASLI Bab Kesimpulan dan Saran / Conclusion secara verbatim dari awal bab sampai akhir bab tanpa diringkas atau dipotong sama sekali"}},
     {{"section_name": "Limitations", "is_found": "boolean", "summary": "Poin batasan riset (maks 2 kalimat) atau null"}}
   ],
   "paper_scores": {{

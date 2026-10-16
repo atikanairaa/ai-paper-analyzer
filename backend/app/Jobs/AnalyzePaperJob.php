@@ -97,7 +97,9 @@ class AnalyzePaperJob implements ShouldQueue
                 $paper->update([
                     'title'            => $data['paper']['title'] ?? $paper->title,
                     'abstract'         => $data['paper']['abstract'] ?? null,
-                    'publication_year' => $data['paper']['publication_year'] ?? null,
+                    'publication_year' => $paper->submission_status === 'PUBLISHED' 
+                        ? ($paper->publication_year ?: (int)date('Y')) 
+                        : ($data['paper']['publication_year'] ?? (int)date('Y')),
                     'journal'          => $data['paper']['journal'] ?? null,
                     'doi'              => $data['paper']['doi'] ?? null,
                     'status'           => 'ANALYZED', // SUKSES!

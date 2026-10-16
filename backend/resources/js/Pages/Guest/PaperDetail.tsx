@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
-import { Lock, FileText, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Download, LogIn, UserPlus, CheckCircle2, X } from "lucide-react";
+import { Lock, FileText, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Download, LogIn, UserPlus, CheckCircle2, X, ExternalLink } from "lucide-react";
 import axios from "axios";
 
 function splitHtmlIntoPages(html: string, charsPerPage = 3500): string[] {
@@ -26,6 +26,7 @@ export default function PaperDetail({
     paper,
     isLocked,
     hasPurchased,
+    pendingPurchase,
     price,
     renderedTemplate,
     abstractHtml,
@@ -34,12 +35,14 @@ export default function PaperDetail({
     paper: any;
     isLocked: boolean;
     hasPurchased?: boolean;
+    pendingPurchase?: any;
     price: number;
     renderedTemplate?: string;
     abstractHtml?: string;
     auth?: any;
 }) {
     const [isBuying, setIsBuying] = useState(false);
+    const [isCheckingReaderPayment, setIsCheckingReaderPayment] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -72,6 +75,22 @@ export default function PaperDetail({
             }
         } finally {
             setIsBuying(false);
+        }
+    };
+
+    const handleCheckPayment = async () => {
+        setIsCheckingReaderPayment(true);
+        try {
+            const res = await axios.post(`/papers/${paper.id}/check-reader-payment`);
+            if (res.data.status === "PAID") {
+                window.location.href = res.data.redirect_url || `/paper/${paper.id}/read`;
+            } else {
+                alert(res.data.message || "Status pembayaran belum lunas.");
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.error || err.response?.data?.message || "Gagal memeriksa status pembayaran.");
+        } finally {
+            setIsCheckingReaderPayment(false);
         }
     };
 
@@ -133,26 +152,70 @@ export default function PaperDetail({
                                     Paper ini adalah publikasi Closed Access. Masuk dengan akun Anda dan bayar sekali untuk membaca serta mengunduh naskah lengkap.
                                 </p>
 
-                                <button
-                                    onClick={handleBuy}
-                                    disabled={isBuying}
-                                    className="bg-rose-600 hover:bg-rose-700 text-white px-8 py-3.5 rounded-xl font-bold shadow-md transition flex items-center justify-center min-w-[240px] disabled:opacity-70 disabled:cursor-not-allowed"
-                                >
-                                    {isBuying ? (
-                                        <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Menyiapkan Pembayaran...</>
-                                    ) : (
-                                        `Beli Akses Penuh - Rp ${price.toLocaleString("id-ID")}`
-                                    )}
-                                </button>
+                                {pendingPurchase ? (
+                                    <div className="w-full max-w-md bg-white border-2 border-amber-300 rounded-2xl p-6 shadow-sm text-left mb-2">
+                                        <div className="flex items-center gap-2 mb-2 text-amber-800 font-bold text-sm">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                                            <span>Menunggu Konfirmasi Pembayaran</span>
+                                        </div>
+                                        <p className="text-xs text-stone-600 mb-4 leading-relaxed">
+                                            Tagihan aktif telah dibuat (<strong>{pendingPurchase.invoice_number}</strong>).
+                                            Jika Anda sudah menyelesaikan pembayaran di DOKU, klik tombol di bawah untuk langsung membuka naskah.
+                                        </p>
+                                        <div className="flex flex-col gap-2.5">
+                                            <button
+                                                onClick={handleCheckPayment}
+                                                disabled={isCheckingReaderPayment}
+                                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm disabled:opacity-70 cursor-pointer"
+                                            >
+                                                {isCheckingReaderPayment ? (
+                                                    <><Loader2 className="w-4 h-4 animate-spin" /> <span>Memverifikasi Pembayaran...</span></>
+                                                ) : (
+                                                    <><CheckCircle2 className="w-4 h-4" /> <span>Saya Sudah Membayar (Buka Naskah)</span></>
+                                                )}
+                                            </button>
+                                            <a
+                                                href={pendingPurchase.payment_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold py-2.5 px-4 rounded-xl transition text-center text-xs flex items-center justify-center gap-1.5 border border-stone-200"
+                                            >
+                                                <span>Lanjutkan ke Halaman Pembayaran DOKU</span>
+                                                <ExternalLink className="w-3.5 h-3.5 text-stone-500" />
+                                            </a>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={handleBuy}
+                                        disabled={isBuying}
+                                        className="bg-rose-600 hover:bg-rose-700 text-white px-8 py-3.5 rounded-xl font-bold shadow-md transition flex items-center justify-center min-w-[240px] disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {isBuying ? (
+                                            <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Menyiapkan Pembayaran...</>
+                                        ) : (
+                                            `Beli Akses Penuh - Rp ${price.toLocaleString("id-ID")}`
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         </>
                     ) : (
                         /* ── OPEN ACCESS / UNLOCKED: show full paginated template ── */
                         <>
                             {hasPurchased && (
-                                <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 text-emerald-800 text-sm font-semibold shadow-sm">
-                                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                                    <span>Anda telah membeli hak akses naskah ini. Selamat membaca naskah lengkap!</span>
+                                <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-emerald-800 text-sm font-semibold shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                                        <span>Anda telah memiliki hak akses naskah ini.</span>
+                                    </div>
+                                    <Link
+                                        href={`/paper/${paper.id}/read`}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl shadow-sm text-xs transition flex items-center gap-1.5 whitespace-nowrap"
+                                    >
+                                        <FileText className="w-4 h-4" />
+                                        <span>Buka Halaman Full Reader</span>
+                                    </Link>
                                 </div>
                             )}
 

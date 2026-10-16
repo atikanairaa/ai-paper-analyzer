@@ -89,10 +89,10 @@ class PaperController extends Controller
             return redirect('/katalog')->with('success', 'Pembayaran selesai.');
         }
 
-        $paper = Paper::with(['authors', 'analyses', 'scores', 'findings', 'sections', 'references', 'latestJob', 'reviews.reviewer'])->findOrFail($id);
+        $paper = Paper::with(['authors', 'analyses', 'scores', 'findings', 'sections', 'references', 'latestJob', 'reviews.reviewer', 'uploader'])->findOrFail($id);
         
         // --- Template Rendering Logic ---
-        $defaultTemplate = "<div style=\"font-family: 'Times New Roman', Times, serif; color: #1c1917; line-height: 1.6;\">     <div style=\"display:flex; justify-content:space-between; border-bottom: 2px solid #881337; padding-bottom: 8px; font-size: 11px; color: #881337; margin-bottom: 24px;\">         <span><strong>Transactions on AI &amp; Software Engineering</strong> | e-ISSN: 2985-XXXX</span>         <span>Vol. 1, No. 1 ({article.year}) | pp. 1-10</span>     </div>      <div style=\"text-align:center; margin-bottom: 30px; background-color: #fff1f2; padding: 20px; border-radius: 8px; border: 1px dashed #fda4af;\">         <h4 style=\"margin: 0 0 5px 0; color: #881337; font-size: 18px; font-weight: 800; letter-spacing: 2px;\">? AI RESEARCH PAPER PUBLISHING ?</h4>         <p style=\"margin: 0; font-size: 11px; color: #9f1239; letter-spacing: 1px; text-transform: uppercase; font-weight: bold;\">International Journal of Computational Intelligence &amp; Software</p>     </div>      <h1 style=\"text-align:center; font-size: 22px; color: #881337; margin-bottom: 15px; font-weight: 900; line-height: 1.3;\">         {article.title}     </h1>      <p style=\"text-align:center; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #1c1917;\">         {article.author}     </p>     <p style=\"text-align:center; font-size: 11px; color: #57534e; margin-bottom: 4px; font-style: italic;\">         1 Department of Computer Science, Faculty of Engineering, University Name, City, Country     </p>     <p style=\"text-align:center; font-size: 11px; color: #e11d48; font-style: italic; margin-bottom: 25px;\">         * Penulis Korespondensi: <u>email@university.ac.id</u>     </p>      <figure class=\"table\">         <table style=\"width:100%; border: 1px solid #9f1239; border-collapse: collapse;\">             <tbody>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Received:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">[Diisi oleh Editor]</td>                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Revised:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">[Diisi oleh Editor]</td>                 </tr>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Accepted:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">[Diisi oleh Editor]</td>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Published:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">[Diisi oleh Editor]</td>                 </tr>                 <tr>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px; background-color: #fff1f2;\">How to cite:</td>                     <td colspan=\"3\" style=\"border: 1px solid #fda4af; padding: 8px; font-size: 10px; color: #57534e;\">                         [Diisi oleh Editor] {article.author}. (2026). {article.title}. Transactions on AI &amp; Software Engineering, 1(1), 1-10.                     </td>                 </tr>             </tbody>         </table>     </figure>      <div style=\"border: 2px solid #881337; background-color: #fff1f2; padding: 20px; margin: 30px 0; border-radius: 8px;\">         <p style=\"margin: 0 0 10px 0; font-size: 14px; font-weight: 900; color: #881337; text-align: center; text-transform: uppercase;\">             ABSTRAK / ABSTRACT         </p>         <p style=\"margin: 0 0 15px 0; font-size: 11px; text-align: justify; color: #1c1917;\">             {article.abstract}         </p>         <p style=\"margin: 0; font-size: 11px; color: #1c1917;\">             <strong style=\"color: #881337;\">Keywords:</strong> {article.keywords}         </p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">1. Introduction</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.introduction}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">2. Methods</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.methodology}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">3. Results and Discussion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.results}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">4. Conclusion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.conclusion}</p>     </div> </div>";
+        $defaultTemplate = "<div style=\"font-family: 'Times New Roman', Times, serif; color: #1c1917; line-height: 1.6;\">     <div style=\"display:flex; justify-content:space-between; border-bottom: 2px solid #881337; padding-bottom: 8px; font-size: 11px; color: #881337; margin-bottom: 24px;\">         <span><strong>Transactions on AI &amp; Software Engineering</strong> | e-ISSN: 2985-XXXX</span>         <span>Vol. 1, No. 1 ({article.year}) | pp. 1-10</span>     </div>      <div style=\"text-align:center; margin-bottom: 30px; background-color: #fff1f2; padding: 20px; border-radius: 8px; border: 1px dashed #fda4af;\">         <h4 style=\"margin: 0 0 5px 0; color: #881337; font-size: 18px; font-weight: 800; letter-spacing: 2px;\">? AI RESEARCH PAPER PUBLISHING ?</h4>         <p style=\"margin: 0; font-size: 11px; color: #9f1239; letter-spacing: 1px; text-transform: uppercase; font-weight: bold;\">International Journal of Computational Intelligence &amp; Software</p>     </div>      <h1 style=\"text-align:center; font-size: 22px; color: #881337; margin-bottom: 15px; font-weight: 900; line-height: 1.3;\">         {article.title}     </h1>      <p style=\"text-align:center; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #1c1917;\">         {article.author}     </p>     <p style=\"text-align:center; font-size: 11px; color: #57534e; margin-bottom: 4px; font-style: italic;\">         1 Department of Computer Science, Faculty of Engineering, University Name, City, Country     </p>     <p style=\"text-align:center; font-size: 11px; color: #e11d48; font-style: italic; margin-bottom: 25px;\">         * Penulis Korespondensi: <u>{article.correspondence_email}</u>     </p>      <figure class=\"table\">         <table style=\"width:100%; border: 1px solid #9f1239; border-collapse: collapse;\">             <tbody>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Received:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.received_date}</td>                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Revised:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.revised_date}</td>                 </tr>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Accepted:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.accepted_date}</td>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Published:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.published_date}</td>                 </tr>                 <tr>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px; background-color: #fff1f2;\">How to cite:</td>                     <td colspan=\"3\" style=\"border: 1px solid #fda4af; padding: 8px; font-size: 10px; color: #57534e;\">                         [Diisi oleh Editor] {article.author}. (2026). {article.title}. Transactions on AI &amp; Software Engineering, 1(1), 1-10.                     </td>                 </tr>             </tbody>         </table>     </figure>      <div style=\"border: 2px solid #881337; background-color: #fff1f2; padding: 20px; margin: 30px 0; border-radius: 8px;\">         <p style=\"margin: 0 0 10px 0; font-size: 14px; font-weight: 900; color: #881337; text-align: center; text-transform: uppercase;\">             ABSTRAK / ABSTRACT         </p>         <p style=\"margin: 0 0 15px 0; font-size: 11px; text-align: justify; color: #1c1917;\">             {article.abstract}         </p>         <p style=\"margin: 0; font-size: 11px; color: #1c1917;\">             <strong style=\"color: #881337;\">Keywords:</strong> {article.keywords}         </p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">1. Introduction</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.introduction}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">2. Methods</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.methodology}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">3. Results and Discussion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.results}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">4. Conclusion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.conclusion}</p>     </div> </div>";
         $template = \Illuminate\Support\Facades\Storage::exists('journal_template.html') 
             ? \Illuminate\Support\Facades\Storage::get('journal_template.html') 
             : $defaultTemplate;
@@ -200,10 +200,73 @@ class PaperController extends Controller
             return $sec ? $formatSectionParagraphs($sec->summary) : '<p style="text-align: justify; margin-bottom: 12px;"><i>Bagian ini belum diekstrak oleh AI.</i></p>';
         };
 
-        $intro = $getSection('Research Problem');
+        // Prioritaskan teks lengkap 'Introduction', jika belum ada fallback ke 'Research Problem'
+        $introSec = $sections->where('section_name', 'Introduction')->first();
+        if ($introSec && !empty(trim($introSec->summary))) {
+            $intro = $formatSectionParagraphs($introSec->summary);
+        } else {
+            $intro = $getSection('Research Problem');
+        }
+
         $methodology = $getSection('Methodology');
         $results = $getSection('Results');
         $conclusion = $getSection('Conclusion');
+
+        // 1. Email Penulis Korespondensi (Email peneliti)
+        $correspondenceEmail = $paper->uploader->email ?? '-';
+
+        // 2. Received: Tanggal peneliti submit ke system
+        $receivedDateRaw = \Illuminate\Support\Facades\DB::table('audit_logs')
+            ->where('paper_id', $paper->id)
+            ->where('action', 'SUBMIT_TO_JOURNAL')
+            ->oldest('created_at')
+            ->value('created_at');
+        if (!$receivedDateRaw) {
+            $receivedDateRaw = $paper->created_at;
+        }
+        $receivedDate = $receivedDateRaw
+            ? \Carbon\Carbon::parse($receivedDateRaw)->locale('id')->translatedFormat('d F Y')
+            : '-';
+
+        // 3. Revised: Di-strip jika tidak ada tercatat revisi
+        $revisedDateRaw = \Illuminate\Support\Facades\DB::table('audit_logs')
+            ->where('paper_id', $paper->id)
+            ->where('action', 'SUBMIT_REVISION')
+            ->latest('created_at')
+            ->value('created_at');
+        $revisedDate = $revisedDateRaw
+            ? \Carbon\Carbon::parse($revisedDateRaw)->locale('id')->translatedFormat('d F Y')
+            : '-';
+
+        // 4. Accepted: Pas di-acc reviewer
+        $acceptedReview = \App\Models\Review::where('paper_id', $paper->id)
+            ->whereIn('recommendation', ['ACCEPT', 'ACCEPTED'])
+            ->latest('updated_at')
+            ->first();
+        $acceptedDateRaw = $acceptedReview ? ($acceptedReview->updated_at ?? $acceptedReview->created_at) : null;
+        if (!$acceptedDateRaw && in_array($paper->submission_status, ['ACCEPTED', 'ACCEPT', 'PUBLISHED'])) {
+            $acceptedDateRaw = $paper->updated_at;
+        }
+        $acceptedDate = $acceptedDateRaw
+            ? \Carbon\Carbon::parse($acceptedDateRaw)->locale('id')->translatedFormat('d F Y')
+            : '-';
+
+        // 5. Published: Tanggal admin publish paper
+        $publishedDate = '-';
+        if ($paper->submission_status === 'PUBLISHED') {
+            $publishDateRaw = \Illuminate\Support\Facades\DB::table('audit_logs')
+                ->where('paper_id', $paper->id)
+                ->where(function ($q) {
+                    $q->where('action', 'like', '%diterbitkan%')
+                      ->orWhere('action', 'like', '%PUBLISH%');
+                })
+                ->latest('created_at')
+                ->value('created_at');
+            $publishDateRaw = $publishDateRaw ?: $paper->updated_at;
+            $publishedDate = $publishDateRaw
+                ? \Carbon\Carbon::parse($publishDateRaw)->locale('id')->translatedFormat('d F Y')
+                : '-';
+        }
 
         $renderedTemplate = str_replace(
             [
@@ -216,7 +279,14 @@ class PaperController extends Controller
                 '{article.introduction}',
                 '{article.methodology}',
                 '{article.results}',
-                '{article.conclusion}'
+                '{article.conclusion}',
+                '{article.correspondence_email}',
+                '{article.author_email}',
+                '{article.received_date}',
+                '{article.revised_date}',
+                '{article.accepted_date}',
+                '{article.published_date}',
+                'email@university.ac.id'
             ],
             [
                 $paper->title ?? 'Untitled', 
@@ -228,10 +298,23 @@ class PaperController extends Controller
                 $intro,
                 $methodology,
                 $results,
-                $conclusion
+                $conclusion,
+                $correspondenceEmail,
+                $correspondenceEmail,
+                $receivedDate,
+                $revisedDate,
+                $acceptedDate,
+                $publishedDate,
+                $correspondenceEmail
             ],
             $template
         );
+
+        // Fallback jika template masih menyimpan format teks statis [Diisi oleh Editor]
+        $renderedTemplate = preg_replace('/(Received:.*?<td[^>]*>)\s*\[Diisi oleh Editor\]/isu', '${1}' . $receivedDate, $renderedTemplate);
+        $renderedTemplate = preg_replace('/(Revised:.*?<td[^>]*>)\s*\[Diisi oleh Editor\]/isu', '${1}' . $revisedDate, $renderedTemplate);
+        $renderedTemplate = preg_replace('/(Accepted:.*?<td[^>]*>)\s*\[Diisi oleh Editor\]/isu', '${1}' . $acceptedDate, $renderedTemplate);
+        $renderedTemplate = preg_replace('/(Published:.*?<td[^>]*>)\s*\[Diisi oleh Editor\]/isu', '${1}' . $publishedDate, $renderedTemplate);
         // --------------------------------
 
         return \Inertia\Inertia::render('PaperDetail', [
@@ -660,8 +743,11 @@ class PaperController extends Controller
             return response()->json(['error' => 'Paper berstatus Open Access belum diselesaikan pembayarannya oleh peneliti.'], 422);
         }
 
-        // 4. Terbitkan paper
-        $paper->update(['submission_status' => 'PUBLISHED']);
+        // 4. Terbitkan paper dan set tahun terbit jurnal (tahun saat ini)
+        $paper->update([
+            'submission_status' => 'PUBLISHED',
+            'publication_year'  => (int)date('Y'),
+        ]);
 
         \App\Helpers\AuditLogger::log('Paper diterbitkan ke katalog oleh Admin', $paper->id);
 
