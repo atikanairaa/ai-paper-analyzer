@@ -54,13 +54,18 @@ class DokuService:
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         target_path = "/checkout/v1/payment"
 
+        # Tentukan callback_url: arahkan ke /payment/finish dengan invoiceNumber
+        base_callback = req_data.callback_url or f"{APP_URL.rstrip('/')}/payment/finish"
+        sep = "&" if "?" in base_callback else "?"
+        final_callback_url = f"{base_callback}{sep}invoiceNumber={invoice_number}"
+
         # Payload Transaksi Resmi DOKU Checkout
         payload = {
             "order": {
                 "invoice_number": invoice_number,
                 "amount": req_data.amount,
                 "currency": "IDR",
-                "callback_url": f"{APP_URL}/detail/{req_data.paper_id}",
+                "callback_url": final_callback_url,
                 "notify_url": "https://smee.io/YMRTqoxoTgbCpK0N",
                 "auto_redirect": True
             },

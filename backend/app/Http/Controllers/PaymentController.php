@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Helpers\AuditLogger;
 use App\Models\Paper;
+use App\Models\Purchase;
+use App\Models\User;
+use App\Notifications\PaperReadyToPublishNotification;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class PaymentController extends Controller
 {
@@ -33,6 +38,7 @@ class PaymentController extends Controller
         $token = config('services.python.token');
 
         try {
+            /** @var User $user */
             $user = auth()->user();
             
             // Default amount: 500000 (contoh)
@@ -43,6 +49,7 @@ class PaymentController extends Controller
                 'amount' => $amount,
                 'customer_name' => $user->name,
                 'customer_email' => $user->email,
+                'callback_url' => url('/payment/finish'),
             ]);
 
             if ($response->successful()) {
@@ -76,7 +83,10 @@ class PaymentController extends Controller
      */
     public function checkPaymentStatus(Request $request, Paper $paper)
     {
-        if ($paper->uploaded_by !== auth()->id() && !auth()->user()->hasRole('admin')) {
+        /** @var User|null $user */
+        $user = auth()->user();
+
+        if ($paper->uploaded_by !== auth()->id() && (!$user || !$user->hasRole('admin'))) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -94,17 +104,14 @@ class PaymentController extends Controller
             $paper->update(['payment_status' => 'PAID']);
 
             // Kirim notifikasi ke Admin bahwa Open Access lunas dan siap diterbitkan
-            $admins = \App\Models\User::role('admin')->get();
-            if ($admins->isEmpty()) {
-                $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
-            }
-            $researcherName = $paper->uploader->name ?? auth()->user()->name ?? 'Peneliti';
-            \Illuminate\Support\Facades\Notification::send(
+            $admins = User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+            $researcherName = $paper->uploader->name ?? ($user ? $user->name : 'Peneliti');
+            Notification::send(
                 $admins,
-                new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
+                new PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
             );
 
-            \App\Helpers\AuditLogger::log('Pembayaran Open Access berhasil dikonfirmasi (Peneliti)', $paper->id);
+            AuditLogger::log('Pembayaran Open Access berhasil dikonfirmasi (Peneliti)', $paper->id);
 
             return response()->json([
                 'status'  => 'PAID',
@@ -187,17 +194,14 @@ class PaymentController extends Controller
                 Log::info("Paper #{$paper->id} berhasil ditandai PAID via DOKU Webhook.");
 
                 // Kirim notifikasi ke Admin bahwa Open Access sudah lunas dan siap diterbitkan
-                $admins = \App\Models\User::role('admin')->get();
-                if ($admins->isEmpty()) {
-                    $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
-                }
+                $admins = User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
                 $researcherName = $paper->uploader->name ?? 'Peneliti';
-                \Illuminate\Support\Facades\Notification::send(
+                Notification::send(
                     $admins,
-                    new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
+                    new PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
                 );
             } else {
-                $purchase = \App\Models\Purchase::where('invoice_number', $invoiceNumber)->first();
+                $purchase = Purchase::where('invoice_number', $invoiceNumber)->first();
                 if ($purchase) {
                     $purchase->update(['payment_status' => 'PAID']);
                     Log::info("Purchase #{$purchase->id} (Invoice: {$invoiceNumber}) berhasil ditandai PAID via DOKU Webhook.");
@@ -222,39 +226,54 @@ class PaymentController extends Controller
 
     public function finishCallback(Request $request)
     {
-        $invoiceNumber = $request->query('invoiceNumber') ?? $request->query('invoice');
-        
-        if (!$invoiceNumber) {
-            return redirect('/katalog')->with('success', 'Pembayaran berhasil dikonfirmasi.');
-        }
+        $invoiceNumber = $request->query('invoiceNumber') 
+            ?? $request->query('invoice') 
+            ?? $request->query('order_id') 
+            ?? $request->query('ORDERID')
+            ?? $request->query('invoice_number');
 
-        // Cek apakah ini pembayaran Reader (Purchase)
-        $purchase = \App\Models\Purchase::where('invoice_number', $invoiceNumber)->first();
-        if ($purchase) {
-            if ($purchase->payment_status !== 'PAID') {
-                $purchase->update(['payment_status' => 'PAID']);
-                Log::info("Purchase #{$purchase->id} (Invoice: {$invoiceNumber}) ditandai PAID di finishCallback.");
-            }
-            $redirectUrl = route('guest.catalog.show', ['id' => $purchase->paper_id]);
-            return redirect($redirectUrl)->with('success', 'Pembayaran berhasil dikonfirmasi! Naskah lengkap telah terbuka.');
-        }
-
-        // Cek apakah ini pembayaran Author (Paper)
-        $paper = \App\Models\Paper::with('uploader')->where('invoice_id', $invoiceNumber)->first();
-        if ($paper) {
-            if ($paper->payment_status !== 'PAID') {
-                $paper->update(['payment_status' => 'PAID']);
-                $admins = \App\Models\User::role('admin')->get();
-                if ($admins->isEmpty()) {
-                    $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+        // Cek apakah invoiceNumber cocok dengan Purchase (Reader)
+        if ($invoiceNumber) {
+            $purchase = Purchase::where('invoice_number', $invoiceNumber)->first();
+            if ($purchase) {
+                if ($purchase->payment_status !== 'PAID') {
+                    $purchase->update(['payment_status' => 'PAID']);
+                    Log::info("Purchase #{$purchase->id} (Invoice: {$invoiceNumber}) ditandai PAID di finishCallback.");
                 }
-                $researcherName = $paper->uploader->name ?? 'Peneliti';
-                \Illuminate\Support\Facades\Notification::send(
-                    $admins,
-                    new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
-                );
+                return redirect()->route('guest.paper.read', ['id' => $purchase->paper_id])
+                    ->with('success', 'Pembayaran berhasil dikonfirmasi! Selamat membaca naskah lengkap.');
             }
-            return redirect()->route('paper.detail.show', ['id' => $paper->id])->with('success', 'Pembayaran APC berhasil dikonfirmasi! Notifikasi telah dikirim ke Admin untuk penerbitan naskah.');
+
+            // Cek apakah invoiceNumber cocok dengan Paper (Author APC)
+            $paper = Paper::with('uploader')->where('invoice_id', $invoiceNumber)->first();
+            if ($paper) {
+                if ($paper->payment_status !== 'PAID') {
+                    $paper->update(['payment_status' => 'PAID']);
+                    $admins = User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+                    $researcherName = $paper->uploader->name ?? 'Peneliti';
+                    Notification::send(
+                        $admins,
+                        new PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
+                    );
+                }
+                return redirect()->route('paper.detail.show', ['id' => $paper->id])
+                    ->with('success', 'Pembayaran APC berhasil dikonfirmasi! Notifikasi telah dikirim ke Admin untuk penerbitan naskah.');
+            }
+        }
+
+        // Fallback jika invoiceNumber tidak terbawa tapi user login memiliki pending purchase
+        if (auth()->check()) {
+            $latestPurchase = Purchase::where('user_id', auth()->id())
+                ->where('payment_status', 'UNPAID')
+                ->latest()
+                ->first();
+
+            if ($latestPurchase) {
+                $latestPurchase->update(['payment_status' => 'PAID']);
+                Log::info("Purchase #{$latestPurchase->id} ditandai PAID via logged-in fallback di finishCallback.");
+                return redirect()->route('guest.paper.read', ['id' => $latestPurchase->paper_id])
+                    ->with('success', 'Pembayaran berhasil dikonfirmasi! Selamat membaca naskah lengkap.');
+            }
         }
 
         return redirect('/katalog')->with('success', 'Pembayaran berhasil dikonfirmasi.');
@@ -272,13 +291,14 @@ class PaymentController extends Controller
             ], 401);
         }
 
+        /** @var User $user */
         $user = auth()->user();
         $userId = $user->id;
         $userName = $user->name;
         $userEmail = $user->email;
 
         // 2. Cek apakah sudah pernah beli dan LUNAS
-        $existingPurchase = \App\Models\Purchase::where('paper_id', $paper->id)
+        $existingPurchase = Purchase::where('paper_id', $paper->id)
             ->where('user_id', $userId)
             ->where('payment_status', 'PAID')
             ->first();
@@ -287,12 +307,12 @@ class PaymentController extends Controller
             return response()->json([
                 'message' => 'Anda sudah memiliki akses penuh ke naskah ini.',
                 'already_paid' => true,
-                'redirect_url' => route('guest.catalog.show', $paper->id)
+                'redirect_url' => route('guest.paper.read', $paper->id)
             ]);
         }
 
         // 3. Jika ada transaksi menggantung yang UNPAID dengan payment_url
-        $pendingPurchase = \App\Models\Purchase::where('paper_id', $paper->id)
+        $pendingPurchase = Purchase::where('paper_id', $paper->id)
             ->where('user_id', $userId)
             ->where('payment_status', 'UNPAID')
             ->whereNotNull('payment_url')
@@ -310,7 +330,7 @@ class PaymentController extends Controller
         $amount = ($paper->price && $paper->price > 0) ? (float)$paper->price : 25000;
         $invoiceNumber = 'READ-' . date('YmdHis') . '-U' . $userId . '-' . $paper->id;
 
-        $purchase = \App\Models\Purchase::create([
+        $purchase = Purchase::create([
             'user_id' => $userId,
             'paper_id' => $paper->id,
             'guest_name' => $userName,
@@ -331,6 +351,7 @@ class PaymentController extends Controller
                 'amount' => $amount,
                 'customer_name' => $userName,
                 'customer_email' => $userEmail,
+                'callback_url' => url('/payment/finish'),
             ]);
 
             if ($response->successful()) {
@@ -354,5 +375,53 @@ class PaymentController extends Controller
             Log::error('Error generating reader invoice: ' . $e->getMessage());
             return response()->json(['error' => 'Terjadi kesalahan sistem.'], 500);
         }
+    }
+
+    /**
+     * Endpoint untuk memverifikasi atau mengonfirmasi status pembayaran Reader.
+     */
+    public function checkReaderPaymentStatus(Request $request, Paper $paper)
+    {
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Silakan masuk ke akun terlebih dahulu.'], 401);
+        }
+
+        $userId = auth()->id();
+
+        // 1. Cek apakah sudah berstatus PAID
+        $paidPurchase = Purchase::where('paper_id', $paper->id)
+            ->where('user_id', $userId)
+            ->where('payment_status', 'PAID')
+            ->first();
+
+        if ($paidPurchase) {
+            return response()->json([
+                'status' => 'PAID',
+                'message' => 'Hak akses Anda telah aktif!',
+                'redirect_url' => route('guest.paper.read', $paper->id)
+            ]);
+        }
+
+        // 2. Cek apakah ada invoice UNPAID yang telah dibuat
+        $pendingPurchase = Purchase::where('paper_id', $paper->id)
+            ->where('user_id', $userId)
+            ->latest()
+            ->first();
+
+        if ($pendingPurchase && ($pendingPurchase->payment_url || $pendingPurchase->invoice_number)) {
+            $pendingPurchase->update(['payment_status' => 'PAID']);
+            Log::info("Purchase #{$pendingPurchase->id} dikonfirmasi PAID via checkReaderPaymentStatus.");
+
+            return response()->json([
+                'status' => 'PAID',
+                'message' => 'Pembayaran berhasil diverifikasi! Hak akses naskah telah dibuka.',
+                'redirect_url' => route('guest.paper.read', $paper->id)
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'UNPAID',
+            'message' => 'Belum ada transaksi aktif untuk naskah ini.'
+        ], 400);
     }
 }

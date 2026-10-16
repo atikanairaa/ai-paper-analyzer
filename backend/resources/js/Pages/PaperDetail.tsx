@@ -32,6 +32,7 @@ import {
     ChevronRight,
     Printer,
     Clock,
+    X,
 } from "lucide-react";
 import { RevisionUploadModal } from "@/Components/RevisionUploadModal";
 
@@ -172,6 +173,12 @@ export default function PaperDetail() {
 
     const closeModal = () =>
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+
+    const [selectedSectionModal, setSelectedSectionModal] = useState<{
+        title: string;
+        content?: string | null;
+        isFound?: boolean;
+    } | null>(null);
 
     const [revisionModalOpen, setRevisionModalOpen] = useState(false);
     const handleRevisionSubmit = async (file: File | null, notes: string) => {
@@ -587,6 +594,51 @@ export default function PaperDetail() {
                 onClose={() => setRevisionModalOpen(false)}
                 onSubmit={handleRevisionSubmit}
             />
+
+            {/* Modal Detail Elemen Riset */}
+            {selectedSectionModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/80">
+                            <div className="flex items-center gap-2.5">
+                                {selectedSectionModal.isFound ? (
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                                ) : (
+                                    <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
+                                )}
+                                <h3 className="font-bold text-stone-900 text-lg">
+                                    {selectedSectionModal.title}
+                                </h3>
+                            </div>
+                            <button
+                                onClick={() => setSelectedSectionModal(null)}
+                                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-200/60 transition"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1 text-sm text-stone-700 leading-relaxed space-y-4">
+                            {selectedSectionModal.content ? (
+                                <p className="whitespace-pre-line text-justify">
+                                    {selectedSectionModal.content}
+                                </p>
+                            ) : (
+                                <p className="text-stone-400 italic">
+                                    Komponen ini tidak terdeteksi atau tidak ditemukan dalam naskah penelitian.
+                                </p>
+                            )}
+                        </div>
+                        <div className="px-6 py-3.5 bg-stone-50 border-t border-stone-100 flex justify-end">
+                            <button
+                                onClick={() => setSelectedSectionModal(null)}
+                                className="px-5 py-2 rounded-xl bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold shadow-sm transition"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="max-w-[1440px] mx-auto p-4 md:p-6 lg:p-8 pb-8">
                 {/* ── Back Button & Actions ── */}
@@ -1396,7 +1448,7 @@ export default function PaperDetail() {
                                         <div className="p-5">
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {RESEARCH_ELEMENTS.map((el) => {
-                                                    // Check in real sections data by matching section_name
+                                                    // Check in real sections data by matching section_name and synonyms
                                                     const realSection =
                                                         sections.find((s) => {
                                                             const sn =
@@ -1409,6 +1461,11 @@ export default function PaperDetail() {
                                                                 );
                                                             const el_label =
                                                                 el.label.toLowerCase();
+                                                            const matchesSynonym = el.synonyms?.some(
+                                                                (syn) =>
+                                                                    sn.includes(syn.toLowerCase()) ||
+                                                                    syn.toLowerCase().includes(sn),
+                                                            );
                                                             return (
                                                                 sn.includes(
                                                                     ek,
@@ -1421,7 +1478,8 @@ export default function PaperDetail() {
                                                                 ) ||
                                                                 el_label.includes(
                                                                     sn,
-                                                                )
+                                                                ) ||
+                                                                matchesSynonym
                                                             );
                                                         });
                                                     const found = realSection
@@ -1430,14 +1488,22 @@ export default function PaperDetail() {
                                                     return (
                                                         <div
                                                             key={el.key}
-                                                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                                            onClick={() => {
+                                                                setSelectedSectionModal({
+                                                                    title: el.label,
+                                                                    content: realSection?.summary || null,
+                                                                    isFound: found === true,
+                                                                });
+                                                            }}
+                                                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer hover:shadow-sm ${
                                                                 found === true
-                                                                    ? "bg-emerald-50 border-emerald-200"
+                                                                    ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300"
                                                                     : found ===
                                                                         false
-                                                                      ? "bg-rose-50 border-rose-200"
-                                                                      : "bg-stone-50 border-stone-100"
+                                                                      ? "bg-rose-50 border-rose-200 hover:border-rose-300"
+                                                                      : "bg-stone-50 border-stone-100 hover:border-stone-200"
                                                             }`}
+                                                            title="Klik untuk melihat detail elemen riset"
                                                         >
                                                             {found === true ? (
                                                                 <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -1447,7 +1513,7 @@ export default function PaperDetail() {
                                                             ) : (
                                                                 <div className="w-5 h-5 rounded-full border-2 border-stone-300 flex-shrink-0" />
                                                             )}
-                                                            <div className="min-w-0">
+                                                            <div className="min-w-0 flex-1">
                                                                 <p
                                                                     className={`text-sm font-semibold ${
                                                                         found ===

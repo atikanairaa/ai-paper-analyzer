@@ -158,6 +158,7 @@ class CreateInvoiceRequest(BaseModel):
     amount: int
     customer_name: str
     customer_email: str
+    callback_url: Optional[str] = None
 
 class PaymentInvoiceResponse(BaseModel):
     invoice_number: str

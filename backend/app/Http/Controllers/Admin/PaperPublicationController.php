@@ -123,9 +123,10 @@ class PaperPublicationController extends Controller
             return redirect()->back()->with('error', 'Paper Open Access belum diselesaikan pembayarannya oleh peneliti.');
         }
 
-        // 4. Update status ke PUBLISHED
+        // 4. Update status ke PUBLISHED dan set tahun terbit jurnal (tahun saat ini)
         $paper->update([
             'submission_status' => 'PUBLISHED',
+            'publication_year'  => (int)date('Y'),
         ]);
 
         AuditLogger::log('Paper diterbitkan ke katalog jurnal publik oleh Admin', $paper->id);
