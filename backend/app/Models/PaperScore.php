@@ -6,5 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class PaperScore extends Model
 {
-    //
+    protected $guarded = [];
+
+    protected $casts = [
+        'dynamic_scores' => 'array',
+    ];
 }

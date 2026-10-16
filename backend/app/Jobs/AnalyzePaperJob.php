@@ -167,6 +167,9 @@ class AnalyzePaperJob implements ShouldQueue
                     
                     'writing_score'          => $findScore('Writing')['score'] ?? 0,
                     'writing_reason'         => $findScore('Writing')['reason'] ?? '-',
+
+                    // KOLOM DINAMIS: Menyimpan SEMUA skor kriteria dari AI secara fleksibel
+                    'dynamic_scores'         => json_encode($criteriaScores),
                     
                     'created_at'             => now(),
                     'updated_at'             => now(),
