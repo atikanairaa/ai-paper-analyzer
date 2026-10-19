@@ -40,20 +40,28 @@ Route::middleware(['auth'])->group(function () {
 
     // â”€â”€ Rute halaman Peneliti â”€â”€
     Route::middleware(['auth', \App\Http\Middleware\PreventReaderAccess::class])->group(function () {
-        Route::get('/upload',  fn () => Inertia::render('Upload'))->name('upload');
+        Route::get('/upload', function () {
+            $categories = \App\Models\EvaluationCriterion::where('is_active', true)
+                ->distinct()
+                ->pluck('category')
+                ->values();
+            return Inertia::render('Upload', [
+                'categories' => $categories
+            ]);
+        })->name('upload');
         Route::get('/upload/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('upload.detail');
-        Route::get('/detail',  fn () => Inertia::render('MyPapers'))->name('paper.detail');
+        Route::get('/detail',  fn() => Inertia::render('MyPapers'))->name('paper.detail');
         Route::get('/detail/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('paper.detail.show');
         Route::get('/papers/{id}/export-review', [\App\Http\Controllers\PaperController::class, 'exportReview'])->name('paper.export-review');
         Route::get('/papers/{id}/pdf-view', [\App\Http\Controllers\PaperController::class, 'viewPdf'])->name('papers.pdf.view');
         Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
         Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
-        
+
         // Payment & Access routes untuk Author/Researcher
         Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
         Route::post('/papers/{paper}/choose-access', [\App\Http\Controllers\PaperController::class, 'chooseAccess'])->name('paper.choose-access');
         Route::post('/papers/{paper}/check-payment', [\App\Http\Controllers\PaymentController::class, 'checkPaymentStatus'])->name('payment.check');
-        
+
         // Penerbitan Paper (Hanya untuk Admin)
         Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
         Route::post('/papers/{id}/reanalyze', [\App\Http\Controllers\PaperController::class, 'reanalyze'])->name('papers.reanalyze');
@@ -86,7 +94,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('admin.dashboard');
         Route::get('/papers', [\App\Http\Controllers\Admin\PaperManagementController::class, 'index'])->name('admin.papers');
         Route::get('/assign-paper', [\App\Http\Controllers\Admin\ReviewerManagementController::class, 'assignIndex'])->name('admin.assign');
-        Route::get('/audit', fn () => Inertia::render('AdminAuditLog'))->name('admin.audit');
+        Route::get('/audit', fn() => Inertia::render('AdminAuditLog'))->name('admin.audit');
         Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('admin.users');
         Route::post('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'store'])->name('admin.users.store');
         Route::put('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'update'])->name('admin.users.update');
@@ -101,11 +109,11 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/prompts-category/destroy', [\App\Http\Controllers\Admin\PromptController::class, 'destroyCategory'])->name('admin.prompts.category.destroy');
         Route::put('/prompts/{criterion}', [\App\Http\Controllers\Admin\PromptController::class, 'update'])->name('admin.prompts.update');
         Route::delete('/prompts/{criterion}', [\App\Http\Controllers\Admin\PromptController::class, 'destroy'])->name('admin.prompts.destroy');
-        
+
         Route::get('/journal-template', function () {
             $defaultTemplate = "<div style=\"font-family: 'Times New Roman', Times, serif; color: #1c1917; line-height: 1.6;\">     <div style=\"display:flex; justify-content:space-between; border-bottom: 2px solid #881337; padding-bottom: 8px; font-size: 11px; color: #881337; margin-bottom: 24px;\">         <span><strong>Transactions on AI &amp; Software Engineering</strong> | e-ISSN: 2985-XXXX</span>         <span>Vol. 1, No. 1 ({article.year}) | pp. 1-10</span>     </div>      <div style=\"text-align:center; margin-bottom: 30px; background-color: #fff1f2; padding: 20px; border-radius: 8px; border: 1px dashed #fda4af;\">         <h4 style=\"margin: 0 0 5px 0; color: #881337; font-size: 18px; font-weight: 800; letter-spacing: 2px;\">? AI RESEARCH PAPER PUBLISHING ?</h4>         <p style=\"margin: 0; font-size: 11px; color: #9f1239; letter-spacing: 1px; text-transform: uppercase; font-weight: bold;\">International Journal of Computational Intelligence &amp; Software</p>     </div>      <h1 style=\"text-align:center; font-size: 22px; color: #881337; margin-bottom: 15px; font-weight: 900; line-height: 1.3;\">         {article.title}     </h1>      <p style=\"text-align:center; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #1c1917;\">         {article.author}     </p>     <p style=\"text-align:center; font-size: 11px; color: #57534e; margin-bottom: 4px; font-style: italic;\">         1 Department of Computer Science, Faculty of Engineering, University Name, City, Country     </p>     <p style=\"text-align:center; font-size: 11px; color: #e11d48; font-style: italic; margin-bottom: 25px;\">         * Penulis Korespondensi: <u>{article.correspondence_email}</u>     </p>      <figure class=\"table\">         <table style=\"width:100%; border: 1px solid #9f1239; border-collapse: collapse;\">             <tbody>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Received:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.received_date}</td>                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Revised:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.revised_date}</td>                 </tr>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Accepted:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.accepted_date}</td>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Published:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.published_date}</td>                 </tr>                 <tr>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px; background-color: #fff1f2;\">How to cite:</td>                     <td colspan=\"3\" style=\"border: 1px solid #fda4af; padding: 8px; font-size: 10px; color: #57534e;\">                         [Diisi oleh Editor] {article.author}. (2026). {article.title}. Transactions on AI &amp; Software Engineering, 1(1), 1-10.                     </td>                 </tr>             </tbody>         </table>     </figure>      <div style=\"border: 2px solid #881337; background-color: #fff1f2; padding: 20px; margin: 30px 0; border-radius: 8px;\">         <p style=\"margin: 0 0 10px 0; font-size: 14px; font-weight: 900; color: #881337; text-align: center; text-transform: uppercase;\">             ABSTRAK / ABSTRACT         </p>         <p style=\"margin: 0 0 15px 0; font-size: 11px; text-align: justify; color: #1c1917;\">             {article.abstract}         </p>         <p style=\"margin: 0; font-size: 11px; color: #1c1917;\">             <strong style=\"color: #881337;\">Keywords:</strong> {article.keywords}         </p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">1. Introduction</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.introduction}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">2. Methods</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.methodology}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">3. Results and Discussion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.results}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">4. Conclusion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.conclusion}</p>     </div> </div>";
-            $template = \Illuminate\Support\Facades\Storage::exists('journal_template.html') 
-                ? \Illuminate\Support\Facades\Storage::get('journal_template.html') 
+            $template = \Illuminate\Support\Facades\Storage::exists('journal_template.html')
+                ? \Illuminate\Support\Facades\Storage::get('journal_template.html')
                 : $defaultTemplate;
             return Inertia::render('Admin/JournalTemplate', ['initialTemplate' => $template]);
         })->name('admin.journal-template');

@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // ====================================================
 Route::get('/internal/criteria', function (Request $request) {
     $endpoint = $request->query('endpoint', 'analyze');
+    $category = $request->query('category');
     
     // Pastikan input aman
     $validEndpoints = ['analyze', 'review', 'qa'];
@@ -56,9 +57,21 @@ Route::get('/internal/criteria', function (Request $request) {
 
     // Hanya ambil kriteria yang 'is_active' = true, DAN endpoint terkait = true
     $columnName = 'is_' . $endpoint;
-    $criteria = \App\Models\EvaluationCriterion::where('is_active', true)
-        ->where($columnName, true)
-        ->get(['name', 'instruction', 'weight']);
+    $query = \App\Models\EvaluationCriterion::where('is_active', true)
+        ->where($columnName, true);
+
+    if (!empty($category)) {
+        $query->where('category', $category);
+    }
+
+    $criteria = $query->get(['name', 'instruction', 'weight']);
+
+    // Fallback jika kategori belum memiliki kriteria aktif, ambil seluruh kriteria aktif
+    if ($criteria->isEmpty()) {
+        $criteria = \App\Models\EvaluationCriterion::where('is_active', true)
+            ->where($columnName, true)
+            ->get(['name', 'instruction', 'weight']);
+    }
 
     return response()->json([
         'success' => true,

@@ -22,10 +22,12 @@ class AnalyzePaperJob implements ShouldQueue
     public int $timeout = 180; // Tunggu respon AI max 3 menit
 
     protected int $paperId;
+    protected ?string $category;
 
-    public function __construct(int $paperId)
+    public function __construct(int $paperId, ?string $category = null)
     {
         $this->paperId = $paperId;
+        $this->category = $category;
     }
 
     public function handle(): void
@@ -39,6 +41,12 @@ class AnalyzePaperJob implements ShouldQueue
         $token = config('services.fastapi.token');
 
         $startTime = microtime(true);
+
+        // Ambil kategori dari property atau fallback ke research_domain sebelumnya (misal saat re-analyze)
+        $category = $this->category;
+        if (!$category) {
+            $category = DB::table('paper_analyses')->where('paper_id', $paper->id)->value('research_domain');
+        }
 
         // Catat di tabel ai_jobs bahwa proses dimulai
         $jobLog = DB::table('ai_jobs')->insertGetId([
@@ -60,7 +68,7 @@ class AnalyzePaperJob implements ShouldQueue
 
             // PANGGIL FASTAPI MENGGUNAKAN HTTP CLIENT + INTERNAL TOKEN
             // System Instruction sudah di-hardcode di dalam kodingan Python (AnalyzeService)
-            // Laravel hanya perlu mengirimkan file PDF dan metadata saja
+            // Laravel mengirimkan file PDF, metadata, dan kategori bidang ilmu yang dipilih
             $response = Http::timeout(180)
                 ->withToken($token)
                 ->attach('file', file_get_contents($filePath), basename($filePath))
@@ -68,6 +76,7 @@ class AnalyzePaperJob implements ShouldQueue
                     'paper_id'   => $paper->id,
                     'request_id' => (string) Str::uuid(),
                     'expertises' => $expertises,
+                    'category'   => $category,
                 ]);
 
             if ($response->failed()) {
@@ -84,7 +93,7 @@ class AnalyzePaperJob implements ShouldQueue
             $data = $result['data'];
 
             // SIMPAN SEMUA DATA DARI FASTAPI KE TABEL-TABEL DATABASE
-            DB::transaction(function () use ($paper, $data, $jobLog, $response, $startTime) {
+            DB::transaction(function () use ($paper, $data, $jobLog, $response, $startTime, $category) {
                 // 0. Bersihkan data analisis lama jika ini adalah proses re-analyze / retry
                 DB::table('paper_authors')->where('paper_id', $paper->id)->delete();
                 DB::table('paper_analyses')->where('paper_id', $paper->id)->delete();
@@ -120,7 +129,7 @@ class AnalyzePaperJob implements ShouldQueue
                 // 3. Simpan Analisis Umum
                 DB::table('paper_analyses')->insert([
                     'paper_id'        => $paper->id,
-                    'research_domain' => $data['paper_analyses']['research_domain'],
+                    'research_domain' => $category ?: $data['paper_analyses']['research_domain'],
                     'research_type'   => $data['paper_analyses']['research_type'],
                     'key_findings'    => json_encode($data['paper_analyses']['key_findings']),
                     'strengths'       => json_encode($data['paper_analyses']['strengths']),

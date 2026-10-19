@@ -8,11 +8,15 @@ from app.schemas.paper_schemas import FullAnalyzeDataResponse
 class AnalyzeService:
 
     @classmethod
-    def run_full_analysis(cls, paper_text: str, expertises: str = None) -> FullAnalyzeDataResponse:
+    def run_full_analysis(cls, paper_text: str, expertises: str = None, category: str = None) -> FullAnalyzeDataResponse:
         
-        # 1. TARIK DATA KRITERIA DARI LARAVEL
+        # 1. TARIK DATA KRITERIA DARI LARAVEL SESUAI KATEGORI BIDANG ILMU
         try:
-            response = requests.get("http://127.0.0.1:8000/api/internal/criteria?endpoint=analyze", timeout=10)
+            url = "http://127.0.0.1:8000/api/internal/criteria?endpoint=analyze"
+            if category:
+                import urllib.parse
+                url += f"&category={urllib.parse.quote(category)}"
+            response = requests.get(url, timeout=10)
             api_data = response.json()
             criteria_list = api_data.get("data", [])
         except Exception as e:
@@ -47,7 +51,7 @@ ATURAN PENILAIAN:
 
         # 3. SUSUN USER PROMPT DAN SKEMA JSON
         fallback_expertises = "Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other"
-        domain_list = expertises if expertises else fallback_expertises
+        domain_list = category if category else (expertises if expertises else fallback_expertises)
 
         user_prompt = f"""Lakukan evaluasi akademik mendalam terhadap dokumen paper penelitian terlampir. Kembalikan respons HANYA dalam format JSON.
 

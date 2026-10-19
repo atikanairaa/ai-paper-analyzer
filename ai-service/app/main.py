@@ -83,7 +83,8 @@ def analyze_paper_endpoint(
     file: UploadFile = File(...),
     request_id: str = Form(None),
     paper_id: int = Form(None),
-    expertises: str = Form(None)
+    expertises: str = Form(None),
+    category: str = Form(None)
 ):
     active_request_id = request_id or str(uuid.uuid4())
     
@@ -95,8 +96,8 @@ def analyze_paper_endpoint(
         pages = PDFService.extract_text_with_pages(pdf_bytes)
         full_paper_text = PDFService.get_full_text(pages)
         
-        # Eksekusi Analisis Lengkap
-        analysis_data = AnalyzeService.run_full_analysis(full_paper_text, expertises)
+        # Eksekusi Analisis Lengkap dengan Kategori Bidang Ilmu Terpilih
+        analysis_data = AnalyzeService.run_full_analysis(full_paper_text, expertises, category)
         
         return APIResponse(
             success=True,

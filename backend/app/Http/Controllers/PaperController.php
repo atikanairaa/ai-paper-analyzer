@@ -30,6 +30,7 @@ class PaperController extends Controller
             'file' => 'required|mimes:pdf|max:20480', // Maks 20MB
             'is_submission' => 'nullable|boolean',
             'access_type' => 'nullable|in:OPEN_ACCESS,CLOSED_ACCESS',
+            'category' => 'nullable|string|max:255',
         ]);
 
         // 1. Simpan file PDF fisik ke storage
@@ -52,8 +53,8 @@ class PaperController extends Controller
             'created_at' => now(),
         ]);
 
-        // 4. LEMPAR KE QUEUE (Async Background Job)!
-        \App\Jobs\AnalyzePaperJob::dispatch($paper->id);
+        // 4. LEMPAR KE QUEUE (Async Background Job) dengan kategori yang dipilih!
+        \App\Jobs\AnalyzePaperJob::dispatch($paper->id, $request->input('category'));
 
         // 5. LANGSUNG RESPONS KE FRONTEND (Sesuai Brief Halaman 6!)
         return response()->json([

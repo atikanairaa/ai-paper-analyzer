@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
-import { UploadCloud, File, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
+import { UploadCloud, File, CheckCircle2, Loader2, ArrowLeft, BookOpen, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 
-export default function Upload() {
+export default function Upload({ categories = [] }: { categories?: string[] }) {
+  const categoryList = categories && categories.length > 0 
+    ? categories 
+    : ['Ilmu Komputer & Informatika', 'Ekonomi & Bisnis'];
+  const [selectedCategory, setSelectedCategory] = useState<string>(categoryList[0] || 'Ilmu Komputer & Informatika');
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadPurpose, setUploadPurpose] = useState<'study' | 'journal'>('study');
@@ -83,7 +87,8 @@ export default function Upload() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('is_submission', uploadPurpose === 'journal' ? '1' : '0');
-        formData.append('access_type', accessType);
+      formData.append('access_type', accessType);
+      formData.append('category', selectedCategory);
       const response = await axios.post('/api/papers', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       const newPaperId = response.data?.paper_id || response.data?.paper?.id;
       setStatus('processing');
@@ -133,6 +138,31 @@ export default function Upload() {
                     <p className="text-xs text-stone-400 mt-4">Maksimal ukuran file: 20MB Ã‚Â· Hanya format .pdf</p>
                   </div>
                 )}
+              </div>
+
+              {/* Bidang Ilmu / Kategori Jurnal */}
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-rose-600" />
+                    <span>Bidang Ilmu / Kategori Jurnal</span>
+                  </h3>
+                  <span className="text-xs text-stone-400 font-medium">Menentukan rubrik & prompt evaluasi AI</span>
+                </div>
+                <div className="relative">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full appearance-none bg-white border-2 border-[#e8e4dc] hover:border-stone-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 rounded-xl px-4 py-3.5 pr-10 text-sm font-semibold text-stone-800 transition-all outline-none cursor-pointer shadow-sm"
+                  >
+                    {categoryList.map((cat: string) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-5 h-5 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
 
               {/* Purpose */}
