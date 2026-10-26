@@ -200,7 +200,7 @@ export default function MyPapers() {
                                         </option>
                                     ),
                                 )}
-                                <option value="PUBLISHED">Published</option>
+                                <option value="PUBLISHED">Arsip Dipublikasikan</option>
                             </select>
                         </div>
                     </div>

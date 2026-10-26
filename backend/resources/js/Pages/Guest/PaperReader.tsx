@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Head, Link } from "@inertiajs/react";
-import { ArrowLeft, Download, Quote } from "lucide-react";
+import { Head, Link, usePage } from "@inertiajs/react";
+import { ArrowLeft, Download, Quote, LogOut } from "lucide-react";
 
 function splitHtmlIntoPages(html: string, charsPerPage = 4200): string[] {
     if (!html) return [""];
@@ -59,6 +59,7 @@ function splitHtmlIntoPages(html: string, charsPerPage = 4200): string[] {
 }
 
 export default function PaperReader({ paper, renderedTemplate }: any) {
+    const { auth } = usePage<any>().props;
     const pages = useMemo(() => splitHtmlIntoPages(renderedTemplate || "", 4200), [renderedTemplate]);
     const totalPages = pages.length;
     const [currentPage, setCurrentPage] = useState(1);
@@ -141,6 +142,19 @@ export default function PaperReader({ paper, renderedTemplate }: any) {
                         <Download className="w-3.5 h-3.5" />
                         Unduh PDF Jurnal
                     </a>
+
+                    {auth?.user && (
+                        <Link
+                            href="/logout"
+                            method="post"
+                            as="button"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-stone-100 text-stone-700 hover:bg-rose-50 hover:text-rose-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+                            title="Keluar / Ganti Akun"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Keluar</span>
+                        </Link>
+                    )}
                 </div>
             </header>
 

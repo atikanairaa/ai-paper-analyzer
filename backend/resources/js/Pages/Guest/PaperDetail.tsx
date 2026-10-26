@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
-import { Lock, FileText, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Download, LogIn, UserPlus, CheckCircle2, X, ExternalLink } from "lucide-react";
+import { Lock, FileText, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Download, LogIn, LogOut, UserPlus, CheckCircle2, X, ExternalLink } from "lucide-react";
 import axios from "axios";
 
 function splitHtmlIntoPages(html: string, charsPerPage = 3500): string[] {
@@ -104,9 +104,21 @@ export default function PaperDetail({
                         <span>Kembali ke Katalog</span>
                     </Link>
                     {auth?.user ? (
-                        <div className="text-xs text-stone-500 font-medium flex items-center gap-2 bg-stone-100 px-3.5 py-1.5 rounded-full border border-stone-200">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <span>Akun: <strong>{auth.user.name}</strong></span>
+                        <div className="flex items-center gap-2">
+                            <div className="text-xs text-stone-600 font-medium flex items-center gap-2 bg-stone-100 px-3.5 py-1.5 rounded-xl border border-stone-200">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                <span>Akun: <strong>{auth.user.name}</strong></span>
+                            </div>
+                            <Link
+                                href="/logout"
+                                method="post"
+                                as="button"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-rose-50 text-stone-700 hover:text-rose-700 rounded-xl text-xs font-bold border border-stone-200 transition shadow-2xs cursor-pointer"
+                                title="Keluar / Ganti Akun"
+                            >
+                                <LogOut className="w-3.5 h-3.5" />
+                                <span>Log Out</span>
+                            </Link>
                         </div>
                     ) : (
                         <div className="flex items-center gap-3">

@@ -1,4 +1,6 @@
 import time
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 import google.generativeai as genai
 import json
 from typing import Type, TypeVar

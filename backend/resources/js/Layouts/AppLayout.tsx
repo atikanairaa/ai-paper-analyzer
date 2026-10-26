@@ -51,7 +51,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           { id: 'master-paper', label: 'Master Paper', href: '/admin/papers', icon: <FileText className="w-5 h-5" /> },
           { id: 'journal-template', label: 'Template Paper', href: '/admin/journal-template', icon: <LayoutTemplate className="w-5 h-5" /> },
           { id: 'paper-publications', label: 'Publikasi Paper', href: '/admin/paper-publications', icon: <Send className="w-5 h-5" /> },
-          { id: 'published-papers', label: 'Paper Dipublikasikan', href: '/admin/published-papers', icon: <Globe className="w-5 h-5" /> },
+          { id: 'published-papers', label: 'Arsip Paper Dipublikasikan', href: '/admin/published-papers', icon: <Globe className="w-5 h-5" /> },
           { id: 'assign-paper', label: 'Assign Paper', href: '/admin/assign-paper', icon: <ClipboardList className="w-5 h-5" /> },
           { id: 'manage-users', label: 'Kelola Pengguna', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
           { id: 'manage-expertises', label: 'Kelola Bidang Keahlian', href: '/admin/expertises', icon: <BookOpen className="w-5 h-5" /> },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { BookOpen, Search, Lock, FileText, User, Calendar, Book, Filter, ChevronDown, BarChart2, Users, LayoutDashboard, LogIn } from 'lucide-react';
+import { BookOpen, Search, Lock, FileText, User, Calendar, Book, Filter, ChevronDown, BarChart2, Users, LayoutDashboard, LogIn, LogOut } from 'lucide-react';
 
 export default function Catalog({ papers }: { papers: any[] }) {
     const { auth } = usePage<any>().props;
@@ -43,26 +43,41 @@ export default function Catalog({ papers }: { papers: any[] }) {
                         <span className="font-black text-xl text-stone-900 tracking-tight">AI RESEARCH INDEX</span>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-sm font-semibold text-stone-600">
+                    <div className="flex items-center gap-3 text-sm font-semibold text-stone-600">
                         <Link href="/katalog" className="text-rose-700 hover:text-rose-800 transition">
                             Katalog
                         </Link>
                         {auth?.user ? (
-                            <Link
-                                href="/dashboard"
-                                className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-700 text-white rounded-lg text-xs font-bold hover:bg-rose-800 transition shadow-sm"
-                            >
-                                <LayoutDashboard className="w-3.5 h-3.5" />
-                                <span>Dashboard ({auth.user.name})</span>
-                            </Link>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/dashboard"
+                                    className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-700 text-white rounded-lg text-xs font-bold hover:bg-rose-800 transition shadow-sm"
+                                    title="Buka Dashboard"
+                                >
+                                    <LayoutDashboard className="w-3.5 h-3.5" />
+                                    <span>Dashboard ({auth.user.name})</span>
+                                </Link>
+                                <Link
+                                    href="/logout"
+                                    method="post"
+                                    as="button"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 hover:bg-rose-50 text-stone-700 hover:text-rose-700 rounded-lg text-xs font-bold border border-stone-200 transition cursor-pointer shadow-2xs"
+                                    title="Keluar / Ganti Akun"
+                                >
+                                    <LogOut className="w-3.5 h-3.5" />
+                                    <span>Log Out</span>
+                                </Link>
+                            </div>
                         ) : (
-                            <Link
-                                href="/login"
-                                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-stone-900 text-white rounded-lg text-xs font-bold hover:bg-stone-800 transition shadow-sm"
-                            >
-                                <LogIn className="w-3.5 h-3.5" />
-                                <span>Masuk / Login</span>
-                            </Link>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href="/login"
+                                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-stone-900 text-white rounded-lg text-xs font-bold hover:bg-stone-800 transition shadow-sm"
+                                >
+                                    <LogIn className="w-3.5 h-3.5" />
+                                    <span>Masuk / Login</span>
+                                </Link>
+                            </div>
                         )}
                     </div>
                 </div>

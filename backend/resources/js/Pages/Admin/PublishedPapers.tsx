@@ -3,7 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { 
     BookOpen, Search, ChevronLeft, ChevronRight, 
-    ExternalLink, Calendar, User, Tag, Library, Printer 
+    ExternalLink, Calendar, User, Tag, Library, Printer, Globe 
 } from 'lucide-react';
 
 interface Author { id: number; name: string; }
@@ -71,15 +71,15 @@ export default function PublishedPapers() {
 
     return (
         <AppLayout defaultRole="admin">
-            <Head title="Paper Dipublikasikan" />
+            <Head title="Arsip Paper Dipublikasikan" />
 
             <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-6">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-stone-900">Paper Dipublikasikan</h1>
+                        <h1 className="text-2xl font-bold text-stone-900">Arsip Paper Dipublikasikan</h1>
                         <p className="text-sm text-stone-500 mt-1">
-                            Daftar paper yang telah berhasil dipublikasikan ke jurnal.
+                            Arsip seluruh paper ilmiah yang telah resmi dipublikasikan ke katalog jurnal.
                             Total: <span className="font-semibold text-rose-700">{papers.total} paper</span>
                         </p>
                     </div>
@@ -279,21 +279,47 @@ function PaperRow({ paper, isLast }: { paper: Paper; isLast: boolean }) {
             </div>
 
             {/* Actions + Domain badge + link */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
                 {domain && (
                     <span className="px-2.5 py-1 bg-rose-50 text-rose-700 text-[11px] font-bold rounded-lg border border-rose-100">
                         {domain}
                     </span>
                 )}
+                <a
+                    href={`/katalog/${paper.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-stone-100 text-stone-700 border border-stone-200 rounded-lg text-[11px] font-bold hover:bg-stone-200 transition-colors"
+                    title="Buka di Katalog Jurnal"
+                >
+                    <Globe className="w-3.5 h-3.5 text-rose-600" />
+                    Katalog
+                </a>
+                <a
+                    href={`/paper/${paper.id}/read`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold hover:bg-rose-100 transition-colors"
+                    title="Baca Naskah Paper"
+                >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Baca
+                </a>
                 <button
                     onClick={handleGeneratePdf}
                     title="Generate PDF dari Template Jurnal"
-                    className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold hover:bg-indigo-100 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold hover:bg-indigo-100 transition-colors"
                 >
                     <Printer className="w-3.5 h-3.5" />
-                    PDF Template
+                    PDF
                 </button>
-                <ExternalLink className="w-4 h-4 text-stone-300 group-hover:text-rose-500 transition-colors" />
+                <Link
+                    href={`/detail/${paper.id}`}
+                    title="Lihat Detail Analisis"
+                    className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition"
+                >
+                    <ExternalLink className="w-4 h-4" />
+                </Link>
             </div>
         </div>
     );

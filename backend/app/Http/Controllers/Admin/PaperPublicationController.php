@@ -22,9 +22,14 @@ class PaperPublicationController extends Controller
         $targetId = $request->query('paper_id');
         $perPage  = 10;
 
-        // Query dasar: Paper yang lolos review (ACCEPTED)
-        $query = Paper::with(['authors', 'uploader', 'analyses', 'reviews.reviewer'])
-            ->whereIn('submission_status', ['ACCEPTED', 'ACCEPT']);
+        // Query dasar berdasar tab: Jika tab 'published', tampilkan arsip naskah yang sudah terbit (PUBLISHED)
+        if ($tab === 'published') {
+            $query = Paper::with(['authors', 'uploader', 'analyses', 'reviews.reviewer'])
+                ->where('submission_status', 'PUBLISHED');
+        } else {
+            $query = Paper::with(['authors', 'uploader', 'analyses', 'reviews.reviewer'])
+                ->whereIn('submission_status', ['ACCEPTED', 'ACCEPT']);
+        }
 
         // Jika ada filter khusus dari klik notifikasi (?paper_id=...)
         if ($targetId) {

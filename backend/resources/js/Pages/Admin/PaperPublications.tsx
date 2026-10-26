@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AppLayout } from '@/Layouts/AppLayout';
 import { ConfirmModal } from '@/Components/ConfirmModal';
 import {
     Send, CheckCircle2, AlertCircle, Clock, Search,
     ChevronLeft, ChevronRight, ExternalLink, Globe,
-    CreditCard, ShieldCheck, FileText, User, Sparkles
+    CreditCard, ShieldCheck, FileText, User, Sparkles,
+    X, BookOpen, Printer
 } from 'lucide-react';
 
 interface Author {
@@ -20,6 +21,7 @@ interface Paper {
     access_type?: 'OPEN_ACCESS' | 'CLOSED_ACCESS' | null;
     payment_status?: 'PAID' | 'UNPAID' | null;
     invoice_id?: string | null;
+    publication_year?: number | null;
     updated_at: string;
     authors?: Author[];
     uploader?: { id: number; name: string; email: string };
@@ -57,11 +59,23 @@ interface Props {
 }
 
 export default function PaperPublications() {
-    const { papers, stats, filters } = usePage<any>().props as Props;
+    const { papers, stats, filters, flash } = usePage<any>().props as Props & { flash?: { success?: string; error?: string } };
 
     const [search, setSearch] = useState(filters.search || '');
     const [selectedTab, setSelectedTab] = useState(filters.tab || 'ready');
     const [isPublishing, setIsPublishing] = useState(false);
+    const [alertMessage, setAlertMessage] = useState<string | null>(flash?.success || null);
+    const [alertType, setAlertType] = useState<'success' | 'error' | null>(flash?.success ? 'success' : flash?.error ? 'error' : null);
+
+    useEffect(() => {
+        if (flash?.success) {
+            setAlertMessage(flash.success);
+            setAlertType('success');
+        } else if (flash?.error) {
+            setAlertMessage(flash.error);
+            setAlertType('error');
+        }
+    }, [flash]);
 
     const [publishModal, setPublishModal] = useState<{
         isOpen: boolean;
@@ -97,10 +111,16 @@ export default function PaperPublications() {
 
     const handleConfirmPublish = () => {
         if (!publishModal.paper || isPublishing) return;
+        const targetTitle = publishModal.paper.title;
         setIsPublishing(true);
 
         router.post(`/admin/paper-publications/${publishModal.paper.id}/publish`, {}, {
             preserveScroll: true,
+            onSuccess: (page: any) => {
+                const successMsg = page?.props?.flash?.success || `Naskah "${targetTitle}" berhasil dipublikasikan ke katalog jurnal!`;
+                setAlertMessage(successMsg);
+                setAlertType('success');
+            },
             onFinish: () => {
                 setIsPublishing(false);
                 setPublishModal({ isOpen: false, paper: null });
@@ -154,10 +174,44 @@ export default function PaperPublications() {
                             className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e8e4dc] text-stone-700 text-sm font-semibold rounded-xl hover:bg-stone-50 transition shadow-sm"
                         >
                             <Globe className="w-4 h-4 text-rose-600" />
-                            <span>Lihat Paper Dipublikasikan ({stats.total_published})</span>
+                            <span>Arsip Paper Dipublikasikan ({stats.total_published})</span>
                         </Link>
                     </div>
                 </div>
+
+                {/* ── Alert Berhasil / Flash Notification ── */}
+                {alertMessage && (
+                    <div className={`px-5 py-4 rounded-2xl flex items-center justify-between gap-3 shadow-sm border transition-all animate-in fade-in duration-200 ${
+                        alertType === 'success'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                            : 'bg-rose-50 border-rose-200 text-rose-950'
+                    }`}>
+                        <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
+                                alertType === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                            }`}>
+                                {alertType === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                            </div>
+                            <div>
+                                <p className={`text-[10px] uppercase font-bold tracking-wider ${
+                                    alertType === 'success' ? 'text-emerald-700' : 'text-rose-700'
+                                }`}>
+                                    {alertType === 'success' ? 'Berhasil' : 'Pemberitahuan Sistem'}
+                                </p>
+                                <p className="text-sm font-semibold mt-0.5">{alertMessage}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setAlertMessage(null)}
+                            className={`p-1.5 rounded-lg transition flex-shrink-0 ${
+                                alertType === 'success' ? 'text-emerald-600 hover:bg-emerald-100' : 'text-rose-600 hover:bg-rose-100'
+                            }`}
+                            title="Tutup Notifikasi"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
 
                 {/* ── Target Highlight Banner (dari notifikasi) ── */}
                 {filters.paper_id && (
@@ -234,20 +288,26 @@ export default function PaperPublications() {
                         </p>
                     </div>
 
-                    {/* Card 3: Total Terbit */}
-                    <div className="p-5 rounded-2xl bg-white border border-[#e8e4dc] shadow-sm">
+                    {/* Card 3: Total Terbit (Arsip Dipublikasikan) */}
+                    <div
+                        onClick={() => handleTabChange('published')}
+                        className={`p-5 rounded-2xl border transition-all cursor-pointer ${selectedTab === 'published'
+                            ? 'bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-sm'
+                            : 'bg-white border-[#e8e4dc] hover:border-indigo-200 shadow-sm'
+                            }`}
+                    >
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">Telah Dipublikasikan</p>
+                                <p className="text-xs font-bold text-indigo-800 uppercase tracking-wider">Arsip Dipublikasikan</p>
                                 <h3 className="text-3xl font-extrabold text-stone-900 mt-2">{stats.total_published}</h3>
                             </div>
-                            <div className="w-12 h-12 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
                                 <Globe className="w-6 h-6" />
                             </div>
                         </div>
                         <p className="text-xs text-stone-500 mt-3 flex items-center gap-1.5">
-                            <ShieldCheck className="w-3.5 h-3.5 text-rose-600" />
-                            Tersedia di katalog publik jurnal ilmiah
+                            <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                            Klik untuk membuka arsip paper yang telah terbit
                         </p>
                     </div>
                 </div>
@@ -259,6 +319,7 @@ export default function PaperPublications() {
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
                         {[
                             { key: 'ready', label: 'Siap Terbit', count: stats.total_ready },
+                            { key: 'published', label: 'Arsip Dipublikasikan', count: stats.total_published },
                             { key: 'all', label: 'Semua Diterima', count: null },
                             { key: 'open_access', label: 'Open Access', count: null },
                             { key: 'closed_access', label: 'Closed Access', count: null },
@@ -326,10 +387,14 @@ export default function PaperPublications() {
                                             <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                                 <Send className="w-6 h-6 text-stone-400" />
                                             </div>
-                                            <p className="text-sm font-semibold text-stone-600">Tidak ada naskah yang ditemukan</p>
+                                            <p className="text-sm font-semibold text-stone-600">
+                                                {selectedTab === 'published' ? 'Belum ada arsip paper yang dipublikasikan' : 'Tidak ada naskah yang ditemukan'}
+                                            </p>
                                             <p className="text-xs text-stone-400 mt-1">
                                                 {selectedTab === 'ready'
                                                     ? 'Belum ada naskah berstatus ACCEPTED yang telah menyelesaikan administrasi pembayaran.'
+                                                    : selectedTab === 'published'
+                                                    ? 'Paper yang resmi diterbitkan akan tampil di sini sebagai arsip publikasi.'
                                                     : 'Tidak ada data naskah sesuai filter yang dipilih.'}
                                             </p>
                                         </td>
@@ -357,10 +422,17 @@ export default function PaperPublications() {
                                                                     Dari Notifikasi
                                                                 </span>
                                                             )}
-                                                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                <CheckCircle2 className="w-3 h-3" />
-                                                                ACCEPTED
-                                                            </span>
+                                                            {paper.submission_status === 'PUBLISHED' ? (
+                                                                <span className="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                    <Globe className="w-3 h-3 text-indigo-700" />
+                                                                    PUBLISHED {paper.publication_year ? `(${paper.publication_year})` : ''}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                    <CheckCircle2 className="w-3 h-3" />
+                                                                    ACCEPTED
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <Link
                                                             href={`/detail/${paper.id}`}
@@ -410,7 +482,12 @@ export default function PaperPublications() {
 
                                                 {/* Status Administrasi */}
                                                 <td className="py-4 px-4 text-xs">
-                                                    {paper.access_type === 'CLOSED_ACCESS' ? (
+                                                    {paper.submission_status === 'PUBLISHED' ? (
+                                                        <span className="inline-flex items-center gap-1 text-indigo-700 font-semibold text-[11px] bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                                                            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
+                                                            Resmi Terpublikasi
+                                                        </span>
+                                                    ) : paper.access_type === 'CLOSED_ACCESS' ? (
                                                         <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[11px]">
                                                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                                             Gratis Penulis (Siap Terbit)
@@ -430,34 +507,66 @@ export default function PaperPublications() {
 
                                                 {/* Tindakan Admin */}
                                                 <td className="py-4 px-6 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Link
-                                                            href={`/detail/${paper.id}`}
-                                                            className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition"
-                                                            title="Pratinjau / Detail Naskah"
-                                                        >
-                                                            <ExternalLink className="w-4 h-4" />
-                                                        </Link>
+                                                    {paper.submission_status === 'PUBLISHED' ? (
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <a
+                                                                href={`/katalog/${paper.id}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold transition shadow-2xs"
+                                                                title="Buka di Katalog Jurnal Publik"
+                                                            >
+                                                                <Globe className="w-3.5 h-3.5 text-rose-700" />
+                                                                <span>Katalog</span>
+                                                            </a>
+                                                            <a
+                                                                href={`/paper/${paper.id}/read`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition border border-rose-200 shadow-2xs"
+                                                                title="Baca Naskah Paper Utuh"
+                                                            >
+                                                                <BookOpen className="w-3.5 h-3.5 text-rose-700" />
+                                                                <span>Baca</span>
+                                                            </a>
+                                                            <Link
+                                                                href={`/detail/${paper.id}`}
+                                                                className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition"
+                                                                title="Detail & Laporan AI"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            </Link>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Link
+                                                                href={`/detail/${paper.id}`}
+                                                                className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition"
+                                                                title="Pratinjau / Detail Naskah"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                            </Link>
 
-                                                        {ready ? (
-                                                            <button
-                                                                onClick={() => handleOpenPublishModal(paper)}
-                                                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm hover:shadow transition"
-                                                            >
-                                                                <Send className="w-3.5 h-3.5" />
-                                                                <span>Terbitkan Paper</span>
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                disabled
-                                                                title="Peneliti belum menyelesaikan pembayaran biaya publikasi"
-                                                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-stone-100 text-stone-400 font-medium text-xs rounded-xl cursor-not-allowed border border-stone-200"
-                                                            >
-                                                                <Clock className="w-3.5 h-3.5" />
-                                                                <span>Belum Bisa Terbit</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                            {ready ? (
+                                                                <button
+                                                                    onClick={() => handleOpenPublishModal(paper)}
+                                                                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm hover:shadow transition"
+                                                                >
+                                                                    <Send className="w-3.5 h-3.5" />
+                                                                    <span>Terbitkan Paper</span>
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    disabled
+                                                                    title="Peneliti belum menyelesaikan pembayaran biaya publikasi"
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-stone-100 text-stone-400 font-medium text-xs rounded-xl cursor-not-allowed border border-stone-200"
+                                                                >
+                                                                    <Clock className="w-3.5 h-3.5" />
+                                                                    <span>Belum Bisa Terbit</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

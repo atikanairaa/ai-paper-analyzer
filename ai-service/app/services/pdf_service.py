@@ -1,4 +1,9 @@
-import fitz  # PyMuPDF
+import warnings
+warnings.filterwarnings("ignore", message=".*The `fitz` API is deprecated.*")
+try:
+    import pymupdf as fitz
+except ImportError:
+    import fitz  # PyMuPDF
 import re
 from typing import List, Dict
 
