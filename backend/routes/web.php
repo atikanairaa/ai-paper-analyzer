@@ -206,10 +206,12 @@ Route::get('/payment/finish', [\App\Http\Controllers\PaymentController::class, '
 
 // Simulasi lunas reader untuk testing cepat di local
 Route::get('/simulasi-lunas-reader/{paper_id}', function ($paper_id) {
-    if (!auth()->check()) {
+    if (!Auth::check()) {
         return redirect()->route('login', ['redirect' => route('guest.paper.read', $paper_id)]);
     }
-    $userId = auth()->id();
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+    $userId = $user->id;
     $purchase = \App\Models\Purchase::where('paper_id', $paper_id)
         ->where('user_id', $userId)
         ->latest()
@@ -221,8 +223,8 @@ Route::get('/simulasi-lunas-reader/{paper_id}', function ($paper_id) {
         \App\Models\Purchase::create([
             'user_id' => $userId,
             'paper_id' => $paper_id,
-            'guest_name' => auth()->user()->name,
-            'guest_email' => auth()->user()->email,
+            'guest_name' => $user->name,
+            'guest_email' => $user->email,
             'amount' => 25000,
             'invoice_number' => 'SIMULASI-' . time(),
             'payment_status' => 'PAID',
