@@ -1,0 +1,237 @@
+<?php
+
+use App\Http\Controllers\ProfileController;
+use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+
+// --- Halaman Publik ---
+Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('guest.catalog');
+});
+
+// --- Halaman Terproteksi (Butuh Login) ---
+Route::middleware(['auth'])->group(function () {
+
+    // Dashboard utama: arahkan ke halaman sesuai role
+    Route::get('/dashboard', function () {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($user->hasRole('reviewer')) {
+            return redirect()->route('reviewer');
+        }
+
+        if ($user->hasRole('reader')) {
+            return redirect()->route('guest.catalog');
+        }
+
+        // Default: peneliti
+        return redirect()->route('upload');
+    })->name('dashboard');
+
+    // â”€â”€ Rute halaman Peneliti â”€â”€
+    Route::middleware(['auth', \App\Http\Middleware\PreventReaderAccess::class])->group(function () {
+        Route::get('/upload', function () {
+            $categories = \App\Models\EvaluationCriterion::where('is_active', true)
+                ->distinct()
+                ->pluck('category')
+                ->values();
+            return Inertia::render('Upload', [
+                'categories' => $categories
+            ]);
+        })->name('upload');
+        Route::get('/upload/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('upload.detail');
+        Route::get('/detail',  fn() => Inertia::render('MyPapers'))->name('paper.detail');
+        Route::get('/detail/{id}', [\App\Http\Controllers\PaperController::class, 'showWeb'])->name('paper.detail.show');
+        Route::get('/papers/{id}/export-review', [\App\Http\Controllers\PaperController::class, 'exportReview'])->name('paper.export-review');
+        Route::get('/papers/{id}/pdf-view', [\App\Http\Controllers\PaperController::class, 'viewPdf'])->name('papers.pdf.view');
+        Route::get('/papers/{id}/watermark-pdf', [\App\Http\Controllers\PaperController::class, 'viewWatermarkedPdf'])->name('papers.pdf.watermark');
+        Route::get('/compare', [\App\Http\Controllers\PaperController::class, 'compareView'])->name('compare');
+
+        // Payment & Access routes untuk Author/Researcher
+        Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
+        Route::post('/papers/{paper}/choose-access', [\App\Http\Controllers\PaperController::class, 'chooseAccess'])->name('paper.choose-access');
+        Route::post('/papers/{paper}/check-payment', [\App\Http\Controllers\PaymentController::class, 'checkPaymentStatus'])->name('payment.check');
+        Route::post('/papers/{id}/submit', [\App\Http\Controllers\PaperController::class, 'submitToJournal'])->name('paper.submit');
+        Route::post('/papers/{id}/withdraw', [\App\Http\Controllers\PaperController::class, 'withdrawSubmission'])->name('paper.withdraw');
+
+        // Penerbitan Paper (Hanya untuk Admin)
+        Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');
+        Route::post('/papers/{id}/reanalyze', [\App\Http\Controllers\PaperController::class, 'reanalyze'])->name('papers.reanalyze');
+    });
+
+    // ── [DEV ONLY] Simulasi konfirmasi pembayaran DOKU tanpa Ngrok ──
+    Route::get('/simulasi-lunas/{id}', function ($id) {
+        $paper = \App\Models\Paper::with('uploader')->findOrFail($id);
+        $paper->update(['payment_status' => 'PAID']);
+
+        // Kirim notifikasi ke Admin bahwa Open Access sudah lunas dan siap diterbitkan
+        $admins = \App\Models\User::role('admin')->get();
+        if ($admins->isEmpty()) {
+            $admins = \App\Models\User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->get();
+        }
+        $researcherName = $paper->uploader->name ?? 'Peneliti';
+        \Illuminate\Support\Facades\Notification::send(
+            $admins,
+            new \App\Notifications\PaperReadyToPublishNotification($paper->id, $paper->title, $researcherName, 'OPEN_ACCESS')
+        );
+
+        return redirect("/detail/{$id}")->with('success', 'Simulasi: Pembayaran DOKU berhasil dikonfirmasi! Notifikasi telah dikirim ke Admin.');
+    })->name('payment.simulasi');
+
+    // â”€â”€ Rute halaman Reviewer â”€â”€
+    Route::get('/reviewer', [\App\Http\Controllers\ReviewerDashboardController::class, 'index'])->name('reviewer');
+
+    // â”€â”€ Rute halaman Admin â”€â”€
+    Route::prefix('admin')->middleware(['role:admin'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('admin.dashboard');
+        Route::get('/papers', [\App\Http\Controllers\Admin\PaperManagementController::class, 'index'])->name('admin.papers');
+        Route::get('/assign-paper', [\App\Http\Controllers\Admin\ReviewerManagementController::class, 'assignIndex'])->name('admin.assign');
+        Route::get('/audit', fn() => Inertia::render('AdminAuditLog'))->name('admin.audit');
+        Route::get('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('admin.users');
+        Route::post('/users', [\App\Http\Controllers\Admin\UserManagementController::class, 'store'])->name('admin.users.store');
+        Route::put('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'update'])->name('admin.users.update');
+        Route::delete('/users/{id}', [\App\Http\Controllers\Admin\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+        Route::get('/expertises', [\App\Http\Controllers\Admin\ExpertiseManagementController::class, 'index'])->name('admin.expertises');
+        Route::get('/published-papers', [\App\Http\Controllers\Admin\PublishedPapersController::class, 'index'])->name('admin.published-papers');
+        Route::get('/paper-publications', [\App\Http\Controllers\Admin\PaperPublicationController::class, 'index'])->name('admin.paper-publications');
+        Route::post('/paper-publications/{paper}/publish', [\App\Http\Controllers\Admin\PaperPublicationController::class, 'publish'])->name('admin.paper-publications.publish');
+        Route::get('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'index'])->name('admin.prompts.index');
+        Route::post('/prompts', [\App\Http\Controllers\Admin\PromptController::class, 'store'])->name('admin.prompts.store');
+        Route::put('/prompts-category/rename', [\App\Http\Controllers\Admin\PromptController::class, 'renameCategory'])->name('admin.prompts.category.rename');
+        Route::delete('/prompts-category/destroy', [\App\Http\Controllers\Admin\PromptController::class, 'destroyCategory'])->name('admin.prompts.category.destroy');
+        Route::put('/prompts/{criterion}', [\App\Http\Controllers\Admin\PromptController::class, 'update'])->name('admin.prompts.update');
+        Route::delete('/prompts/{criterion}', [\App\Http\Controllers\Admin\PromptController::class, 'destroy'])->name('admin.prompts.destroy');
+
+        Route::get('/journal-template', function () {
+            $defaultTemplate = "<div style=\"font-family: 'Times New Roman', Times, serif; color: #1c1917; line-height: 1.6;\">     <div style=\"display:flex; justify-content:space-between; border-bottom: 2px solid #881337; padding-bottom: 8px; font-size: 11px; color: #881337; margin-bottom: 24px;\">         <span><strong>Transactions on AI &amp; Software Engineering</strong> | e-ISSN: 2985-XXXX</span>         <span>Vol. 1, No. 1 ({article.year}) | pp. 1-10</span>     </div>      <div style=\"text-align:center; margin-bottom: 30px; background-color: #fff1f2; padding: 20px; border-radius: 8px; border: 1px dashed #fda4af;\">         <h4 style=\"margin: 0 0 5px 0; color: #881337; font-size: 18px; font-weight: 800; letter-spacing: 2px;\">? AI RESEARCH PAPER PUBLISHING ?</h4>         <p style=\"margin: 0; font-size: 11px; color: #9f1239; letter-spacing: 1px; text-transform: uppercase; font-weight: bold;\">International Journal of Computational Intelligence &amp; Software</p>     </div>      <h1 style=\"text-align:center; font-size: 22px; color: #881337; margin-bottom: 15px; font-weight: 900; line-height: 1.3;\">         {article.title}     </h1>      <p style=\"text-align:center; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #1c1917;\">         {article.author}     </p>     <p style=\"text-align:center; font-size: 11px; color: #57534e; margin-bottom: 4px; font-style: italic;\">         1 Department of Computer Science, Faculty of Engineering, University Name, City, Country     </p>     <p style=\"text-align:center; font-size: 11px; color: #e11d48; font-style: italic; margin-bottom: 25px;\">         * Penulis Korespondensi: <u>{article.correspondence_email}</u>     </p>      <figure class=\"table\">         <table style=\"width:100%; border: 1px solid #9f1239; border-collapse: collapse;\">             <tbody>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Received:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.received_date}</td>                     <td style=\"width:15%; font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Revised:</td>                     <td style=\"width:35%; color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.revised_date}</td>                 </tr>                 <tr style=\"background-color: #fff1f2;\">                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Accepted:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.accepted_date}</td>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px;\">Published:</td>                     <td style=\"color: #57534e; border: 1px solid #fda4af; padding: 8px;\">{article.published_date}</td>                 </tr>                 <tr>                     <td style=\"font-weight:bold; color: #881337; border: 1px solid #fda4af; padding: 8px; background-color: #fff1f2;\">How to cite:</td>                     <td colspan=\"3\" style=\"border: 1px solid #fda4af; padding: 8px; font-size: 10px; color: #57534e;\">                         [Diisi oleh Editor] {article.author}. (2026). {article.title}. Transactions on AI &amp; Software Engineering, 1(1), 1-10.                     </td>                 </tr>             </tbody>         </table>     </figure>      <div style=\"border: 2px solid #881337; background-color: #fff1f2; padding: 20px; margin: 30px 0; border-radius: 8px;\">         <p style=\"margin: 0 0 10px 0; font-size: 14px; font-weight: 900; color: #881337; text-align: center; text-transform: uppercase;\">             ABSTRAK / ABSTRACT         </p>         <p style=\"margin: 0 0 15px 0; font-size: 11px; text-align: justify; color: #1c1917;\">             {article.abstract}         </p>         <p style=\"margin: 0; font-size: 11px; color: #1c1917;\">             <strong style=\"color: #881337;\">Keywords:</strong> {article.keywords}         </p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">1. Introduction</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.introduction}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">2. Methods</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.methodology}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">3. Results and Discussion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.results}</p>     </div>      <div style=\"margin-bottom: 20px;\">         <h3 style=\"font-size: 14px; font-weight: bold; color: #881337; border-bottom: 1px solid #fda4af; padding-bottom: 4px; margin-bottom: 10px;\">4. Conclusion</h3>         <p style=\"font-size: 11px; text-align: justify; margin: 0;\">{article.conclusion}</p>     </div> </div>";
+            $template = \Illuminate\Support\Facades\Storage::exists('journal_template.html')
+                ? \Illuminate\Support\Facades\Storage::get('journal_template.html')
+                : $defaultTemplate;
+            return Inertia::render('Admin/JournalTemplate', ['initialTemplate' => $template]);
+        })->name('admin.journal-template');
+
+        Route::post('/journal-template', function (\Illuminate\Http\Request $request) {
+            $request->validate(['template' => 'required|string']);
+            \Illuminate\Support\Facades\Storage::put('journal_template.html', $request->template);
+            return redirect()->back();
+        })->name('admin.journal-template.save');
+    });
+
+    // â”€â”€ Profile (bawaan Breeze) â”€â”€
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // â”€â”€ Notifikasi â”€â”€
+    Route::post('/notifications/mark-read', function (Illuminate\Http\Request $request) {
+        $request->user()->unreadNotifications->markAsRead();
+        return response()->json(['success' => true]);
+    })->name('notifications.markRead');
+});
+
+Route::post('/papers/{paperId}/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviewer.store')->middleware(['auth']);
+require __DIR__ . '/auth.php';
+
+
+// Magic Link (1-Klik Login)
+Route::get('/magic-link/reviewer', [\App\Http\Controllers\MagicLinkController::class, 'directAccess'])->name('reviewer.direct-access');
+
+
+Route::get('/admin/reviewers/recommend-orcid/{paperId}', [\App\Http\Controllers\Admin\ReviewerManagementController::class, 'recommendOrcid'])->name('admin.reviewers.recommend-orcid')->middleware(['auth', 'role:admin']);
+
+
+Route::post('/papers/{id}/revision', [\App\Http\Controllers\PaperController::class, 'submitRevision'])->name('paper.revision')->middleware(['auth']);
+
+
+
+
+// Katalog Publik
+Route::get('/storage/papers/{filename}', function ($filename) {
+    // 1. Cari paper di database untuk mencocokkan file
+    $paper = \App\Models\Paper::with(['uploader', 'analyses', 'sections'])
+        ->where('file_path', 'papers/' . $filename)
+        ->orWhere('file_path', $filename)
+        ->orWhere('file_path', 'like', '%' . $filename)
+        ->first();
+
+    // 2. Jika paper berstatus PUBLISHED, sajikan PDF yang sudah di-generate dari template jurnal
+    if ($paper && $paper->submission_status === 'PUBLISHED') {
+        $generatedDir = storage_path('app/generated_papers');
+        if (!file_exists($generatedDir)) {
+            mkdir($generatedDir, 0755, true);
+        }
+        $cacheFile = $generatedDir . '/paper_' . $paper->id . '.pdf';
+
+        if (!file_exists($cacheFile) || request()->has('regenerate')) {
+            $controller = app(\App\Http\Controllers\GuestPaperController::class);
+            $pdfContent = $controller->generatePdf($paper);
+            file_put_contents($cacheFile, $pdfContent);
+        }
+
+        $cleanFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', substr($paper->title ?? 'paper', 0, 40));
+        return response()->file($cacheFile, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="Jurnal_' . $cleanFilename . '.pdf"'
+        ]);
+    }
+
+    // Fallback: Jika belum dipublish / draft, gunakan file asli
+    $path = storage_path('app/papers/' . $filename);
+    if (!file_exists($path)) {
+        $path = storage_path('app/private/papers/' . $filename);
+    }
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path);
+})->name('serve.papers');
+
+Route::get('/katalog', [\App\Http\Controllers\GuestPaperController::class, 'index'])->name('guest.catalog');
+Route::get('/katalog/{id}', [\App\Http\Controllers\GuestPaperController::class, 'show'])->name('guest.catalog.show');
+Route::get('/paper/{id}/read', [\App\Http\Controllers\GuestPaperController::class, 'read'])->name('guest.paper.read');
+Route::get('/paper/{id}/pdf', [\App\Http\Controllers\GuestPaperController::class, 'downloadPdf'])->name('guest.paper.pdf');
+
+// Payment routes untuk Reader/Guest (Bisa diakses tanpa login)
+Route::post('/papers/{paper}/buy', [\App\Http\Controllers\PaymentController::class, 'generateReaderInvoice'])->name('payment.buy');
+Route::post('/papers/{paper}/check-reader-payment', [\App\Http\Controllers\PaymentController::class, 'checkReaderPaymentStatus'])->name('payment.reader.check');
+Route::get('/payment/finish', [\App\Http\Controllers\PaymentController::class, 'finishCallback'])->name('payment.finish');
+
+// Simulasi lunas reader untuk testing cepat di local
+Route::get('/simulasi-lunas-reader/{paper_id}', function ($paper_id) {
+    if (!Auth::check()) {
+        return redirect()->route('login', ['redirect' => route('guest.paper.read', $paper_id)]);
+    }
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+    $userId = $user->id;
+    $purchase = \App\Models\Purchase::where('paper_id', $paper_id)
+        ->where('user_id', $userId)
+        ->latest()
+        ->first();
+
+    if ($purchase) {
+        $purchase->update(['payment_status' => 'PAID']);
+    } else {
+        \App\Models\Purchase::create([
+            'user_id' => $userId,
+            'paper_id' => $paper_id,
+            'guest_name' => $user->name,
+            'guest_email' => $user->email,
+            'amount' => 25000,
+            'invoice_number' => 'SIMULASI-' . time(),
+            'payment_status' => 'PAID',
+        ]);
+    }
+    return redirect()->route('guest.paper.read', $paper_id)
+        ->with('success', 'Simulasi Pembayaran Berhasil! Hak akses naskah telah dibuka.');
+})->name('payment.reader.simulasi');
