@@ -25,12 +25,14 @@ class AdminDashboardController extends Controller
         $domains = DB::table('paper_analyses')
             ->select('research_domain', DB::raw('count(*) as count'))
             ->whereNotNull('research_domain')
+            ->where('research_domain', '!=', '')
             ->groupBy('research_domain')
+            ->orderByDesc('count')
             ->get()
             ->map(function ($item) {
                 return [
-                    'name' => $item->research_domain,
-                    'count' => $item->count
+                    'name' => trim($item->research_domain),
+                    'count' => (int) $item->count
                 ];
             });
 

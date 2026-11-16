@@ -411,7 +411,12 @@ class PaperController extends Controller
 
     public function submitToJournal($id)
     {
-        $paper = Paper::where('uploaded_by', auth()->id())->findOrFail($id);
+        $paper = Paper::findOrFail($id);
+        $user = auth()->user();
+
+        if ($paper->uploaded_by !== $user->id && !$user->hasRole('admin')) {
+            return response()->json(['error' => 'Anda tidak memiliki hak akses untuk mengajukan paper ini.'], 403);
+        }
         
         if ($paper->status !== 'ANALYZED' || !$paper->is_submission) {
             return response()->json(['error' => 'Paper tidak memenuhi syarat untuk disubmit.'], 400);
@@ -420,21 +425,26 @@ class PaperController extends Controller
         $paper->update(['submission_status' => 'SUBMITTED']);
 
         \Illuminate\Support\Facades\DB::table('audit_logs')->insert([
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'action' => 'SUBMIT_TO_JOURNAL',
             'paper_id' => $paper->id,
             'created_at' => now(),
         ]);
 
         $admins = \App\Models\User::role('admin')->get();
-        \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\JournalSubmittedNotification($paper->id, $paper->title, auth()->user()->name));
+        \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\JournalSubmittedNotification($paper->id, $paper->title, $user->name));
 
         return response()->json(['message' => 'Paper berhasil disubmit ke Jurnal', 'paper' => $paper]);
     }
 
     public function withdrawSubmission($id)
     {
-        $paper = Paper::where('uploaded_by', auth()->id())->findOrFail($id);
+        $paper = Paper::findOrFail($id);
+        $user = auth()->user();
+
+        if ($paper->uploaded_by !== $user->id && !$user->hasRole('admin')) {
+            return response()->json(['error' => 'Anda tidak memiliki hak akses untuk menarik paper ini.'], 403);
+        }
         
         if ($paper->submission_status !== 'DRAFT') {
             return response()->json(['error' => 'Hanya paper DRAFT yang dapat ditarik.'], 400);
@@ -446,7 +456,7 @@ class PaperController extends Controller
         ]);
 
         \Illuminate\Support\Facades\DB::table('audit_logs')->insert([
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'action' => 'WITHDRAW_SUBMISSION',
             'paper_id' => $paper->id,
             'created_at' => now(),

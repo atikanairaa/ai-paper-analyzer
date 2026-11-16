@@ -1,7 +1,6 @@
-from app.services.gemini_service import GeminiService
-from app.schemas.paper_schemas import FullAnalyzeDataResponse
-
+import urllib.parse
 import requests
+from app.logger import logger
 from app.services.gemini_service import GeminiService
 from app.schemas.paper_schemas import FullAnalyzeDataResponse
 
@@ -10,22 +9,37 @@ class AnalyzeService:
     @classmethod
     def run_full_analysis(cls, paper_text: str, expertises: str = None, category: str = None) -> FullAnalyzeDataResponse:
         
-        # 1. TARIK DATA KRITERIA DARI LARAVEL SESUAI KATEGORI BIDANG ILMU
+        # 1. FETCH CRITERIA DATA FROM LARAVEL CORRESPONDING TO FIELD / CATEGORY
+        url = "http://127.0.0.1:8000/api/internal/criteria?endpoint=analyze"
+        if category:
+            url += f"&category={urllib.parse.quote(category)}"
+            
+        logger.step(
+            "CRITERIA",
+            f"Fetching evaluation rubrics from Laravel API...",
+            {"Endpoint": url, "Category": category or "Default (General)"}
+        )
+
         try:
-            url = "http://127.0.0.1:8000/api/internal/criteria?endpoint=analyze"
-            if category:
-                import urllib.parse
-                url += f"&category={urllib.parse.quote(category)}"
             response = requests.get(url, timeout=10)
             api_data = response.json()
             criteria_list = api_data.get("data", [])
         except Exception as e:
-            raise Exception(f"Gagal terhubung ke Laravel API untuk mengambil kriteria: {str(e)}")
+            logger.warn(f"Failed to fetch criteria from Laravel API: {str(e)}")
+            raise Exception(f"Failed to connect to Laravel API for criteria: {str(e)}")
             
         if not criteria_list:
-            raise Exception("Tidak ada kriteria evaluasi yang aktif di database untuk endpoint analyze!")
+            err_msg = "No active evaluation criteria found in database for analyze endpoint!"
+            logger.warn(err_msg)
+            raise Exception(err_msg)
 
-        # 2. SUSUN SYSTEM PROMPT DINAMIS BERDASARKAN DATABASE
+        logger.step(
+            "CRITERIA",
+            f"Successfully loaded {len(criteria_list)} evaluation rubrics from database",
+            {"Rubrics": ", ".join([c.get("name", "") for c in criteria_list])}
+        )
+
+        # 2. CONSTRUCT DYNAMIC SYSTEM PROMPT BASED ON DATABASE RUBRICS
         criteria_text = ""
         for c in criteria_list:
             criteria_text += f"- **{c['name']}** (Bobot {c['weight']}%):\n  {c['instruction']}\n\n"
@@ -49,7 +63,7 @@ ATURAN PENILAIAN:
 4. EKSTRAKSI KEYWORDS KETAT: DILARANG mengarang/halusinasi keyword. Ekstrak HANYA kata kunci persis seperti yang tertulis di teks dokumen (tepat setelah label "Kata Kunci", "Kata kunci:", atau "Keywords:"). Jika berbahasa Indonesia, salin sesuai aslinya. JANGAN mengarang bidang ilmu seperti Artificial Intelligence jika tidak tertulis.
 5. PURE JSON ONLY: Kembalikan respon murni JSON valid tanpa teks pembuka/penutup."""
 
-        # 3. SUSUN USER PROMPT DAN SKEMA JSON
+        # 3. CONSTRUCT USER PROMPT AND JSON SCHEMA
         fallback_expertises = "Computer Science | Medicine | Engineering | Economics | Education | Social Science | Physics | Biology | Other"
         domain_list = category if category else (expertises if expertises else fallback_expertises)
 
@@ -125,6 +139,11 @@ TARGET SKEMA JSON (Wajib Patuhi Struktur Ini):
   }}
 }}
 """
+
+        logger.step(
+            "PROMPT",
+            f"Analysis prompt successfully constructed ({len(user_prompt):,} characters). Dispatching to Gemini AI..."
+        )
 
         validated_result: FullAnalyzeDataResponse = GeminiService.call_gemini_with_repair(
             prompt=user_prompt,

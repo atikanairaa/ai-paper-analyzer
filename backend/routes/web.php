@@ -61,6 +61,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/papers/{paper}/generate-payment', [\App\Http\Controllers\PaymentController::class, 'generateInvoice'])->name('payment.generate');
         Route::post('/papers/{paper}/choose-access', [\App\Http\Controllers\PaperController::class, 'chooseAccess'])->name('paper.choose-access');
         Route::post('/papers/{paper}/check-payment', [\App\Http\Controllers\PaymentController::class, 'checkPaymentStatus'])->name('payment.check');
+        Route::post('/papers/{id}/submit', [\App\Http\Controllers\PaperController::class, 'submitToJournal'])->name('paper.submit');
+        Route::post('/papers/{id}/withdraw', [\App\Http\Controllers\PaperController::class, 'withdrawSubmission'])->name('paper.withdraw');
 
         // Penerbitan Paper (Hanya untuk Admin)
         Route::post('/papers/{paper}/publish', [\App\Http\Controllers\PaperController::class, 'publishPaper'])->name('paper.publish');

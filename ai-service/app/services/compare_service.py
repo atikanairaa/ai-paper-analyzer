@@ -1,3 +1,4 @@
+from app.logger import logger
 from app.services.gemini_service import GeminiService
 from app.schemas.paper_schemas import CompareDataResponse
 
@@ -160,6 +161,12 @@ TARGET SKEMA JSON:
   }}
 }}
 """
+
+        logger.step(
+            "COMPARE",
+            f"Constructing 2-paper comparison prompt ({len(user_prompt):,} characters). Dispatching to Gemini...",
+            {"Paper A": paper_a_title, "Paper B": paper_b_title}
+        )
 
         validated_result: CompareDataResponse = GeminiService.call_gemini_with_repair(
             prompt=user_prompt,

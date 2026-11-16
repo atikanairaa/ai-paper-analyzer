@@ -153,8 +153,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </p>
 
           {/* Actions */}
-          <div className={`flex gap-3 ${isAlertOnly ? 'justify-center' : 'justify-end'}`}>
-            {!isAlertOnly && (
+          <div className={`flex gap-3 ${isAlertOnly || !cancelLabel ? 'justify-center' : 'justify-end'}`}>
+            {!isAlertOnly && cancelLabel && (
               <button
                 onClick={onCancel}
                 className="px-5 py-2.5 rounded-xl border border-stone-200 text-sm font-semibold text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-all focus:outline-none focus:ring-2 focus:ring-stone-200"

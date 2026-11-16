@@ -1,3 +1,4 @@
+from app.logger import logger
 from app.services.gemini_service import GeminiService
 from app.schemas.paper_schemas import QADataResponse
 
@@ -113,6 +114,12 @@ TARGET SKEMA JSON:
   ]
 }}
 """
+
+        logger.step(
+            "QA",
+            f"Constructing document-grounded Q&A prompt ({len(user_prompt):,} characters). Dispatching to Gemini...",
+            {"Question": question}
+        )
 
         validated_result: QADataResponse = GeminiService.call_gemini_with_repair(
             prompt=user_prompt,

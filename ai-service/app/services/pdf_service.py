@@ -6,6 +6,7 @@ except ImportError:
     import fitz  # PyMuPDF
 import re
 from typing import List, Dict
+from app.logger import logger
 
 class PDFService:
     @staticmethod
@@ -33,6 +34,7 @@ class PDFService:
     @classmethod
     def extract_structured_blocks(cls, pdf_bytes: bytes) -> List[Dict]:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        num_pages = len(doc)
         structured_blocks = []
 
         font_sizes = []
@@ -47,7 +49,7 @@ class PDFService:
 
         body_font_size = max(set(font_sizes), key=font_sizes.count) if font_sizes else 10.0
 
-        for page_num in range(len(doc)):
+        for page_num in range(num_pages):
             page = doc[page_num]
             blocks = page.get_text("dict")["blocks"]
 
@@ -77,17 +79,29 @@ class PDFService:
                         })
 
         doc.close()
+        heading_count = sum(1 for b in structured_blocks if b.get("is_heading"))
+        logger.step(
+            "PDF-EXTRACT",
+            f"Structural block extraction completed: {len(structured_blocks)} blocks ({heading_count} headings detected) across {num_pages} pages."
+        )
         return structured_blocks
 
     @classmethod
     def extract_text_with_pages(cls, pdf_bytes: bytes) -> List[Dict]:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        num_pages = len(doc)
         pages = []
-        for i in range(len(doc)):
+        total_chars = 0
+        for i in range(num_pages):
             txt = cls.clean_text(doc[i].get_text("text"))
             if txt:
+                total_chars += len(txt)
                 pages.append({"page": i + 1, "text": txt})
         doc.close()
+        logger.step(
+            "PDF-EXTRACT",
+            f"Per-page text extraction completed: {len(pages)}/{num_pages} pages parsed ({total_chars:,} characters)."
+        )
         return pages
 
     @classmethod
@@ -97,28 +111,33 @@ class PDFService:
     @classmethod
     def add_watermark(cls, pdf_bytes: bytes, watermark_text: str = "CONFIDENTIAL — FOR PEER REVIEW ONLY") -> bytes:
         """
-        Watermark 1 Baris Ramping (Slim & Subtle) Standar Publisher:
-        - 1 Baris diagonal tunggal tepat di poros tengah
-        - Font ramping (26pt) dan warna ultra-pudar (tidak menutupi tabel/teks)
+        Publisher Standard Slim & Subtle 1-Line Diagonal Watermark:
+        - Single diagonal center line
+        - 26pt soft ghost color
         """
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        num_pages = len(doc)
+        logger.step(
+            "PDF-WATERMARK",
+            f"Applying publisher watermark to {num_pages} pages...",
+            {"Watermark Text": watermark_text}
+        )
 
         for page in doc:
             rect = page.rect
             center = fitz.Point(rect.width / 2, rect.height / 2)
 
-            # 1. Warna abu-abu ultra-soft (0.91) - Sangat transparan & ramah di mata
+            # Ultra-soft ghost grey (0.91)
             ghost_color = (0.91, 0.91, 0.91)
             fontname = "helv"
-            fontsize = 26  # Ukuran ramping agar tidak memblokir isi tabel
+            fontsize = 26
 
-            text_line = "CONFIDENTIAL — FOR PEER REVIEW ONLY"
+            text_line = watermark_text
             text_len = fitz.get_text_length(text_line, fontname=fontname, fontsize=fontsize)
             
-            # Titik penempatan agar titik tengah teks presisi di titik tengah halaman
             start_point = fitz.Point(center.x - (text_len / 2), center.y + (fontsize / 3))
 
-            # Tempel 1 baris tunggal miring diagonal (-40 derajat)
+            # Diagonal -40 degrees
             page.insert_text(
                 start_point,
                 text_line,
@@ -129,7 +148,7 @@ class PDFService:
                 overlay=True
             )
 
-            # 2. Header Tipis di Atas Halaman
+            # Slim top header
             header_text = "MANUSCRIPT UNDER PEER REVIEW — DO NOT DISTRIBUTE OR CITE"
             header_size = 8
             header_len = fitz.get_text_length(header_text, fontname=fontname, fontsize=header_size)
@@ -146,4 +165,5 @@ class PDFService:
 
         watermarked_bytes = doc.tobytes()
         doc.close()
+        logger.step("PDF-WATERMARK", f"Watermark successfully applied to all {num_pages} pages.")
         return watermarked_bytes

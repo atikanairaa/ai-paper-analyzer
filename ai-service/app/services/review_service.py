@@ -1,3 +1,4 @@
+from app.logger import logger
 from app.services.gemini_service import GeminiService
 from app.schemas.paper_schemas import ReviewDataResponse
 
@@ -118,6 +119,8 @@ TARGET SKEMA JSON:
   "recommendation_reason": "Alasan editorial tegas dan profesional di balik vonis keputusan rekomendasi yang dipilih (maksimal 2 kalimat)"
 }}
 """
+
+        logger.step("REVIEW", f"Constructing peer-reviewer evaluation prompt ({len(user_prompt):,} characters). Dispatching to Gemini...")
 
         validated_result: ReviewDataResponse = GeminiService.call_gemini_with_repair(
             prompt=user_prompt,

@@ -6,6 +6,7 @@ import json
 from typing import Type, TypeVar
 from pydantic import BaseModel, ValidationError
 from app.core_config import GEMINI_API_KEY
+from app.logger import logger
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -37,7 +38,16 @@ class GeminiService:
         while attempts <= max_retries:
             try:
                 attempts += 1
+                logger.gemini_call(
+                    model_name=cls.MODEL_NAME,
+                    attempt=attempts,
+                    max_retries=max_retries,
+                    prompt_chars=len(current_prompt)
+                )
+
+                t_start = time.time()
                 response = model.generate_content(current_prompt)
+                duration = time.time() - t_start
                 raw_json_text = response.text.strip()
 
                 if raw_json_text.startswith("```"):
@@ -46,24 +56,42 @@ class GeminiService:
                         raw_json_text = raw_json_text[4:]
                     raw_json_text = raw_json_text.strip()
 
-                # Validasi Pydantic
+                # Pydantic schema validation
                 validated_data = schema_class.model_validate_json(raw_json_text)
+                logger.step(
+                    "GEMINI-AI", 
+                    f"Response received ({duration:.2f}s) and passed '{schema_class.__name__}' schema validation"
+                )
                 return validated_data
 
             except Exception as e:
                 err_str = str(e)
                 
-                # JIKA KENA LIMIT (429): Otomatis tidur dengan exponential backoff
+                # RATE LIMIT (429): Automatic backoff sleep
                 if "429" in err_str or "ResourceExhausted" in err_str:
                     if attempts <= max_retries:
                         sleep_time = 30 * attempts
-                        time.sleep(sleep_time)  # Tunggu 30, 60 detik di background
+                        logger.gemini_retry(
+                            reason=f"Rate limit / 429 ResourceExhausted detected: {err_str[:120]}...",
+                            sleep_seconds=sleep_time,
+                            next_attempt=attempts + 1
+                        )
+                        time.sleep(sleep_time)
                         continue
 
-                # JIKA ERROR PYDANTIC ATAU LAINNYA: Jalankan repair loop
+                # EXHAUSTED RETRIES
                 if attempts > max_retries:
+                    logger.step(
+                        "GEMINI-FAILED", 
+                        f"All retry attempts ({max_retries + 1}) exhausted: {err_str}"
+                    )
                     raise ValueError(f"AI_PROCESSING_FAILED: {err_str}")
 
+                # SCHEMA REPAIR LOOP
+                logger.step(
+                    "GEMINI-REPAIR", 
+                    f"JSON schema validation failed (Attempt {attempts}/{max_retries + 1}). Requesting AI repair: {err_str[:150]}..."
+                )
                 current_prompt = (
                     f"PREVIOUS RESPONSE FAILED PYDANTIC VALIDATION!\n"
                     f"Error details: {err_str}\n\n"

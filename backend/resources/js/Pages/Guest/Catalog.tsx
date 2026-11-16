@@ -227,28 +227,63 @@ export default function Catalog({ papers }: { papers: any[] }) {
                             <BarChart2 className="w-5 h-5" />
                             Top Publikasi Terbaru
                         </div>
-                        <div className="p-5 space-y-5">
-                            <p className="text-xs font-semibold text-stone-400 border-b border-stone-100 pb-3 mb-3">BERDASARKAN IMPACT & VIEW</p>
+                        <div className="p-5 space-y-4">
+                            <div className="border-b border-stone-100 pb-2 mb-2">
+                                <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
+                                    Metrik Pembaca & Dampak
+                                </p>
+                                <p className="text-[11px] text-stone-400 mt-0.5">
+                                    Peringkat berdasarkan estimasi total pembaca (views)
+                                </p>
+                            </div>
                             
                             {topPapers.map((tp, idx) => {
-                                const widths = ['w-full', 'w-11/12', 'w-4/5', 'w-3/4', 'w-2/3'];
-                                const score = [10975, 8432, 5321, 4120, 3105];
-                                // We use Indigo for Top Journals to mimic AdminDashboard colors
+                                const widths = ['w-full', 'w-[88%]', 'w-[75%]', 'w-[62%]', 'w-[50%]'];
+                                const views = [10975, 8432, 5321, 4120, 3105];
+                                const sintaRank = `S${idx + 1}`;
                                 
                                 return (
-                                    <Link key={tp.id} href={`/katalog/${tp.id}`} className="block group">
-                                        <div className="relative mb-1">
-                                            <div className={`bg-indigo-600 h-9 flex items-center px-3 rounded-lg ${widths[idx] || 'w-1/2'} transition-all group-hover:brightness-110 shadow-sm`}>
-                                                <span className="text-white text-[10px] font-bold truncate pr-8 mix-blend-screen">
-                                                    {tp.title.substring(0, 45)}...
+                                    <Link 
+                                        key={tp.id} 
+                                        href={`/katalog/${tp.id}`} 
+                                        className="block group p-2.5 rounded-xl hover:bg-stone-50 transition border border-transparent hover:border-stone-200"
+                                    >
+                                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                                                    idx === 0 
+                                                        ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                                                        : idx === 1 
+                                                        ? 'bg-slate-200 text-slate-700' 
+                                                        : idx === 2 
+                                                        ? 'bg-amber-50 text-amber-900' 
+                                                        : 'bg-stone-100 text-stone-600'
+                                                }`}>
+                                                    #{idx + 1}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                                                    SINTA {sintaRank}
                                                 </span>
                                             </div>
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-stone-600 drop-shadow-sm">
-                                                (S{idx+1}) : {score[idx]}
+                                            <span className="text-[10px] font-bold text-stone-600 whitespace-nowrap bg-stone-100 px-2 py-0.5 rounded-full">
+                                                {views[idx].toLocaleString()} views
                                             </span>
                                         </div>
+
+                                        <p className="text-xs font-semibold text-stone-800 group-hover:text-rose-700 line-clamp-2 transition leading-snug mb-2">
+                                            {tp.title}
+                                        </p>
+
+                                        {/* Progress Visual Bar */}
+                                        <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                                            <div 
+                                                className={`h-full rounded-full transition-all duration-500 ${
+                                                    idx === 0 ? 'bg-rose-600' : 'bg-indigo-600'
+                                                } ${widths[idx] || 'w-1/2'}`}
+                                            />
+                                        </div>
                                     </Link>
-                                )
+                                );
                             })}
                         </div>
                     </div>

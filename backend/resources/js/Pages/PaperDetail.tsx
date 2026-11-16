@@ -241,7 +241,11 @@ export default function PaperDetail() {
                 closeModal();
                 setIsActionLoading(true);
                 try {
-                    await axios.post(`/api/papers/${paper.id}/${action}`);
+                    try {
+                        await axios.post(`/papers/${paper.id}/${action}`);
+                    } catch (webErr) {
+                        await axios.post(`/api/papers/${paper.id}/${action}`);
+                    }
                     window.location.reload();
                 } catch (error: any) {
                     setConfirmModal({
@@ -249,8 +253,10 @@ export default function PaperDetail() {
                         title: "Terjadi Kesalahan",
                         message:
                             error.response?.data?.error ||
+                            error.response?.data?.message ||
                             "Terjadi kesalahan saat memproses permintaan.",
                         confirmLabel: "Tutup",
+                        cancelLabel: "",
                         variant: "danger",
                         onConfirm: closeModal,
                     });
